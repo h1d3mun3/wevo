@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		83A545BE2F58957F00342AE7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 83A545BD2F58957F00342AE7 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		83A545A02F5893F800342AE7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		83A5458E2F5893F600342AE7 /* Wevo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wevo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A5459F2F5893F800342AE7 /* WevoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A545A92F5893F800342AE7 /* WevoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		83A545BD2F58957F00342AE7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +93,7 @@
 		83A545852F5893F600342AE7 = {
 			isa = PBXGroup;
 			children = (
+				83A545BD2F58957F00342AE7 /* README.md */,
 				83A545902F5893F600342AE7 /* Wevo */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
 				83A545AC2F5893F800342AE7 /* WevoUITests */,
@@ -225,6 +231,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				83A545BE2F58957F00342AE7 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
