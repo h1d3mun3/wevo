@@ -57,7 +57,8 @@ final class KeychainRepository {
             kSecAttrService as String: service,
             kSecAttrAccount as String: item.id.uuidString,
             kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            kSecAttrSynchronizable as String: true
         ]
         
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -80,7 +81,8 @@ final class KeychainRepository {
             kSecAttrService as String: service,
             kSecAttrAccount as String: id.uuidString,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var result: AnyObject?
@@ -113,7 +115,8 @@ final class KeychainRepository {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var result: AnyObject?
@@ -159,7 +162,8 @@ final class KeychainRepository {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let attributesToUpdate: [String: Any] = [
@@ -183,7 +187,8 @@ final class KeychainRepository {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let status = SecItemDelete(query as CFDictionary)
@@ -197,7 +202,8 @@ final class KeychainRepository {
     func deleteAllIdentityKeys() throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service
+            kSecAttrService as String: service,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let status = SecItemDelete(query as CFDictionary)
