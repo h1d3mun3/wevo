@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AddSpaceView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var name: String = ""
     @State private var serverURL: String = ""
@@ -101,7 +102,50 @@ struct AddSpaceView: View {
     }
 
     private func add() {
-        // TODO: Spaceの保存処理を実装
+        guard canSave else { return }
+        
+        isSaving = true
+        
+        // URLRequestの作成
+        guard let url = URL(string: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            print("❌ Invalid URL: \(serverURL)")
+            isSaving = false
+            return
+        }
+        
+        let urlRequest = URLRequest(url: url)
+        
+        // 既存のSpaceの数を取得してorderIndexを決定
+        let repository = SpaceRepository(modelContext: modelContext)
+        let orderIndex: Int
+        do {
+            let existingSpaces = try repository.fetchAll()
+            orderIndex = existingSpaces.count
+        } catch {
+            print("❌ Error fetching spaces: \(error)")
+            orderIndex = 0
+        }
+        
+        // Spaceエンティティの作成
+        let space = Space(
+            id: UUID(),
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            serverURL: urlRequest,
+            defaultIdentityID: selectedIdentityID,
+            orderIndex: orderIndex
+        )
+        
+        // SwiftDataに保存
+        do {
+            try repository.create(space)
+            print("✅ Space saved: \(space.name)")
+            isSaving = false
+            dismiss()
+        } catch {
+            print("❌ Error saving space: \(error)")
+            isSaving = false
+            // TODO: エラーアラートを表示
+        }
     }
 }
 
