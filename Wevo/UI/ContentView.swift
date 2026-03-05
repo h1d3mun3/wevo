@@ -79,13 +79,6 @@ struct ContentView: View {
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-    
     private func loadSpaces() async {
         let repository = SpaceRepository(modelContext: modelContext)
         do {
@@ -120,5 +113,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: SpaceSwiftData.self, inMemory: true)
 }
