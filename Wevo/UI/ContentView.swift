@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
+    @State private var shouldShowAddSpace = false
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
@@ -34,9 +35,16 @@ struct ContentView: View {
                     EditButton()
                 }
 #endif
+
                 ToolbarItem {
                     Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
+                    }
+                }
+
+                ToolbarItem{
+                    Button(action: { shouldShowAddSpace = true }) {
+                        Label("Add Space", systemImage: "globe")
                     }
                 }
             }
@@ -45,6 +53,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $shouldShowIdentityList) {
             IdentityListView()
+        }
+        .sheet(isPresented: $shouldShowAddSpace) {
+            AddSpaceView()
         }
     }
 
