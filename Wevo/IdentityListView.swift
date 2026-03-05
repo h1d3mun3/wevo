@@ -9,8 +9,7 @@ import SwiftUI
 
 struct IdentityListView: View {
     @State private var shouldShowCreateIdentity = false
-    // TODO: Implement Later
-    var identities: [Identity] = []
+    @State private var identities: [Identity] = []
 
     var body: some View {
         NavigationStack {
@@ -24,15 +23,62 @@ struct IdentityListView: View {
                         Text(item.nickname)
                     }
                 }
+                .onDelete(perform: deleteIdentities)
 
                 Button(action: { shouldShowCreateIdentity = true }) {
                     Text("Create Identity")
                 }
             }
             .navigationTitle("Identity")
+            .toolbar {
+#if os(iOS)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+#endif
+            }
+            .task {
+                await loadIdentities()
+            }
         }
-        .sheet(isPresented: $shouldShowCreateIdentity) {
+        .sheet(isPresented: $shouldShowCreateIdentity, onDismiss: {
+            Task {
+                await loadIdentities()
+            }
+        }) {
             CreateIdentityView()
+        }
+    }
+    
+    private func loadIdentities() async {
+        do {
+            let items = try KeychainRepository.shared.getAllIdentityKeys()
+            let loadedIdentities = items.map { item in
+                Identity(id: item.id, nickname: item.nickname)
+            }
+            await MainActor.run {
+                identities = loadedIdentities
+            }
+        } catch {
+            print("❌ Error loading identities: \(error)")
+            await MainActor.run {
+                identities = []
+            }
+        }
+    }
+    
+    private func deleteIdentities(offsets: IndexSet) {
+        Task {
+            do {
+                for index in offsets {
+                    let identity = identities[index]
+                    try KeychainRepository.shared.deleteIdentityKey(id: identity.id)
+                }
+                await loadIdentities()
+            } catch {
+                print("❌ Error deleting identity: \(error)")
+                // TODO: エラーをユーザーに表示
+            }
         }
     }
 }
