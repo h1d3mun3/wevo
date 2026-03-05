@@ -35,7 +35,6 @@ struct ContentView: View {
                     EditButton()
                 }
 #endif
-
                 ToolbarItem {
                     Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
