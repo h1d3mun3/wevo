@@ -1,5 +1,5 @@
 //
-//  IdentityKeyListView.swift
+//  IdentityListView.swift
 //  Wevo
 //
 //  Created by hidemune on 3/5/26.
@@ -7,15 +7,15 @@
 
 import SwiftUI
 
-struct IdentityKeyListView: View {
-    @State private var shouldShowCreateIdentityKey = false
+struct IdentityListView: View {
+    @State private var shouldShowCreateIdentity = false
     // TODO: Implement Later
-    var items: [IdentityKey] = []
+    var identities: [Identity] = []
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(items) { item in
+                ForEach(identities) { item in
                     NavigationLink {
                         // TODO: Implement Later
                         Text("Detail for \(item.nickname)")
@@ -25,18 +25,18 @@ struct IdentityKeyListView: View {
                     }
                 }
 
-                Button(action: { shouldShowCreateIdentityKey = true }) {
-                    Text("Create IdentityKey")
+                Button(action: { shouldShowCreateIdentity = true }) {
+                    Text("Create Identity")
                 }
             }
-            .navigationTitle("IdentityKeys")
+            .navigationTitle("Identity")
         }
-        .sheet(isPresented: $shouldShowCreateIdentityKey) {
-            CreateIdentityKeyView()
+        .sheet(isPresented: $shouldShowCreateIdentity) {
+            CreateIdentityView()
         }
     }
 }
 
 #Preview {
-    IdentityKeyListView()
+    IdentityListView()
 }

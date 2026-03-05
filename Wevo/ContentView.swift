@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @State private var shouldShowIdentityKeyList = false
+    @State private var shouldShowIdentityList = false
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
@@ -35,7 +35,7 @@ struct ContentView: View {
                 }
 #endif
                 ToolbarItem {
-                    Button(action: { shouldShowIdentityKeyList = true }) {
+                    Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
                     }
                 }
@@ -43,8 +43,8 @@ struct ContentView: View {
         } detail: {
             Text("Select an item")
         }
-        .sheet(isPresented: $shouldShowIdentityKeyList) {
-            IdentityKeyListView()
+        .sheet(isPresented: $shouldShowIdentityList) {
+            IdentityListView()
         }
     }
 

@@ -1,5 +1,5 @@
 //
-//  CreateIdentityKeyView.swift
+//  CreateIdentityView.swift
 //  Wevo
 //
 //  Created by hidemune on 3/5/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CreateIdentityKeyView: View {
+struct CreateIdentityView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var nickname: String = ""
@@ -24,14 +24,14 @@ struct CreateIdentityKeyView: View {
                     TextField("Specify Key Nickname", text: $nickname)
                 }
             }
-            .navigationTitle("Create IdentityKey")
+            .navigationTitle("Create Identity")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create Key") {
+                    Button("Create Identity") {
                         create()
                     }
                     .disabled(!canSave)
@@ -46,5 +46,5 @@ struct CreateIdentityKeyView: View {
 }
 
 #Preview {
-    CreateIdentityKeyView()
+    CreateIdentityView()
 }
