@@ -85,8 +85,9 @@ final class SpaceRepository {
     
     /// 既存のSpaceを更新
     func update(_ space: Space) throws {
+        let spaceID = space.id
         let predicate = #Predicate<SpaceSwiftData> { model in
-            model.id == space.id
+            model.id == spaceID
         }
         
         var descriptor = FetchDescriptor<SpaceSwiftData>(predicate: predicate)
