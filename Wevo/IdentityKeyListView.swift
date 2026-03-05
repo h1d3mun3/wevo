@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct IdentityKeyListView: View {
+    @State private var shouldShowCreateIdentityKey = false
     // TODO: Implement Later
     var items: [IdentityKey] = []
 
@@ -24,13 +25,14 @@ struct IdentityKeyListView: View {
                     }
                 }
 
-                NavigationLink {
-                    AddIdentityKeyView()
-                } label: {
-                    Text("Add IdentityKey")
+                Button(action: { shouldShowCreateIdentityKey = true }) {
+                    Text("Create IdentityKey")
                 }
             }
-            .navigationTitle("Identity Keys")
+            .navigationTitle("IdentityKeys")
+        }
+        .sheet(isPresented: $shouldShowCreateIdentityKey) {
+            CreateIdentityKeyView()
         }
     }
 }
