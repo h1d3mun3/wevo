@@ -16,7 +16,7 @@ final class SpaceSwiftData {
     var activeIdentityID: UUID?
     var orderIndex: Int
     var createdAt: Date
-    var updatedAt: Date?
+    var updatedAt: Date
 
     init(
         id: UUID,
@@ -25,7 +25,7 @@ final class SpaceSwiftData {
         activeIdentityID: UUID?,
         orderIndex: Int,
         createdAt: Date = Date(),
-        updatedAt: Date? = nil
+        updatedAt: Date = Date()
     ) {
         self.id = id
         self.name = name
