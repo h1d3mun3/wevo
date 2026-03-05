@@ -108,29 +108,6 @@ final class SpaceRepository {
         }
     }
     
-    /// 複数のSpaceのorderIndexを一括更新
-    func updateOrderIndices(_ updates: [(id: UUID, orderIndex: Int)]) throws {
-        for update in updates {
-            let predicate = #Predicate<SpaceSwiftData> { model in
-                model.id == update.id
-            }
-            
-            var descriptor = FetchDescriptor<SpaceSwiftData>(predicate: predicate)
-            descriptor.fetchLimit = 1
-            
-            if let model = try? modelContext.fetch(descriptor).first {
-                model.orderIndex = update.orderIndex
-                model.updatedAt = Date()
-            }
-        }
-        
-        do {
-            try modelContext.save()
-        } catch {
-            throw SpaceRepositoryError.saveError(error)
-        }
-    }
-    
     // MARK: - Delete
     /// 特定のIDのSpaceを削除
     func delete(by id: UUID) throws {
