@@ -20,7 +20,7 @@ struct SpaceConverter {
             id: space.id,
             name: space.name,
             serverURLString: space.serverURL.url?.absoluteString ?? "",
-            activeIdentityID: space.activeIdentityID,
+            defaultIdentityID: space.defaultIdentityID,
             orderIndex: space.orderIndex
         )
     }
@@ -37,7 +37,7 @@ struct SpaceConverter {
             id: model.id,
             name: model.name,
             serverURL: urlRequest,
-            activeIdentityID: model.activeIdentityID,
+            defaultIdentityID: model.defaultIdentityID,
             orderIndex: model.orderIndex
         )
     }
@@ -53,7 +53,7 @@ struct SpaceConverter {
     static func updateModel(_ model: SpaceSwiftData, with space: Space) {
         model.name = space.name
         model.serverURLString = space.serverURL.url?.absoluteString ?? ""
-        model.activeIdentityID = space.activeIdentityID
+        model.defaultIdentityID = space.defaultIdentityID
         model.orderIndex = space.orderIndex
         model.updatedAt = Date()
     }

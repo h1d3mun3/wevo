@@ -11,6 +11,6 @@ struct Space {
     let id: UUID
     let name: String
     let serverURL: URLRequest
-    let activeIdentityID: UUID?
+    let defaultIdentityID: UUID?
     let orderIndex: Int
 }
