@@ -8,8 +8,30 @@
 import SwiftUI
 
 struct IdentityKeyListView: View {
+    // TODO: Implement Later
+    var items: [IdentityKey] = []
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        NavigationStack {
+            List {
+                ForEach(items) { item in
+                    NavigationLink {
+                        // TODO: Implement Later
+                        Text("Detail for \(item.nickname)")
+                    } label: {
+                        // TODO: Implement Later
+                        Text(item.nickname)
+                    }
+                }
+
+                NavigationLink {
+                    AddIdentityKeyView()
+                } label: {
+                    Text("Add IdentityKey")
+                }
+            }
+            .navigationTitle("Identity Keys")
+        }
     }
 }
 

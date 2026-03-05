@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct IdentityKey {
+struct IdentityKey: Identifiable {
     let id: UUID
     let nickname: String
 }
