@@ -11,20 +11,34 @@ import SwiftData
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
     @State private var shouldShowAddSpace = false
+    @State private var spaces: [Space] = []
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
 
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                if spaces.isEmpty {
+                    Text("No spaces available")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(spaces, id: \.id) { space in
+                        NavigationLink {
+                            // TODO: Implement Space detail view
+                            Text("Space: \(space.name)")
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(space.name)
+                                    .font(.headline)
+                                if let urlString = space.serverURL.url?.absoluteString {
+                                    Text(urlString)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
+                    .onDelete(perform: deleteSpace)
                 }
-                .onDelete(perform: deleteItems)
             }
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -47,13 +61,20 @@ struct ContentView: View {
                     }
                 }
             }
+            .task {
+                await loadSpaces()
+            }
         } detail: {
             Text("Select an item")
         }
         .sheet(isPresented: $shouldShowIdentityList) {
             IdentityListView()
         }
-        .sheet(isPresented: $shouldShowAddSpace) {
+        .sheet(isPresented: $shouldShowAddSpace, onDismiss: {
+            Task {
+                await loadSpaces()
+            }
+        }) {
             AddSpaceView()
         }
     }
@@ -64,11 +85,34 @@ struct ContentView: View {
             modelContext.insert(newItem)
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+    
+    private func loadSpaces() async {
+        let repository = SpaceRepository(modelContext: modelContext)
+        do {
+            let loadedSpaces = try repository.fetchAll()
+            await MainActor.run {
+                spaces = loadedSpaces
+            }
+        } catch {
+            print("❌ Error loading spaces: \(error)")
+            await MainActor.run {
+                spaces = []
+            }
+        }
+    }
+    
+    private func deleteSpace(offsets: IndexSet) {
+        Task {
+            let repository = SpaceRepository(modelContext: modelContext)
+            do {
+                for index in offsets {
+                    let space = spaces[index]
+                    try repository.delete(by: space.id)
+                }
+                await loadSpaces()
+            } catch {
+                print("❌ Error deleting space: \(error)")
+                // TODO: エラーをユーザーに表示
             }
         }
     }
