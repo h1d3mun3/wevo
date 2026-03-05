@@ -44,11 +44,6 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
             .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
                 ToolbarItem {
                     Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
