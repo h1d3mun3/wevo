@@ -7,10 +7,6 @@
 
 import Foundation
 
-enum SpaceConverterError: Error {
-    case invalidURL(String)
-}
-
 /// Space構造体とSpaceModelの相互変換を行う
 struct SpaceConverter {
     
@@ -19,40 +15,34 @@ struct SpaceConverter {
         return SpaceSwiftData(
             id: space.id,
             name: space.name,
-            serverURLString: space.serverURL.url?.absoluteString ?? "",
+            urlString: space.url,
             defaultIdentityID: space.defaultIdentityID,
             orderIndex: space.orderIndex
         )
     }
     
     /// SpaceModelからSpace構造体へ変換
-    static func toEntity(from model: SpaceSwiftData) throws -> Space {
-        guard let url = URL(string: model.serverURLString) else {
-            throw SpaceConverterError.invalidURL(model.serverURLString)
-        }
-        
-        let urlRequest = URLRequest(url: url)
-        
+    static func toEntity(from model: SpaceSwiftData) -> Space {
         return Space(
             id: model.id,
             name: model.name,
-            serverURL: urlRequest,
+            url: model.urlString,
             defaultIdentityID: model.defaultIdentityID,
             orderIndex: model.orderIndex
         )
     }
     
-    /// 複数のSpaceModelを変換（失敗したものは除外）
+    /// 複数のSpaceModelを変換
     static func toEntities(from models: [SpaceSwiftData]) -> [Space] {
-        return models.compactMap { model in
-            try? toEntity(from: model)
+        return models.map { model in
+            toEntity(from: model)
         }
     }
     
     /// SpaceModelを既存のSpace構造体で更新
     static func updateModel(_ model: SpaceSwiftData, with space: Space) {
         model.name = space.name
-        model.serverURLString = space.serverURL.url?.absoluteString ?? ""
+        model.urlString = space.url
         model.defaultIdentityID = space.defaultIdentityID
         model.orderIndex = space.orderIndex
         model.updatedAt = Date()

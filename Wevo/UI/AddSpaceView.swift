@@ -12,13 +12,13 @@ struct AddSpaceView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var name: String = ""
-    @State private var serverURL: String = ""
+    @State private var urlString: String = ""
     @State private var identities: [Identity] = []
     @State private var selectedIdentityID: UUID?
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && 
-        !serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         selectedIdentityID != nil && 
         !isSaving
     }
@@ -31,8 +31,8 @@ struct AddSpaceView: View {
                     TextField("Space Name", text: $name)
                 }
 
-                Section("Server URL") {
-                    TextField("Server URL", text: $serverURL)
+                Section("Space URL") {
+                    TextField("Space URL", text: $urlString)
                 }
 
                 Section {
@@ -103,14 +103,8 @@ struct AddSpaceView: View {
         
         isSaving = true
         
-        // URLRequestの作成
-        guard let url = URL(string: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            print("❌ Invalid URL: \(serverURL)")
-            isSaving = false
-            return
-        }
-        
-        let urlRequest = URLRequest(url: url)
+        // URLの妥当性チェック（オプショナル）
+        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 既存のSpaceの数を取得してorderIndexを決定
         let repository = SpaceRepository(modelContext: modelContext)
@@ -127,7 +121,7 @@ struct AddSpaceView: View {
         let space = Space(
             id: UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            serverURL: urlRequest,
+            url: trimmedURL,
             defaultIdentityID: selectedIdentityID,
             orderIndex: orderIndex
         )
