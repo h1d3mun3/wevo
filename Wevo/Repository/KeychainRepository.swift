@@ -387,32 +387,41 @@ extension KeychainRepository {
         return signature.derRepresentation.base64EncodedString()
     }
     
-    /// 署名を検証する
+    /// 署名の検証のコア処理（プライベート）
+    private func verifySignatureData(_ signatureData: Data, for messageData: Data, withPublicKey publicKeyData: Data) throws -> Bool {
+        let publicKey = try P256.Signing.PublicKey(x963Representation: publicKeyData)
+        let signatureObject = try P256.Signing.ECDSASignature(derRepresentation: signatureData)
+        return publicKey.isValidSignature(signatureObject, for: messageData)
+    }
+    
+    /// 署名を検証する（公開鍵を直接指定）
+    /// - Parameters:
+    ///   - signature: Base64エンコードされた署名文字列
+    ///   - message: 署名対象の文字列
+    ///   - publicKey: 検証に使用する公開鍵（x963Representation形式のData）
+    /// - Returns: 署名が有効な場合はtrue
+    func verifySignature(_ signature: String, for message: String, withPublicKey publicKey: Data) throws -> Bool {
+        // Base64デコードして署名データに変換
+        guard let signatureData = Data(base64Encoded: signature) else {
+            throw KeychainError.invalidData
+        }
+        // メッセージをDataに変換
+        guard let messageData = message.data(using: .utf8) else {
+            throw KeychainError.invalidData
+        }
+        return try verifySignatureData(signatureData, for: messageData, withPublicKey: publicKey)
+    }
+    
+    /// 署名を検証する（IdentityIdから公開鍵を取得）
     /// - Parameters:
     ///   - signature: Base64エンコードされた署名文字列
     ///   - message: 署名対象の文字列
     ///   - identityId: 検証に使用するIdentityのID
     /// - Returns: 署名が有効な場合はtrue
     func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
-        // Base64デコードして署名データに変換
-        guard let signatureData = Data(base64Encoded: signature) else {
-            throw KeychainError.invalidData
-        }
-        
         // メタデータから公開鍵を取得（認証不要）
         let metadata = try getIdentityMetadata(id: identityId)
-        
-        // 公開鍵をP256.Signing.PublicKeyに変換（x963Representation形式で保存されているため）
-        let publicKey = try P256.Signing.PublicKey(x963Representation: metadata.publicKey)
-        
-        // メッセージをDataに変換
-        guard let messageData = message.data(using: .utf8) else {
-            throw KeychainError.invalidData
-        }
-        
-        // 署名を検証（DER形式でデコード）
-        let signatureObject = try P256.Signing.ECDSASignature(derRepresentation: signatureData)
-        return publicKey.isValidSignature(signatureObject, for: messageData)
+        return try verifySignature(signature, for: message, withPublicKey: metadata.publicKey)
     }
 }
 
