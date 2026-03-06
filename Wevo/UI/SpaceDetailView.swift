@@ -14,6 +14,7 @@ struct SpaceDetailView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var defaultIdentity: Identity?
+    @State private var shouldShowCreatePropose = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -95,12 +96,31 @@ struct SpaceDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    shouldShowCreatePropose = true
+                } label: {
+                    Label("Create Propose", systemImage: "plus")
+                }
+                .disabled(defaultIdentity == nil)
+            }
+        }
         .task {
             await loadDefaultIdentity()
             await loadProposes()
         }
         .refreshable {
             await loadProposes()
+        }
+        .sheet(isPresented: $shouldShowCreatePropose) {
+            if let identity = defaultIdentity {
+                CreateProposeView(space: space, identity: identity) {
+                    Task {
+                        await loadProposes()
+                    }
+                }
+            }
         }
     }
     
@@ -139,7 +159,7 @@ struct SpaceDetailView: View {
         guard let baseURL = URL(string: space.url) else {
             await MainActor.run {
                 self.isLoading = false
-                self.errorMessage = "Invalid space URL: \(space.url)"
+                self.errorMessage = "Invalid server URL: \(space.url)"
                 self.proposes = []
             }
             return
