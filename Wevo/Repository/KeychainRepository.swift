@@ -47,8 +47,8 @@ final class KeychainRepository {
     
     /// 新しいIdentityを作成して保存（認証不要でメタデータ、認証必須で秘密鍵）
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
-        // 秘密鍵から公開鍵を導出
-        let key = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        // 秘密鍵から公開鍵を導出（署名用の鍵を使用）
+        let key = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKey)
         let publicKey = key.publicKey.rawRepresentation
         
         let item = IdentityKeyChainItem(
@@ -171,7 +171,7 @@ final class KeychainRepository {
     }
     
     /// 特定のIDのメタデータを取得（認証不要）
-    private func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
+    fileprivate func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
@@ -199,7 +199,7 @@ final class KeychainRepository {
     }
     
     /// 秘密鍵を取得（生体認証必須）
-    private func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
+    fileprivate func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
         let authContext = context ?? LAContext()
         authContext.localizedReason = "Authentication is required to access the private key"
         
@@ -357,3 +357,60 @@ final class KeychainRepository {
 private struct PrivateKeyData: Codable {
     let privateKey: Data
 }
+// MARK: - Signing Extension
+
+extension KeychainRepository {
+    
+    /// 指定されたIdentityの秘密鍵でStringに署名する（生体認証必須）
+    /// - Parameters:
+    ///   - message: 署名対象の文字列
+    ///   - identityId: 使用するIdentityのID
+    ///   - context: オプションのLAContext（複数回の署名操作で認証を再利用する場合）
+    /// - Returns: Base64エンコードされた署名文字列
+    func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext? = nil) throws -> String {
+        // 秘密鍵を取得（生体認証が必要）
+        let privateKeyData = try getPrivateKey(id: identityId, context: context)
+        
+        // 秘密鍵をCurve25519.Signing.PrivateKeyに変換
+        let privateKey = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKeyData)
+        
+        // メッセージをDataに変換
+        guard let messageData = message.data(using: .utf8) else {
+            throw KeychainError.invalidData
+        }
+        
+        // 署名を生成
+        let signature = try privateKey.signature(for: messageData)
+        
+        // Base64エンコードして文字列として返す
+        return signature.base64EncodedString()
+    }
+    
+    /// 署名を検証する
+    /// - Parameters:
+    ///   - signature: Base64エンコードされた署名文字列
+    ///   - message: 署名対象の文字列
+    ///   - identityId: 検証に使用するIdentityのID
+    /// - Returns: 署名が有効な場合はtrue
+    func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
+        // Base64デコードして署名データに変換
+        guard let signatureData = Data(base64Encoded: signature) else {
+            throw KeychainError.invalidData
+        }
+        
+        // メタデータから公開鍵を取得（認証不要）
+        let metadata = try getIdentityMetadata(id: identityId)
+        
+        // 公開鍵をCurve25519.Signing.PublicKeyに変換
+        let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: metadata.publicKey)
+        
+        // メッセージをDataに変換
+        guard let messageData = message.data(using: .utf8) else {
+            throw KeychainError.invalidData
+        }
+        
+        // 署名を検証
+        return publicKey.isValidSignature(signatureData, for: messageData)
+    }
+}
+
