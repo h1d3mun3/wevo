@@ -87,7 +87,7 @@ struct SpaceDetailView: View {
             } else {
                 List {
                     ForEach(proposes) { propose in
-                        ProposeRowView(propose: propose)
+                        ProposeRowView(propose: propose, space: space)
                     }
                 }
                 .listStyle(.plain)
@@ -175,6 +175,11 @@ struct SpaceDetailView: View {
 
 struct ProposeRowView: View {
     let propose: Propose
+    let space: Space
+    
+    @State private var shareURL: URL?
+    @State private var showShareSheet = false
+    @State private var shareError: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -213,6 +218,22 @@ struct ProposeRowView: View {
                     .foregroundStyle(.secondary)
                 
                 Spacer()
+                
+                // AirDrop共有ボタン
+                Button {
+                    sharePropose()
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+            }
+            
+            if let shareError = shareError {
+                Text(shareError)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
             }
             
             if !propose.signatures.isEmpty {
@@ -231,6 +252,23 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
+        .sheet(isPresented: $showShareSheet) {
+            if let shareURL = shareURL {
+                ShareSheet(items: [shareURL])
+            }
+        }
+    }
+    
+    private func sharePropose() {
+        do {
+            let url = try ProposeExporter.exportPropose(propose, space: space)
+            shareURL = url
+            showShareSheet = true
+            shareError = nil
+        } catch {
+            print("❌ Error exporting propose: \(error)")
+            shareError = "Export failed"
+        }
     }
 }
 
@@ -262,6 +300,37 @@ struct SignatureRowView: View {
         .padding(.leading, 8)
     }
 }
+
+// MARK: - Share Sheet
+
+#if os(iOS)
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#elseif os(macOS)
+struct ShareSheet: NSViewRepresentable {
+    let items: [Any]
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let window = nsView.window else { return }
+        
+        let picker = NSSharingServicePicker(items: items)
+        picker.show(relativeTo: .zero, of: nsView, preferredEdge: .minY)
+    }
+}
+#endif
 
 // MARK: - Preview
 
