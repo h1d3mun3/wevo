@@ -345,6 +345,36 @@ struct ProposeRowView: View {
                 .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
                 
                 // AirDrop共有ボタン
+                #if os(iOS)
+                if #available(iOS 16.0, *) {
+                    if let shareURL = shareURL {
+                        ShareLink(item: shareURL) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                                .labelStyle(.iconOnly)
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                    } else {
+                        Button {
+                            prepareShare()
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                                .labelStyle(.iconOnly)
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                } else {
+                    Button {
+                        sharePropose()
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                }
+                #else
                 Button {
                     sharePropose()
                 } label: {
@@ -353,6 +383,7 @@ struct ProposeRowView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
+                #endif
             }
             
             // ステータスメッセージ
@@ -389,22 +420,51 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
+        .task {
+            await checkServerStatus()
+        }
+        .task {
+            // 初期化時にURLを準備
+            prepareShare()
+        }
+        #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
             if let shareURL = shareURL {
                 ShareSheet(items: [shareURL])
             }
         }
-        .task {
-            await checkServerStatus()
+        #elseif os(macOS)
+        .sheet(isPresented: $showShareSheet) {
+            if let shareURL = shareURL {
+                ShareSheet(items: [shareURL])
+            }
+        }
+        #endif
+    }
+    
+    private func prepareShare() {
+        print("📤 Preparing share for propose ID: \(propose.id)")
+        do {
+            let url = try ProposeExporter.exportPropose(propose, space: space)
+            print("📤 Export successful, URL: \(url.path)")
+            shareURL = url
+            shareError = nil
+            print("📤 Set shareURL = \(url)")
+        } catch {
+            print("❌ Error exporting propose: \(error)")
+            shareError = "Export failed"
         }
     }
     
     private func sharePropose() {
+        print("📤 Starting share propose for ID: \(propose.id)")
         do {
             let url = try ProposeExporter.exportPropose(propose, space: space)
+            print("📤 Export successful, URL: \(url.path)")
             shareURL = url
             showShareSheet = true
             shareError = nil
+            print("📤 Set showShareSheet = true, shareURL = \(url)")
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
@@ -580,6 +640,7 @@ struct ShareSheet: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        print("📤 ShareSheet: Creating UIActivityViewController with items: \(items)")
         return controller
     }
     
@@ -591,12 +652,17 @@ struct ShareSheet: NSViewRepresentable {
     
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
+        print("📤 ShareSheet: Creating NSView with items: \(items)")
         return view
     }
     
     func updateNSView(_ nsView: NSView, context: Context) {
-        guard let window = nsView.window else { return }
+        guard let window = nsView.window else { 
+            print("⚠️ ShareSheet: No window available")
+            return 
+        }
         
+        print("📤 ShareSheet: Showing NSSharingServicePicker")
         let picker = NSSharingServicePicker(items: items)
         picker.show(relativeTo: .zero, of: nsView, preferredEdge: .minY)
     }
