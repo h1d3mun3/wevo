@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SpaceDetailView: View {
     let space: Space
+    
+    @Environment(\.modelContext) private var modelContext
     
     @State private var proposes: [Propose] = []
     @State private var isLoading = false
@@ -60,9 +63,7 @@ struct SpaceDetailView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button("Retry") {
-                        Task {
-                            await loadProposes()
-                        }
+                        loadProposesFromLocal()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -108,16 +109,16 @@ struct SpaceDetailView: View {
         }
         .task(id: space.id) {
             await loadDefaultIdentity()
-            await loadProposes()
+            loadProposesFromLocal()
         }
         .refreshable {
-            await loadProposes()
+            loadProposesFromLocal()
         }
         .sheet(isPresented: $shouldShowCreatePropose) {
             if let identity = defaultIdentity {
                 CreateProposeView(space: space, identity: identity) {
                     Task {
-                        await loadProposes()
+                        loadProposesFromLocal()
                     }
                 }
             }
@@ -145,55 +146,27 @@ struct SpaceDetailView: View {
         }
     }
     
-    private func loadProposes() async {
-        guard let defaultIdentity = defaultIdentity else {
-            await MainActor.run {
-                self.isLoading = false
-                self.errorMessage = "No default key is set for this space"
-                self.proposes = []
-            }
-            return
-        }
-        
-        // String URLをURLに変換
-        guard let baseURL = URL(string: space.url) else {
-            await MainActor.run {
-                self.isLoading = false
-                self.errorMessage = "Invalid server URL: \(space.url)"
-                self.proposes = []
-            }
-            return
-        }
-        
-        await MainActor.run {
-            self.isLoading = true
-            self.errorMessage = nil
-        }
+    private func loadProposesFromLocal() {
+        isLoading = true
+        errorMessage = nil
         
         do {
-            // 公開鍵をBase64エンコードした文字列に変換
-            let publicKeyString = defaultIdentity.publicKey.base64EncodedString()
+            let repository = ProposeRepository(modelContext: modelContext)
+            let loadedProposes = try repository.fetchAll(for: space.id)
             
-            let client = ProposeAPIClient(baseURL: baseURL)
-            let page = try await client.listProposes(publicKey: publicKeyString, page: 1, per: 100)
+            proposes = loadedProposes
+            isLoading = false
             
-            await MainActor.run {
-                self.proposes = page.items
-                self.isLoading = false
-                
-                if page.items.isEmpty {
-                    print("ℹ️ No proposes found for public key: \(publicKeyString)")
-                } else {
-                    print("✅ Loaded \(page.items.count) proposes (total: \(page.metadata.total))")
-                }
+            if loadedProposes.isEmpty {
+                print("ℹ️ No proposes found locally for space: \(space.name)")
+            } else {
+                print("✅ Loaded \(loadedProposes.count) proposes from local storage")
             }
         } catch {
-            print("❌ Error loading proposes: \(error)")
-            await MainActor.run {
-                self.isLoading = false
-                self.errorMessage = "Failed to load proposes: \(error.localizedDescription)"
-                self.proposes = []
-            }
+            print("❌ Error loading proposes from local storage: \(error)")
+            isLoading = false
+            errorMessage = "Failed to load proposes: \(error.localizedDescription)"
+            proposes = []
         }
     }
 }
