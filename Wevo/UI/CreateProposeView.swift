@@ -14,6 +14,7 @@ struct CreateProposeView: View {
     let onSuccess: () -> Void
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     
     @State private var payloadHash: String = ""
     @State private var isSaving: Bool = false
@@ -142,7 +143,31 @@ struct CreateProposeView: View {
             
             print("✅ Propose created successfully: \(proposeID)")
             
+            // SwiftDataに保存
             await MainActor.run {
+                let signatureEntity = Signature(
+                    id: UUID(),
+                    publicKey: publicKeyString,
+                    signatureData: signature,
+                    createdAt: Date()
+                )
+                
+                let propose = Propose(
+                    id: proposeID,
+                    payloadHash: trimmedHash,
+                    signatures: [signatureEntity],
+                    createdAt: Date()
+                )
+                
+                let repository = ProposeRepository(modelContext: modelContext)
+                do {
+                    try repository.create(propose, spaceID: space.id)
+                    print("✅ Propose saved to SwiftData: \(proposeID)")
+                } catch {
+                    print("⚠️ Failed to save propose to SwiftData: \(error)")
+                    // SwiftDataへの保存に失敗してもAPIには送信済みなのでエラーは表示しない
+                }
+                
                 isSaving = false
                 onSuccess()
                 dismiss()
