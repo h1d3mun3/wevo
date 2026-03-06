@@ -50,22 +50,21 @@ struct CreateIdentityView: View {
                 let privateKey = Curve25519.KeyAgreement.PrivateKey()
                 let privateKeyData = privateKey.rawRepresentation
                 
-                // IdentityKeyItemを作成（秘密鍵のみ保存）
-                let item = IdentityKeyChainItem(
-                    id: UUID(),
-                    nickname: nickname.trimmingCharacters(in: .whitespacesAndNewlines),
+                // Keychainに保存
+                let id = UUID()
+                let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+                try KeychainRepository.shared.createIdentity(
+                    id: id,
+                    nickname: trimmedNickname,
                     privateKey: privateKeyData
                 )
                 
-                // Keychainに保存
-                try KeychainRepository.shared.saveIdentityKey(item)
-                
-                // 公開鍵は必要なときに導出
-                let publicKeyData = try item.publicKey
+                // 公開鍵をログ出力（デバッグ用）
+                let publicKeyData = privateKey.publicKey.rawRepresentation
                 
                 print("✅ Identity Key saved successfully")
-                print("ID: \(item.id)")
-                print("Nickname: \(item.nickname)")
+                print("ID: \(id)")
+                print("Nickname: \(trimmedNickname)")
                 print("Public Key: \(publicKeyData.base64EncodedString())")
                 
                 await MainActor.run {
