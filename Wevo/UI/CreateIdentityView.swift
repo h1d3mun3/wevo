@@ -46,8 +46,8 @@ struct CreateIdentityView: View {
         
         Task {
             do {
-                // Curve25519鍵ペアの生成
-                let privateKey = Curve25519.KeyAgreement.PrivateKey()
+                // P256鍵ペアの生成（SecureEnclave対応のため）
+                let privateKey = P256.Signing.PrivateKey()
                 let privateKeyData = privateKey.rawRepresentation
                 
                 // Keychainに保存
