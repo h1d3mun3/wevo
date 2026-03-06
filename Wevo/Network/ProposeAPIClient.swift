@@ -141,8 +141,13 @@ actor ProposeAPIClient {
     /// - Throws: APIError
     func listProposes(publicKey: String, page: Int = 1, per: Int = 20) async throws -> Page<Propose> {
         var components = URLComponents(url: baseURL.appendingPathComponent("proposes"), resolvingAgainstBaseURL: true)
-        components?.queryItems = [
-            URLQueryItem(name: "publicKey", value: publicKey),
+
+        // percentEncodedQueryItems で手動エンコード
+        let encodedPublicKey = publicKey
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? publicKey
+
+        components?.percentEncodedQueryItems = [
+            URLQueryItem(name: "publicKey", value: encodedPublicKey),
             URLQueryItem(name: "page", value: String(page)),
             URLQueryItem(name: "per", value: String(per))
         ]
