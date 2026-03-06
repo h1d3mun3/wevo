@@ -18,6 +18,6 @@ struct Signature: Codable, Identifiable {
         case id
         case publicKey = "publicKey"
         case signatureData = "signatureData"
-        case createdAt = "created_at"
+        case createdAt = "createdAt"
     }
 }
