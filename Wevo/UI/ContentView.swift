@@ -23,17 +23,14 @@ struct ContentView: View {
                 } else {
                     ForEach(spaces, id: \.id) { space in
                         NavigationLink {
-                            // TODO: Implement Space detail view
-                            Text("Space: \(space.name)")
+                            SpaceDetailView(space: space)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(space.name)
                                     .font(.headline)
-                                if let urlString = space.serverURL.url?.absoluteString {
-                                    Text(urlString)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(space.url)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }

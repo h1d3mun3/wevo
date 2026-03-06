@@ -12,7 +12,7 @@ import SwiftData
 final class SpaceSwiftData {
     @Attribute(.unique) var id: UUID
     var name: String
-    var serverURLString: String
+    var urlString: String
     var defaultIdentityID: UUID?
     var orderIndex: Int
     var createdAt: Date
@@ -21,7 +21,7 @@ final class SpaceSwiftData {
     init(
         id: UUID,
         name: String,
-        serverURLString: String,
+        urlString: String,
         defaultIdentityID: UUID?,
         orderIndex: Int,
         createdAt: Date = Date(),
@@ -29,7 +29,7 @@ final class SpaceSwiftData {
     ) {
         self.id = id
         self.name = name
-        self.serverURLString = serverURLString
+        self.urlString = urlString
         self.defaultIdentityID = defaultIdentityID
         self.orderIndex = orderIndex
         self.createdAt = createdAt

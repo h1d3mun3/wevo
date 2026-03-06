@@ -10,7 +10,7 @@ import Foundation
 struct Space {
     let id: UUID
     let name: String
-    let serverURL: URLRequest
+    let url: String
     let defaultIdentityID: UUID?
     let orderIndex: Int
 }

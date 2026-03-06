@@ -71,11 +71,7 @@ final class SpaceRepository {
                 throw SpaceRepositoryError.spaceNotFound(id)
             }
             
-            do {
-                return try SpaceConverter.toEntity(from: model)
-            } catch {
-                throw SpaceRepositoryError.conversionError(error)
-            }
+            return SpaceConverter.toEntity(from: model)
         } catch {
             throw SpaceRepositoryError.fetchError(error)
         }
