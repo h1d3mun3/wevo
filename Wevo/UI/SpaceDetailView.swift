@@ -106,7 +106,7 @@ struct SpaceDetailView: View {
                 .disabled(defaultIdentity == nil)
             }
         }
-        .task {
+        .task(id: space.id) {
             await loadDefaultIdentity()
             await loadProposes()
         }
