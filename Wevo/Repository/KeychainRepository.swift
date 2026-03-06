@@ -11,24 +11,18 @@ import CryptoKit
 import LocalAuthentication
 
 /// Keychainに保存するIdentityKeyの情報
-struct IdentityKeyChainItem {
+private struct IdentityKeyChainItem {
     let id: UUID
     let nickname: String
     let privateKey: Data
-    
-    /// 秘密鍵から公開鍵を導出
-    var publicKey: Data {
-        get throws {
-            let privateKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: self.privateKey)
-            return privateKey.publicKey.rawRepresentation
-        }
-    }
+    let publicKey: Data
 }
 
 /// メタデータのみ（認証不要でアクセス可能）
-struct IdentityMetadataKeychainItem: Codable {
+private struct IdentityMetadataKeychainItem: Codable {
     let id: UUID
     let nickname: String
+    let publicKey: Data
 }
 
 enum KeychainError: Error {
@@ -51,10 +45,29 @@ final class KeychainRepository {
     
     // MARK: - Save
     
+    /// 新しいIdentityを作成して保存（認証不要でメタデータ、認証必須で秘密鍵）
+    func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
+        // 秘密鍵から公開鍵を導出
+        let key = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        let publicKey = key.publicKey.rawRepresentation
+        
+        let item = IdentityKeyChainItem(
+            id: id,
+            nickname: nickname,
+            privateKey: privateKey,
+            publicKey: publicKey
+        )
+        try saveIdentityKey(item)
+    }
+    
     /// IdentityKeyのメタデータを保存（認証不要）
-    func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
+    private func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
-        let metadata = IdentityMetadataKeychainItem(id: item.id, nickname: item.nickname)
+        let metadata = IdentityMetadataKeychainItem(
+            id: item.id,
+            nickname: item.nickname,
+            publicKey: item.publicKey
+        )
         let metadataData = try encoder.encode(metadata)
         
         let query: [String: Any] = [
@@ -78,7 +91,7 @@ final class KeychainRepository {
     }
     
     /// 秘密鍵を保存（生体認証必須）
-    func savePrivateKey(_ item: IdentityKeyChainItem) throws {
+    private func savePrivateKey(_ item: IdentityKeyChainItem) throws {
         // アクセス制御の作成：生体認証またはパスコード必須
         guard let access = SecAccessControlCreateWithFlags(
             nil,
@@ -113,7 +126,7 @@ final class KeychainRepository {
     }
     
     /// IdentityKeyを保存（メタデータと秘密鍵の両方）
-    func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
+    private func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
         try saveIdentityMetadata(item)
         try savePrivateKey(item)
     }
@@ -121,7 +134,7 @@ final class KeychainRepository {
     // MARK: - Retrieve
     
     /// すべてのIdentityメタデータを取得（認証不要）
-    func getAllIdentityMetadata() throws -> [IdentityMetadataKeychainItem] {
+    private func getAllIdentityMetadata() throws -> [IdentityMetadataKeychainItem] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
@@ -152,11 +165,13 @@ final class KeychainRepository {
     /// すべてのIdentityを取得（認証不要、ドメインモデルを返す）
     func getAllIdentities() throws -> [Identity] {
         let metadataList = try getAllIdentityMetadata()
-        return KeychainItemConverter.toIdentities(from: metadataList)
+        return metadataList.map { metadata in
+            Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
+        }
     }
     
     /// 特定のIDのメタデータを取得（認証不要）
-    func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
+    private func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
@@ -220,27 +235,29 @@ final class KeychainRepository {
     }
     
     /// 特定のIDのIdentityKeyを取得（生体認証必須）
-    func getIdentityKey(id: UUID, context: LAContext? = nil) throws -> IdentityKeyChainItem {
+    private func getIdentityKey(id: UUID, context: LAContext? = nil) throws -> IdentityKeyChainItem {
         let metadata = try getIdentityMetadata(id: id)
         let privateKey = try getPrivateKey(id: id, context: context)
         
         return IdentityKeyChainItem(
             id: metadata.id,
             nickname: metadata.nickname,
-            privateKey: privateKey
+            privateKey: privateKey,
+            publicKey: metadata.publicKey
         )
     }
     
     /// すべてのIdentityKeyを取得（生体認証必須）
     @available(*, deprecated, message: "Use getAllIdentityMetadata() for listing, and getPrivateKey(id:) when needed")
-    func getAllIdentityKeys() throws -> [IdentityKeyChainItem] {
+    private func getAllIdentityKeys() throws -> [IdentityKeyChainItem] {
         let metadataList = try getAllIdentityMetadata()
         return try metadataList.map { metadata in
             let privateKey = try getPrivateKey(id: metadata.id)
             return IdentityKeyChainItem(
                 id: metadata.id,
                 nickname: metadata.nickname,
-                privateKey: privateKey
+                privateKey: privateKey,
+                publicKey: metadata.publicKey
             )
         }
     }
@@ -249,9 +266,16 @@ final class KeychainRepository {
     
     /// IdentityKeyのニックネームを更新
     func updateNickname(id: UUID, newNickname: String) throws {
+        // 既存のメタデータを取得（公開鍵を保持するため）
+        let existingMetadata = try getIdentityMetadata(id: id)
+        
         // メタデータを更新
         let encoder = JSONEncoder()
-        let updatedMetadata = IdentityMetadataKeychainItem(id: id, nickname: newNickname)
+        let updatedMetadata = IdentityMetadataKeychainItem(
+            id: id,
+            nickname: newNickname,
+            publicKey: existingMetadata.publicKey
+        )
         let metadataData = try encoder.encode(updatedMetadata)
         
         let query: [String: Any] = [
