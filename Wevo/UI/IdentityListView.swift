@@ -16,10 +16,8 @@ struct IdentityListView: View {
             List {
                 ForEach(identities) { item in
                     NavigationLink {
-                        // TODO: Implement Later
-                        Text("Detail for \(item.nickname)")
+                        IdentityDetailView(identity: item)
                     } label: {
-                        // TODO: Implement Later
                         Text(item.nickname)
                     }
                 }
