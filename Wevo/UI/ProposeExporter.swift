@@ -67,10 +67,5 @@ struct ProposeExporter {
     }
 }
 
-/// AirDropでの共有をサポートするためのTransferable実装
-@available(iOS 16.0, macOS 13.0, *)
-extension ProposeExportData: Transferable {
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .json)
-    }
-}
+// Note: Transferable実装は将来的な拡張のために残しています
+// 現在はShareSheetを使用してファイル共有を行います

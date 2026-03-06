@@ -105,9 +105,9 @@ actor ProposeAPIClient {
 
     /// 指定したUUIDの提案詳細を取得
     /// - Parameter proposeID: 提案のUUID
-    /// - Returns: 提案データ
+    /// - Returns: ハッシュ化された提案データ
     /// - Throws: APIError
-    func getPropose(proposeID: UUID) async throws -> Propose {
+    func getPropose(proposeID: UUID) async throws -> HashedPropose {
         let url = baseURL
             .appendingPathComponent("proposes")
             .appendingPathComponent(proposeID.uuidString)
@@ -129,7 +129,7 @@ actor ProposeAPIClient {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        return try decoder.decode(Propose.self, from: data)
+        return try decoder.decode(HashedPropose.self, from: data)
     }
 
     /// 公開鍵で提案一覧を取得（ページネーション対応）
@@ -139,7 +139,7 @@ actor ProposeAPIClient {
     ///   - per: 1ページあたりの件数（デフォルト: 20）
     /// - Returns: ページネーション結果
     /// - Throws: APIError
-    func listProposes(publicKey: String, page: Int = 1, per: Int = 20) async throws -> Page<Propose> {
+    func listProposes(publicKey: String, page: Int = 1, per: Int = 20) async throws -> Page<HashedPropose> {
         var components = URLComponents(url: baseURL.appendingPathComponent("proposes"), resolvingAgainstBaseURL: true)
 
         // percentEncodedQueryItems で手動エンコード
@@ -173,7 +173,7 @@ actor ProposeAPIClient {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        return try decoder.decode(Page<Propose>.self, from: data)
+        return try decoder.decode(Page<HashedPropose>.self, from: data)
     }
 
     // MARK: - Error Handling
