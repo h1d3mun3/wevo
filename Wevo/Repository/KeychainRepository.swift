@@ -47,8 +47,8 @@ final class KeychainRepository {
     
     /// 新しいIdentityを作成して保存（認証不要でメタデータ、認証必須で秘密鍵）
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
-        // 秘密鍵から公開鍵を導出（署名用の鍵を使用）
-        let key = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKey)
+        // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
+        let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
         let publicKey = key.publicKey.rawRepresentation
         
         let item = IdentityKeyChainItem(
@@ -371,8 +371,8 @@ extension KeychainRepository {
         // 秘密鍵を取得（生体認証が必要）
         let privateKeyData = try getPrivateKey(id: identityId, context: context)
         
-        // 秘密鍵をCurve25519.Signing.PrivateKeyに変換
-        let privateKey = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKeyData)
+        // 秘密鍵をP256.Signing.PrivateKeyに変換
+        let privateKey = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
         
         // メッセージをDataに変換
         guard let messageData = message.data(using: .utf8) else {
@@ -383,7 +383,7 @@ extension KeychainRepository {
         let signature = try privateKey.signature(for: messageData)
         
         // Base64エンコードして文字列として返す
-        return signature.base64EncodedString()
+        return signature.rawRepresentation.base64EncodedString()
     }
     
     /// 署名を検証する
@@ -401,8 +401,8 @@ extension KeychainRepository {
         // メタデータから公開鍵を取得（認証不要）
         let metadata = try getIdentityMetadata(id: identityId)
         
-        // 公開鍵をCurve25519.Signing.PublicKeyに変換
-        let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: metadata.publicKey)
+        // 公開鍵をP256.Signing.PublicKeyに変換
+        let publicKey = try P256.Signing.PublicKey(rawRepresentation: metadata.publicKey)
         
         // メッセージをDataに変換
         guard let messageData = message.data(using: .utf8) else {
@@ -410,7 +410,8 @@ extension KeychainRepository {
         }
         
         // 署名を検証
-        return publicKey.isValidSignature(signatureData, for: messageData)
+        let signatureObject = try P256.Signing.ECDSASignature(rawRepresentation: signatureData)
+        return publicKey.isValidSignature(signatureObject, for: messageData)
     }
 }
 
