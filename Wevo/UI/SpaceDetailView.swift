@@ -220,6 +220,9 @@ struct ProposeRowView: View {
     @State private var shareURL: URL?
     @State private var showShareSheet = false
     @State private var shareError: String?
+    @State private var isResending = false
+    @State private var resendSuccess: Bool?
+    @State private var resendErrorMessage: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -270,6 +273,24 @@ struct ProposeRowView: View {
                 
                 Spacer()
                 
+                // 再送信ボタン
+                Button {
+                    Task {
+                        await resendToServer()
+                    }
+                } label: {
+                    if isResending {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    } else {
+                        Label("Resend", systemImage: "arrow.clockwise")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.borderless)
+                .disabled(isResending)
+                
                 // AirDrop共有ボタン
                 Button {
                     sharePropose()
@@ -279,6 +300,18 @@ struct ProposeRowView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
+            }
+            
+            // ステータスメッセージ
+            if let resendSuccess = resendSuccess {
+                HStack {
+                    Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(resendSuccess ? .green : .red)
+                    Text(resendSuccess ? "Sent to server successfully" : (resendErrorMessage ?? "Failed to send to server"))
+                        .font(.caption2)
+                        .foregroundStyle(resendSuccess ? .green : .red)
+                }
             }
             
             if let shareError = shareError {
@@ -319,6 +352,76 @@ struct ProposeRowView: View {
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
+        }
+    }
+    
+    private func resendToServer() async {
+        await MainActor.run {
+            isResending = true
+            resendSuccess = nil
+            resendErrorMessage = nil
+        }
+        
+        do {
+            // URLを確認
+            guard let baseURL = URL(string: space.url) else {
+                await MainActor.run {
+                    isResending = false
+                    resendSuccess = false
+                    resendErrorMessage = "Invalid server URL"
+                }
+                return
+            }
+            
+            // 最初のSignatureを取得（Proposeを作成した人の署名）
+            guard let firstSignature = propose.signatures.first else {
+                await MainActor.run {
+                    isResending = false
+                    resendSuccess = false
+                    resendErrorMessage = "No signature found"
+                }
+                return
+            }
+            
+            // ProposeInputを作成（ハッシュのみ送信）
+            let input = ProposeAPIClient.ProposeInput(
+                id: propose.id,
+                payloadHash: propose.payloadHash,
+                publicKey: firstSignature.publicKey,
+                signature: firstSignature.signatureData
+            )
+            
+            // APIクライアントで送信
+            let client = ProposeAPIClient(baseURL: baseURL)
+            try await client.createPropose(input: input)
+            
+            print("✅ Propose resent to server successfully: \(propose.id)")
+            
+            await MainActor.run {
+                isResending = false
+                resendSuccess = true
+            }
+            
+            // 3秒後にメッセージを消す
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run {
+                resendSuccess = nil
+            }
+            
+        } catch {
+            print("❌ Error resending propose: \(error)")
+            await MainActor.run {
+                isResending = false
+                resendSuccess = false
+                resendErrorMessage = error.localizedDescription
+            }
+            
+            // 5秒後にエラーメッセージを消す
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run {
+                resendSuccess = nil
+                resendErrorMessage = nil
+            }
         }
     }
 }
