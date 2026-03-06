@@ -18,27 +18,48 @@ struct SpaceDetailView: View {
     @State private var errorMessage: String?
     @State private var defaultIdentity: Identity?
     @State private var shouldShowCreatePropose = false
+    @State private var shouldShowEditSpace = false
+    @State private var currentSpace: Space
+    
+    init(space: Space) {
+        self.space = space
+        _currentSpace = State(initialValue: space)
+    }
     
     var body: some View {
         VStack(spacing: 0) {
             // Header
             VStack(alignment: .leading, spacing: 8) {
-                Text(space.name)
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text(space.url)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                
-                if let identity = defaultIdentity {
-                    HStack {
-                        Image(systemName: "key.fill")
-                            .foregroundStyle(.secondary)
-                        Text("Default Key: \(identity.nickname)")
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(currentSpace.name)
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text(currentSpace.url)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        
+                        if let identity = defaultIdentity {
+                            HStack {
+                                Image(systemName: "key.fill")
+                                    .foregroundStyle(.secondary)
+                                Text("Default Key: \(identity.nickname)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
+                    
+                    Spacer()
+                    
+                    Button {
+                        shouldShowEditSpace = true
+                    } label: {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -93,7 +114,7 @@ struct SpaceDetailView: View {
                 .listStyle(.plain)
             }
         }
-        .navigationTitle(space.name)
+        .navigationTitle(currentSpace.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -116,10 +137,17 @@ struct SpaceDetailView: View {
         }
         .sheet(isPresented: $shouldShowCreatePropose) {
             if let identity = defaultIdentity {
-                CreateProposeView(space: space, identity: identity) {
+                CreateProposeView(space: currentSpace, identity: identity) {
                     Task {
                         loadProposesFromLocal()
                     }
+                }
+            }
+        }
+        .sheet(isPresented: $shouldShowEditSpace) {
+            EditSpaceView(space: currentSpace) {
+                Task {
+                    await reloadSpace()
                 }
             }
         }
@@ -152,13 +180,13 @@ struct SpaceDetailView: View {
         
         do {
             let repository = ProposeRepository(modelContext: modelContext)
-            let loadedProposes = try repository.fetchAll(for: space.id)
+            let loadedProposes = try repository.fetchAll(for: currentSpace.id)
             
             proposes = loadedProposes
             isLoading = false
             
             if loadedProposes.isEmpty {
-                print("ℹ️ No proposes found locally for space: \(space.name)")
+                print("ℹ️ No proposes found locally for space: \(currentSpace.name)")
             } else {
                 print("✅ Loaded \(loadedProposes.count) proposes from local storage")
             }
@@ -167,6 +195,18 @@ struct SpaceDetailView: View {
             isLoading = false
             errorMessage = "Failed to load proposes: \(error.localizedDescription)"
             proposes = []
+        }
+    }
+    
+    private func reloadSpace() async {
+        await MainActor.run {
+            let repository = SpaceRepository(modelContext: modelContext)
+            do {
+                if let updatedSpace = try? repository.fetch(by: space.id) {
+                    currentSpace = updatedSpace
+                    print("✅ Space reloaded: \(updatedSpace.name)")
+                }
+            }
         }
     }
 }
