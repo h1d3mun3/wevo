@@ -15,7 +15,7 @@ struct Propose: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case payloadHash = "payload_hash"
+        case payloadHash = "payloadHash"
         case signatures
         case createdAt = "created_at"
     }

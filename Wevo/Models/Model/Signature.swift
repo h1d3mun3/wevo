@@ -16,8 +16,8 @@ struct Signature: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case publicKey = "public_key"
-        case signatureData = "signature_data"
+        case publicKey = "publicKey"
+        case signatureData = "signatureData"
         case createdAt = "created_at"
     }
 }
