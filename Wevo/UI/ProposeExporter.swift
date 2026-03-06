@@ -42,7 +42,8 @@ struct ProposeExporter {
         let jsonData = try encoder.encode(exportData)
         
         // 一時ディレクトリにファイルを保存
-        let fileName = "propose-\(propose.id.uuidString).json"
+        // カスタム拡張子 .wevo-propose を使用
+        let fileName = "propose-\(propose.id.uuidString).wevo-propose"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         
         try jsonData.write(to: tempURL)
