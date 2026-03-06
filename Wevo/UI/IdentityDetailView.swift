@@ -11,10 +11,12 @@ import CryptoKit
 struct IdentityDetailView: View {
     let identity: Identity
     
-    @State private var publicKey: String?
-    @State private var isLoadingPublicKey = false
     @State private var errorMessage: String?
     @State private var showingEditSheet = false
+    
+    private var publicKeyString: String {
+        identity.publicKey.base64EncodedString()
+    }
     
     var body: some View {
         List {
@@ -25,38 +27,22 @@ struct IdentityDetailView: View {
             }
             
             Section("Public Key") {
-                if isLoadingPublicKey {
-                    HStack {
-                        ProgressView()
-                        Text("Loading...")
-                            .foregroundStyle(.secondary)
-                    }
-                } else if let publicKey = publicKey {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(publicKey)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                        
-                        Button(action: {
-                            #if os(iOS)
-                            UIPasteboard.general.string = publicKey
-                            #elseif os(macOS)
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(publicKey, forType: .string)
-                            #endif
-                        }) {
-                            Label("Copy to Clipboard", systemImage: "doc.on.doc")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(publicKeyString)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                    
                     Button(action: {
-                        Task {
-                            await loadPublicKey()
-                        }
+                        #if os(iOS)
+                        UIPasteboard.general.string = publicKeyString
+                        #elseif os(macOS)
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(publicKeyString, forType: .string)
+                        #endif
                     }) {
-                        Label("Show Public Key", systemImage: "key")
+                        Label("Copy to Clipboard", systemImage: "doc.on.doc")
                     }
+                    .buttonStyle(.bordered)
                 }
                 
                 if let errorMessage = errorMessage {
@@ -86,34 +72,6 @@ struct IdentityDetailView: View {
 #endif
         .sheet(isPresented: $showingEditSheet) {
             EditIdentityView(identity: identity)
-        }
-    }
-    
-    private func loadPublicKey() async {
-        isLoadingPublicKey = true
-        errorMessage = nil
-        
-        do {
-            // IdentityKeyを取得（生体認証が必要）
-            let identityKey = try KeychainRepository.shared.getIdentityKey(id: identity.id)
-            
-            // 公開鍵を導出
-            let publicKeyData = try identityKey.publicKey
-            
-            await MainActor.run {
-                publicKey = publicKeyData.base64EncodedString()
-                isLoadingPublicKey = false
-            }
-        } catch KeychainError.biometricAuthFailed {
-            await MainActor.run {
-                errorMessage = "Authentication failed"
-                isLoadingPublicKey = false
-            }
-        } catch {
-            await MainActor.run {
-                errorMessage = "Failed to load public key: \(error.localizedDescription)"
-                isLoadingPublicKey = false
-            }
         }
     }
 }
@@ -203,7 +161,8 @@ struct EditIdentityView: View {
     NavigationStack {
         IdentityDetailView(identity: Identity(
             id: UUID(),
-            nickname: "My Identity"
+            nickname: "My Identity",
+            publicKey: Data(repeating: 0x01, count: 32)
         ))
     }
 }
@@ -211,6 +170,7 @@ struct EditIdentityView: View {
 #Preview("Edit Identity") {
     EditIdentityView(identity: Identity(
         id: UUID(),
-        nickname: "My Identity"
+        nickname: "My Identity",
+        publicKey: Data(repeating: 0x01, count: 32)
     ))
 }

@@ -12,7 +12,7 @@ struct KeychainItemConverter {
     
     /// IdentityMetadataKeychainItemをIdentityに変換
     static func toIdentity(from keychainItem: IdentityMetadataKeychainItem) -> Identity {
-        Identity(id: keychainItem.id, nickname: keychainItem.nickname)
+        Identity(id: keychainItem.id, nickname: keychainItem.nickname, publicKey: keychainItem.publicKey)
     }
     
     /// IdentityMetadataKeychainItemの配列をIdentityの配列に変換
