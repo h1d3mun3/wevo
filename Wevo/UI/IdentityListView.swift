@@ -52,10 +52,7 @@ struct IdentityListView: View {
     
     private func loadIdentities() async {
         do {
-            let items = try KeychainRepository.shared.getAllIdentityKeys()
-            let loadedIdentities = items.map { item in
-                Identity(id: item.id, nickname: item.nickname)
-            }
+            let loadedIdentities = try KeychainRepository.shared.getAllIdentities()
             await MainActor.run {
                 identities = loadedIdentities
             }
