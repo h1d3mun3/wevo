@@ -217,6 +217,8 @@ struct ProposeRowView: View {
     let propose: Propose
     let space: Space
     
+    @Environment(\.modelContext) private var modelContext
+    
     @State private var shareURL: URL?
     @State private var showShareSheet = false
     @State private var shareError: String?
@@ -225,6 +227,10 @@ struct ProposeRowView: View {
     @State private var resendErrorMessage: String?
     @State private var serverStatus: ServerStatus = .unknown
     @State private var isCheckingServer = false
+    @State private var isSigning = false
+    @State private var signSuccess: Bool?
+    @State private var signErrorMessage: String?
+    @State private var defaultIdentity: Identity?
     
     enum ServerStatus: Equatable {
         case unknown
@@ -409,12 +415,53 @@ struct ProposeRowView: View {
                     .padding(.vertical, 4)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Signatures:")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                    HStack {
+                        Text("Signatures:")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        
+                        Spacer()
+                        
+                        // 署名ボタン（自分の署名がない場合のみ表示）
+                        if let identity = defaultIdentity, !hasMySignature(identity: identity) {
+                            Button {
+                                Task {
+                                    await signPropose(with: identity)
+                                }
+                            } label: {
+                                if isSigning {
+                                    HStack(spacing: 4) {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                        Text("Signing...")
+                                            .font(.caption2)
+                                    }
+                                } else {
+                                    Label("Sign", systemImage: "signature")
+                                        .font(.caption2)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                            .disabled(isSigning)
+                        }
+                    }
+                    
+                    // 署名ステータスメッセージ
+                    if let signSuccess = signSuccess {
+                        HStack {
+                            Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(signSuccess ? .green : .red)
+                            Text(signSuccess ? "Signed successfully" : (signErrorMessage ?? "Failed to sign"))
+                                .font(.caption2)
+                                .foregroundStyle(signSuccess ? .green : .red)
+                        }
+                        .padding(.top, 2)
+                    }
                     
                     ForEach(propose.signatures) { signature in
-                        SignatureRowView(signature: signature)
+                        SignatureRowView(signature: signature, myPublicKey: defaultIdentity?.publicKey)
                     }
                 }
             }
@@ -426,6 +473,10 @@ struct ProposeRowView: View {
         .task {
             // 初期化時にURLを準備
             prepareShare()
+        }
+        .task {
+            // デフォルトIdentityを読み込み
+            await loadDefaultIdentity()
         }
         #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
@@ -601,23 +652,182 @@ struct ProposeRowView: View {
             }
         }
     }
+    
+    private func loadDefaultIdentity() async {
+        guard let defaultIdentityID = space.defaultIdentityID else {
+            await MainActor.run {
+                self.defaultIdentity = nil
+            }
+            return
+        }
+        
+        do {
+            let identities = try KeychainRepository.shared.getAllIdentities()
+            await MainActor.run {
+                self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
+            }
+        } catch {
+            print("❌ Error loading default identity: \(error)")
+            await MainActor.run {
+                self.defaultIdentity = nil
+            }
+        }
+    }
+    
+    private func hasMySignature(identity: Identity) -> Bool {
+        let myPublicKey = identity.publicKey.base64EncodedString()
+        return propose.signatures.contains { signature in
+            signature.publicKey == myPublicKey
+        }
+    }
+    
+    private func signPropose(with identity: Identity) async {
+        await MainActor.run {
+            isSigning = true
+            signSuccess = nil
+            signErrorMessage = nil
+        }
+        
+        do {
+            // ペイロードハッシュに署名
+            let signatureData = try KeychainRepository.shared.signMessage(
+                propose.payloadHash,
+                withIdentityId: identity.id
+            )
+            
+            let publicKeyString = identity.publicKey.base64EncodedString()
+            
+            // 新しいSignatureを作成
+            let newSignature = Signature(
+                id: UUID(),
+                publicKey: publicKeyString,
+                signatureData: signatureData,
+                createdAt: Date()
+            )
+            
+            // Proposeに署名を追加
+            var updatedSignatures = propose.signatures
+            updatedSignatures.append(newSignature)
+            
+            let updatedPropose = Propose(
+                id: propose.id,
+                message: propose.message,
+                payloadHash: propose.payloadHash,
+                signatures: updatedSignatures,
+                createdAt: propose.createdAt
+            )
+            
+            // ローカルに保存
+            await MainActor.run {
+                let repository = ProposeRepository(modelContext: modelContext)
+                do {
+                    try repository.update(updatedPropose)
+                    print("✅ Signature added locally: \(propose.id)")
+                } catch {
+                    print("❌ Failed to update propose locally: \(error)")
+                    signSuccess = false
+                    signErrorMessage = "Failed to save locally"
+                    isSigning = false
+                    return
+                }
+            }
+            
+            // サーバーに署名を送信
+            guard let baseURL = URL(string: space.url) else {
+                await MainActor.run {
+                    isSigning = false
+                    signSuccess = true // ローカルには保存済み
+                }
+                return
+            }
+            
+            let signInput = ProposeAPIClient.SignInput(
+                publicKey: publicKeyString,
+                signature: signatureData
+            )
+            
+            do {
+                let client = ProposeAPIClient(baseURL: baseURL)
+                try await client.signPropose(proposeID: propose.id, input: signInput)
+                
+                print("✅ Signature sent to server successfully: \(propose.id)")
+                
+                await MainActor.run {
+                    isSigning = false
+                    signSuccess = true
+                }
+                
+                // 3秒後にメッセージを消す
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run {
+                    signSuccess = nil
+                }
+                
+            } catch {
+                // サーバー送信失敗でもローカルには保存済み
+                print("⚠️ Failed to send signature to server: \(error)")
+                await MainActor.run {
+                    isSigning = false
+                    signSuccess = true // ローカルには保存済み
+                    signErrorMessage = "Saved locally, server sync failed"
+                }
+                
+                // 5秒後にメッセージを消す
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                await MainActor.run {
+                    signSuccess = nil
+                    signErrorMessage = nil
+                }
+            }
+            
+        } catch {
+            print("❌ Error signing propose: \(error)")
+            await MainActor.run {
+                isSigning = false
+                signSuccess = false
+                signErrorMessage = error.localizedDescription
+            }
+            
+            // 5秒後にエラーメッセージを消す
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run {
+                signSuccess = nil
+                signErrorMessage = nil
+            }
+        }
+    }
 }
 
 // MARK: - Signature Row View
 
 struct SignatureRowView: View {
     let signature: Signature
+    let myPublicKey: Data?
+    
+    private var isMySignature: Bool {
+        guard let myPublicKey = myPublicKey else { return false }
+        return signature.publicKey == myPublicKey.base64EncodedString()
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Image(systemName: "checkmark.seal.fill")
+                Image(systemName: isMySignature ? "person.fill.checkmark" : "checkmark.seal.fill")
                     .font(.caption2)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(isMySignature ? .blue : .green)
+                
                 Text(signature.publicKey.prefix(16) + "...")
                     .font(.caption2)
                     .fontDesign(.monospaced)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isMySignature ? .blue : .secondary)
+                    .fontWeight(isMySignature ? .semibold : .regular)
+                
+                if isMySignature {
+                    Text("(You)")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                        .italic()
+                }
                 
                 Spacer()
                 
@@ -629,6 +839,9 @@ struct SignatureRowView: View {
             }
         }
         .padding(.leading, 8)
+        .padding(.vertical, 2)
+        .background(isMySignature ? Color.blue.opacity(0.05) : Color.clear)
+        .cornerRadius(4)
     }
 }
 
