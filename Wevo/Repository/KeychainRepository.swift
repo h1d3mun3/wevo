@@ -8,6 +8,7 @@
 import Foundation
 import Security
 import CryptoKit
+import LocalAuthentication
 
 /// Keychainに保存するIdentityKeyの情報
 struct IdentityKeyChainItem {
@@ -24,41 +25,45 @@ struct IdentityKeyChainItem {
     }
 }
 
+/// メタデータのみ（認証不要でアクセス可能）
+struct IdentityMetadataKeychainItem: Codable {
+    let id: UUID
+    let nickname: String
+}
+
 enum KeychainError: Error {
     case duplicateItem
     case itemNotFound
     case invalidData
     case unhandledError(status: OSStatus)
+    case biometricAuthFailed
+    case accessControlCreationFailed
 }
 
 final class KeychainRepository {
     
     static let shared = KeychainRepository()
     
-    private let service = "com.wevo.identitykeys"
+    private let serviceMetadata = "com.wevo.identitykeys.metadata"
+    private let servicePrivateKey = "com.wevo.identitykeys.privatekey"
     
     private init() {}
     
     // MARK: - Save
     
-    /// IdentityKeyをKeychainに保存
-    func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
-        // 保存するデータをエンコード（公開鍵は保存しない）
+    /// IdentityKeyのメタデータを保存（認証不要）
+    func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
-        let keyData = try encoder.encode(KeychainData(
-            id: item.id,
-            nickname: item.nickname,
-            privateKey: item.privateKey
-        ))
+        let metadata = IdentityMetadataKeychainItem(id: item.id, nickname: item.nickname)
+        let metadataData = try encoder.encode(metadata)
         
-        // Keychainに保存するクエリ
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: item.id.uuidString,
-            kSecValueData as String: keyData,
+            kSecValueData as String: metadataData,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: true
+            kSecAttrSynchronizable as String: false
         ]
         
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -72,51 +77,56 @@ final class KeychainRepository {
         }
     }
     
-    // MARK: - Retrieve
-    
-    /// 特定のIDのIdentityKeyを取得
-    func getIdentityKey(id: UUID) throws -> IdentityKeyChainItem {
+    /// 秘密鍵を保存（生体認証必須）
+    func savePrivateKey(_ item: IdentityKeyChainItem) throws {
+        // アクセス制御の作成：生体認証またはパスコード必須
+        guard let access = SecAccessControlCreateWithFlags(
+            nil,
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            .userPresence, // Face ID / Touch ID / パスコード
+            nil
+        ) else {
+            throw KeychainError.accessControlCreationFailed
+        }
+        
+        let encoder = JSONEncoder()
+        let privateKeyData = try encoder.encode(PrivateKeyData(privateKey: item.privateKey))
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrService as String: servicePrivateKey,
+            kSecAttrAccount as String: item.id.uuidString,
+            kSecValueData as String: privateKeyData,
+            kSecAttrAccessControl as String: access,
+            kSecAttrSynchronizable as String: false // 生体認証使用時は同期不可
         ]
         
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        guard status != errSecDuplicateItem else {
+            throw KeychainError.duplicateItem
+        }
         
         guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                throw KeychainError.itemNotFound
-            }
             throw KeychainError.unhandledError(status: status)
         }
-        
-        guard let data = result as? Data else {
-            throw KeychainError.invalidData
-        }
-        
-        let decoder = JSONDecoder()
-        let keychainData = try decoder.decode(KeychainData.self, from: data)
-        
-        return IdentityKeyChainItem(
-            id: keychainData.id,
-            nickname: keychainData.nickname,
-            privateKey: keychainData.privateKey
-        )
     }
     
-    /// すべてのIdentityKeyを取得
-    func getAllIdentityKeys() throws -> [IdentityKeyChainItem] {
+    /// IdentityKeyを保存（メタデータと秘密鍵の両方）
+    func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
+        try saveIdentityMetadata(item)
+        try savePrivateKey(item)
+    }
+    
+    // MARK: - Retrieve
+    
+    /// すべてのIdentityメタデータを取得（認証不要）
+    func getAllIdentityMetadata() throws -> [IdentityMetadataKeychainItem] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: serviceMetadata,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecMatchLimit as String: kSecMatchLimitAll
         ]
         
         var result: AnyObject?
@@ -135,11 +145,102 @@ final class KeychainRepository {
         
         let decoder = JSONDecoder()
         return try dataArray.map { data in
-            let keychainData = try decoder.decode(KeychainData.self, from: data)
+            try decoder.decode(IdentityMetadataKeychainItem.self, from: data)
+        }
+    }
+    
+    /// すべてのIdentityを取得（認証不要、ドメインモデルを返す）
+    func getAllIdentities() throws -> [Identity] {
+        let metadataList = try getAllIdentityMetadata()
+        return KeychainItemConverter.toIdentities(from: metadataList)
+    }
+    
+    /// 特定のIDのメタデータを取得（認証不要）
+    func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceMetadata,
+            kSecAttrAccount as String: id.uuidString,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound {
+                throw KeychainError.itemNotFound
+            }
+            throw KeychainError.unhandledError(status: status)
+        }
+        
+        guard let data = result as? Data else {
+            throw KeychainError.invalidData
+        }
+        
+        let decoder = JSONDecoder()
+        return try decoder.decode(IdentityMetadataKeychainItem.self, from: data)
+    }
+    
+    /// 秘密鍵を取得（生体認証必須）
+    func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
+        let authContext = context ?? LAContext()
+        authContext.localizedReason = "秘密鍵にアクセスするために認証が必要です"
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: servicePrivateKey,
+            kSecAttrAccount as String: id.uuidString,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: authContext
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound {
+                throw KeychainError.itemNotFound
+            }
+            if status == errSecAuthFailed {
+                throw KeychainError.biometricAuthFailed
+            }
+            throw KeychainError.unhandledError(status: status)
+        }
+        
+        guard let data = result as? Data else {
+            throw KeychainError.invalidData
+        }
+        
+        let decoder = JSONDecoder()
+        let privateKeyData = try decoder.decode(PrivateKeyData.self, from: data)
+        return privateKeyData.privateKey
+    }
+    
+    /// 特定のIDのIdentityKeyを取得（生体認証必須）
+    func getIdentityKey(id: UUID, context: LAContext? = nil) throws -> IdentityKeyChainItem {
+        let metadata = try getIdentityMetadata(id: id)
+        let privateKey = try getPrivateKey(id: id, context: context)
+        
+        return IdentityKeyChainItem(
+            id: metadata.id,
+            nickname: metadata.nickname,
+            privateKey: privateKey
+        )
+    }
+    
+    /// すべてのIdentityKeyを取得（生体認証必須）
+    @available(*, deprecated, message: "Use getAllIdentityMetadata() for listing, and getPrivateKey(id:) when needed")
+    func getAllIdentityKeys() throws -> [IdentityKeyChainItem] {
+        let metadataList = try getAllIdentityMetadata()
+        return try metadataList.map { metadata in
+            let privateKey = try getPrivateKey(id: metadata.id)
             return IdentityKeyChainItem(
-                id: keychainData.id,
-                nickname: keychainData.nickname,
-                privateKey: keychainData.privateKey
+                id: metadata.id,
+                nickname: metadata.nickname,
+                privateKey: privateKey
             )
         }
     }
@@ -148,26 +249,19 @@ final class KeychainRepository {
     
     /// IdentityKeyのニックネームを更新
     func updateNickname(id: UUID, newNickname: String) throws {
-        // 既存のアイテムを取得
-        let existingItem = try getIdentityKey(id: id)
-        
-        // 新しいデータを作成
+        // メタデータを更新
         let encoder = JSONEncoder()
-        let updatedData = try encoder.encode(KeychainData(
-            id: existingItem.id,
-            nickname: newNickname,
-            privateKey: existingItem.privateKey
-        ))
+        let updatedMetadata = IdentityMetadataKeychainItem(id: id, nickname: newNickname)
+        let metadataData = try encoder.encode(updatedMetadata)
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrService as String: serviceMetadata,
+            kSecAttrAccount as String: id.uuidString
         ]
         
         let attributesToUpdate: [String: Any] = [
-            kSecValueData as String: updatedData
+            kSecValueData as String: metadataData
         ]
         
         let status = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
@@ -182,42 +276,60 @@ final class KeychainRepository {
     
     // MARK: - Delete
     
-    /// 特定のIDのIdentityKeyを削除
+    /// 特定のIDのIdentityKeyを削除（メタデータと秘密鍵の両方）
     func deleteIdentityKey(id: UUID) throws {
-        let query: [String: Any] = [
+        // メタデータを削除
+        let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrService as String: serviceMetadata,
+            kSecAttrAccount as String: id.uuidString
         ]
         
-        let status = SecItemDelete(query as CFDictionary)
+        let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
         
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.unhandledError(status: status)
+        // 秘密鍵を削除
+        let privateKeyQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: servicePrivateKey,
+            kSecAttrAccount as String: id.uuidString
+        ]
+        
+        let privateKeyStatus = SecItemDelete(privateKeyQuery as CFDictionary)
+        
+        // どちらかが失敗していて、かつ「見つからない」以外のエラーなら例外を投げる
+        guard (metadataStatus == errSecSuccess || metadataStatus == errSecItemNotFound) &&
+              (privateKeyStatus == errSecSuccess || privateKeyStatus == errSecItemNotFound) else {
+            throw KeychainError.unhandledError(status: metadataStatus)
         }
     }
     
-    /// すべてのIdentityKeyを削除
+    /// すべてのIdentityKeyを削除（メタデータと秘密鍵の両方）
     func deleteAllIdentityKeys() throws {
-        let query: [String: Any] = [
+        // メタデータを削除
+        let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrService as String: serviceMetadata
         ]
         
-        let status = SecItemDelete(query as CFDictionary)
+        let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
         
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.unhandledError(status: status)
+        // 秘密鍵を削除
+        let privateKeyQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: servicePrivateKey
+        ]
+        
+        let privateKeyStatus = SecItemDelete(privateKeyQuery as CFDictionary)
+        
+        guard (metadataStatus == errSecSuccess || metadataStatus == errSecItemNotFound) &&
+              (privateKeyStatus == errSecSuccess || privateKeyStatus == errSecItemNotFound) else {
+            throw KeychainError.unhandledError(status: metadataStatus)
         }
     }
 }
 
 // MARK: - Private Helper
 
-private struct KeychainData: Codable {
-    let id: UUID
-    let nickname: String
+private struct PrivateKeyData: Codable {
     let privateKey: Data
 }
