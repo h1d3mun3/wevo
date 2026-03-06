@@ -110,39 +110,6 @@ struct CreateProposeView: View {
         }
         
         do {
-            // URLを作成
-            guard let baseURL = URL(string: space.url) else {
-                await MainActor.run {
-                    errorMessage = "Invalid server URL: \(space.url)"
-                    isSaving = false
-                }
-                return
-            }
-            
-            // 署名を作成（生体認証が必要）
-            let signature = try KeychainRepository.shared.signMessage(
-                trimmedHash,
-                withIdentityId: identity.id
-            )
-            
-            // 公開鍵をBase64エンコード
-            let publicKeyString = identity.publicKey.base64EncodedString()
-            
-            // ProposeInputを作成
-            let proposeID = UUID()
-            let input = ProposeAPIClient.ProposeInput(
-                id: proposeID,
-                payloadHash: trimmedHash,
-                publicKey: publicKeyString,
-                signature: signature
-            )
-            
-            // APIクライアントで送信
-            let client = ProposeAPIClient(baseURL: baseURL)
-            try await client.createPropose(input: input)
-            
-            print("✅ Propose created successfully: \(proposeID)")
-            
             // SwiftDataに保存
             await MainActor.run {
                 let signatureEntity = Signature(
@@ -167,12 +134,44 @@ struct CreateProposeView: View {
                     print("⚠️ Failed to save propose to SwiftData: \(error)")
                     // SwiftDataへの保存に失敗してもAPIには送信済みなのでエラーは表示しない
                 }
-                
+
+                // URLを作成
+                guard let baseURL = URL(string: space.url) else {
+                    await MainActor.run {
+                        errorMessage = "Invalid server URL: \(space.url)"
+                        isSaving = false
+                    }
+                    return
+                }
+
+                // 署名を作成（生体認証が必要）
+                let signature = try KeychainRepository.shared.signMessage(
+                    trimmedHash,
+                    withIdentityId: identity.id
+                )
+
+                // 公開鍵をBase64エンコード
+                let publicKeyString = identity.publicKey.base64EncodedString()
+
+                // ProposeInputを作成
+                let proposeID = UUID()
+                let input = ProposeAPIClient.ProposeInput(
+                    id: proposeID,
+                    payloadHash: trimmedHash,
+                    publicKey: publicKeyString,
+                    signature: signature
+                )
+
+                // APIクライアントで送信
+                let client = ProposeAPIClient(baseURL: baseURL)
+                try await client.createPropose(input: input)
+
+                print("✅ Propose created successfully: \(proposeID)")
+
                 isSaving = false
                 onSuccess()
                 dismiss()
             }
-            
         } catch {
             print("❌ Error creating propose: \(error)")
             await MainActor.run {
