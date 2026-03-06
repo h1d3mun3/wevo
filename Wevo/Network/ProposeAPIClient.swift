@@ -32,12 +32,6 @@ actor ProposeAPIClient {
         let signature: String
     }
 
-    /// 署名追加時の入力データ
-    struct SignInput: Codable {
-        let publicKey: String
-        let signature: String
-    }
-
     /// ページネーション結果
     struct Page<T: Codable>: Codable {
         let items: [T]
@@ -70,35 +64,6 @@ actor ProposeAPIClient {
         }
 
         guard httpResponse.statusCode == 201 else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-    }
-
-    /// 提案に署名を追加
-    /// - Parameters:
-    ///   - proposeID: 提案のUUID
-    ///   - input: 署名の入力データ
-    /// - Throws: APIError
-    func signPropose(proposeID: UUID, input: SignInput) async throws {
-        var request = URLRequest(
-            url: baseURL
-                .appendingPathComponent("proposes")
-                .appendingPathComponent(proposeID.uuidString)
-                .appendingPathComponent("sign")
-        )
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let encoder = JSONEncoder()
-        request.httpBody = try encoder.encode(input)
-
-        let (_, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
     }

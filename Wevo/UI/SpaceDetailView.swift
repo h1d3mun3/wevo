@@ -731,55 +731,6 @@ struct ProposeRowView: View {
                     return
                 }
             }
-            
-            // サーバーに署名を送信
-            guard let baseURL = URL(string: space.url) else {
-                await MainActor.run {
-                    isSigning = false
-                    signSuccess = true // ローカルには保存済み
-                }
-                return
-            }
-            
-            let signInput = ProposeAPIClient.SignInput(
-                publicKey: publicKeyString,
-                signature: signatureData
-            )
-            
-            do {
-                let client = ProposeAPIClient(baseURL: baseURL)
-                try await client.signPropose(proposeID: propose.id, input: signInput)
-                
-                print("✅ Signature sent to server successfully: \(propose.id)")
-                
-                await MainActor.run {
-                    isSigning = false
-                    signSuccess = true
-                }
-                
-                // 3秒後にメッセージを消す
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
-                await MainActor.run {
-                    signSuccess = nil
-                }
-                
-            } catch {
-                // サーバー送信失敗でもローカルには保存済み
-                print("⚠️ Failed to send signature to server: \(error)")
-                await MainActor.run {
-                    isSigning = false
-                    signSuccess = true // ローカルには保存済み
-                    signErrorMessage = "Saved locally, server sync failed"
-                }
-                
-                // 5秒後にメッセージを消す
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                await MainActor.run {
-                    signSuccess = nil
-                    signErrorMessage = nil
-                }
-            }
-            
         } catch {
             print("❌ Error signing propose: \(error)")
             await MainActor.run {
