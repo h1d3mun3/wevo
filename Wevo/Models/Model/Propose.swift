@@ -17,6 +17,6 @@ struct Propose: Codable, Identifiable {
         case id
         case payloadHash = "payloadHash"
         case signatures
-        case createdAt = "created_at"
+        case createdAt = "createdAt"
     }
 }
