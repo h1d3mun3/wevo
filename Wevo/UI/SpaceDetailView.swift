@@ -212,7 +212,7 @@ struct ProposeRowView: View {
                     .font(.headline)
                 Spacer()
                 if let createdAt = propose.createdAt {
-                    Text(createdAt, style: .relative)
+                    Text(createdAt, format: .dateTime.month().day().hour().minute())
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -291,7 +291,7 @@ struct SignatureRowView: View {
                 Spacer()
                 
                 if let createdAt = signature.createdAt {
-                    Text(createdAt, style: .relative)
+                    Text(createdAt, format: .dateTime.month().day().hour().minute())
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
