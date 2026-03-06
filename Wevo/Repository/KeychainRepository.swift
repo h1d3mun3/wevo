@@ -184,7 +184,7 @@ final class KeychainRepository {
     }
     
     /// 秘密鍵を取得（生体認証必須）
-    func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
+    private func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
         let authContext = context ?? LAContext()
         authContext.localizedReason = "Authentication is required to access the private key"
         
