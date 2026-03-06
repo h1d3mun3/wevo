@@ -11,7 +11,8 @@ import SwiftData
 @Model
 final class ProposeSwiftData {
     @Attribute(.unique) var id: UUID
-    var payloadHash: String
+    var message: String // 元のメッセージ
+    var payloadHash: String // ハッシュ化されたメッセージ
     var spaceID: UUID
     var createdAt: Date
     var updatedAt: Date
@@ -21,6 +22,7 @@ final class ProposeSwiftData {
     
     init(
         id: UUID,
+        message: String,
         payloadHash: String,
         spaceID: UUID,
         signatures: [SignatureSwiftData] = [],
@@ -28,6 +30,7 @@ final class ProposeSwiftData {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.message = message
         self.payloadHash = payloadHash
         self.spaceID = spaceID
         self.signatures = signatures

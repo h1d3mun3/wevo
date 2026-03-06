@@ -183,18 +183,29 @@ struct ProposeRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // メッセージ
             HStack {
-                Text(propose.payloadHash)
+                Text(propose.message)
                     .font(.headline)
-                    .fontDesign(.monospaced)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    .lineLimit(2)
                 Spacer()
                 if let createdAt = propose.createdAt {
                     Text(createdAt, format: .dateTime.month().day().hour().minute())
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+            
+            // ハッシュ
+            HStack {
+                Text("Hash:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(propose.payloadHash.prefix(16) + "...")
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             
             HStack {

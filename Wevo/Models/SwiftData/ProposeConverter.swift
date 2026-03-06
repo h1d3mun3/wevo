@@ -18,6 +18,7 @@ struct ProposeConverter {
         
         return ProposeSwiftData(
             id: propose.id,
+            message: propose.message,
             payloadHash: propose.payloadHash,
             spaceID: spaceID,
             signatures: signatureModels,
@@ -33,6 +34,7 @@ struct ProposeConverter {
         
         return Propose(
             id: model.id,
+            message: model.message,
             payloadHash: model.payloadHash,
             signatures: signatureEntities,
             createdAt: model.createdAt
@@ -48,6 +50,7 @@ struct ProposeConverter {
     
     /// ProposeSwiftDataを既存のPropose構造体で更新
     static func updateModel(_ model: ProposeSwiftData, with propose: Propose) {
+        model.message = propose.message
         model.payloadHash = propose.payloadHash
         model.updatedAt = Date()
         
@@ -83,3 +86,4 @@ struct SignatureConverter {
         )
     }
 }
+
