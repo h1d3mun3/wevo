@@ -206,10 +206,11 @@ struct ProposeRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "doc.text.fill")
-                    .foregroundStyle(.blue)
-                Text("Propose")
+                Text(propose.payloadHash)
                     .font(.headline)
+                    .fontDesign(.monospaced)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer()
                 if let createdAt = propose.createdAt {
                     Text(createdAt, format: .dateTime.month().day().hour().minute())
@@ -223,18 +224,6 @@ struct ProposeRowView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(propose.id.uuidString)
-                    .font(.caption)
-                    .fontDesign(.monospaced)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            
-            HStack {
-                Text("Payload Hash:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(propose.payloadHash)
                     .font(.caption)
                     .fontDesign(.monospaced)
                     .foregroundStyle(.secondary)
