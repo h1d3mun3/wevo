@@ -223,6 +223,46 @@ struct ProposeRowView: View {
     @State private var isResending = false
     @State private var resendSuccess: Bool?
     @State private var resendErrorMessage: String?
+    @State private var serverStatus: ServerStatus = .unknown
+    @State private var isCheckingServer = false
+    
+    enum ServerStatus: Equatable {
+        case unknown
+        case checking
+        case exists
+        case notFound
+        case error(String)
+        
+        var icon: String {
+            switch self {
+            case .unknown: return "circle"
+            case .checking: return "circle.dotted"
+            case .exists: return "checkmark.circle.fill"
+            case .notFound: return "xmark.circle"
+            case .error: return "exclamationmark.triangle"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .unknown: return .gray
+            case .checking: return .blue
+            case .exists: return .green
+            case .notFound: return .orange
+            case .error: return .red
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .unknown: return "Unknown"
+            case .checking: return "Checking..."
+            case .exists: return "On server"
+            case .notFound: return "Not on server"
+            case .error(let message): return "Error: \(message)"
+            }
+        }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -249,6 +289,18 @@ struct ProposeRowView: View {
                     .fontDesign(.monospaced)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                
+                Spacer()
+                
+                // サーバーステータス
+                HStack(spacing: 4) {
+                    Image(systemName: serverStatus.icon)
+                        .font(.caption2)
+                        .foregroundStyle(serverStatus.color)
+                    Text(serverStatus.description)
+                        .font(.caption2)
+                        .foregroundStyle(serverStatus.color)
+                }
             }
             
             HStack {
@@ -289,7 +341,8 @@ struct ProposeRowView: View {
                     }
                 }
                 .buttonStyle(.borderless)
-                .disabled(isResending)
+                .disabled(isResending || serverStatus == .exists)
+                .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
                 
                 // AirDrop共有ボタン
                 Button {
@@ -340,6 +393,9 @@ struct ProposeRowView: View {
             if let shareURL = shareURL {
                 ShareSheet(items: [shareURL])
             }
+        }
+        .task {
+            await checkServerStatus()
         }
     }
     
@@ -400,6 +456,7 @@ struct ProposeRowView: View {
             await MainActor.run {
                 isResending = false
                 resendSuccess = true
+                serverStatus = .exists // ステータスを更新
             }
             
             // 3秒後にメッセージを消す
@@ -421,6 +478,66 @@ struct ProposeRowView: View {
             await MainActor.run {
                 resendSuccess = nil
                 resendErrorMessage = nil
+            }
+        }
+    }
+    
+    private func checkServerStatus() async {
+        guard !isCheckingServer else { return }
+        
+        await MainActor.run {
+            isCheckingServer = true
+            serverStatus = .checking
+        }
+        
+        do {
+            // URLを確認
+            guard let baseURL = URL(string: space.url) else {
+                await MainActor.run {
+                    serverStatus = .error("Invalid URL")
+                    isCheckingServer = false
+                }
+                return
+            }
+            
+            // APIクライアントで確認
+            let client = ProposeAPIClient(baseURL: baseURL)
+            let _ = try await client.getPropose(proposeID: propose.id)
+            
+            // 成功 = サーバーに存在する
+            print("✅ Propose exists on server: \(propose.id)")
+            await MainActor.run {
+                serverStatus = .exists
+                isCheckingServer = false
+            }
+            
+        } catch let error as ProposeAPIClient.APIError {
+            // HTTPエラーをチェック
+            if case .httpError(let statusCode) = error {
+                if statusCode == 404 {
+                    // 404 = サーバーに存在しない
+                    print("ℹ️ Propose not found on server: \(propose.id)")
+                    await MainActor.run {
+                        serverStatus = .notFound
+                        isCheckingServer = false
+                    }
+                    return
+                }
+            }
+            
+            // その他のエラー
+            print("⚠️ Error checking propose on server: \(error)")
+            await MainActor.run {
+                serverStatus = .error(error.localizedDescription)
+                isCheckingServer = false
+            }
+            
+        } catch {
+            // 予期しないエラー
+            print("⚠️ Unexpected error checking propose: \(error)")
+            await MainActor.run {
+                serverStatus = .error(error.localizedDescription)
+                isCheckingServer = false
             }
         }
     }
