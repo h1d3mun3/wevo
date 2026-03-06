@@ -49,7 +49,8 @@ final class KeychainRepository {
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
         // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
         let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
-        let publicKey = key.publicKey.rawRepresentation
+        // x963Representation形式で保存（サーバーと互換性を持たせるため）
+        let publicKey = key.publicKey.x963Representation
         
         let item = IdentityKeyChainItem(
             id: id,
@@ -382,8 +383,8 @@ extension KeychainRepository {
         // 署名を生成
         let signature = try privateKey.signature(for: messageData)
         
-        // Base64エンコードして文字列として返す
-        return signature.rawRepresentation.base64EncodedString()
+        // DER形式でBase64エンコードして返す（サーバーと互換性を持たせるため）
+        return signature.derRepresentation.base64EncodedString()
     }
     
     /// 署名を検証する
@@ -401,16 +402,16 @@ extension KeychainRepository {
         // メタデータから公開鍵を取得（認証不要）
         let metadata = try getIdentityMetadata(id: identityId)
         
-        // 公開鍵をP256.Signing.PublicKeyに変換
-        let publicKey = try P256.Signing.PublicKey(rawRepresentation: metadata.publicKey)
+        // 公開鍵をP256.Signing.PublicKeyに変換（x963Representation形式で保存されているため）
+        let publicKey = try P256.Signing.PublicKey(x963Representation: metadata.publicKey)
         
         // メッセージをDataに変換
         guard let messageData = message.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
         
-        // 署名を検証
-        let signatureObject = try P256.Signing.ECDSASignature(rawRepresentation: signatureData)
+        // 署名を検証（DER形式でデコード）
+        let signatureObject = try P256.Signing.ECDSASignature(derRepresentation: signatureData)
         return publicKey.isValidSignature(signatureObject, for: messageData)
     }
 }
