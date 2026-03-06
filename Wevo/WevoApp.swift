@@ -12,7 +12,9 @@ import SwiftData
 struct WevoApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            SpaceSwiftData.self
+            SpaceSwiftData.self,
+            ProposeSwiftData.self,
+            SignatureSwiftData.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
 
