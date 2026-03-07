@@ -14,6 +14,7 @@ struct SettingsView: View {
     
     @State private var proposes: [ProposeSwiftData] = []
     @State private var spaces: [SpaceSwiftData] = []
+    @State private var signatures: [SignatureSwiftData] = []
     @State private var selectedTab = 0
     
     var body: some View {
@@ -23,6 +24,7 @@ struct SettingsView: View {
                 Picker("Data Type", selection: $selectedTab) {
                     Text("Proposes").tag(0)
                     Text("Spaces").tag(1)
+                    Text("Signatures").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .padding()
@@ -32,8 +34,10 @@ struct SettingsView: View {
                 // コンテンツ
                 if selectedTab == 0 {
                     ProposeListView(proposes: proposes, onDelete: loadData)
-                } else {
+                } else if selectedTab == 1 {
                     SpaceListView(spaces: spaces)
+                } else {
+                    SignatureListView(signatures: signatures)
                 }
             }
             .navigationTitle("Settings")
@@ -85,6 +89,18 @@ struct SettingsView: View {
             print("❌ Error loading spaces: \(error)")
             spaces = []
         }
+        
+        // Signaturesを取得
+        let signatureDescriptor = FetchDescriptor<SignatureSwiftData>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        
+        do {
+            signatures = try modelContext.fetch(signatureDescriptor)
+        } catch {
+            print("❌ Error loading signatures: \(error)")
+            signatures = []
+        }
     }
 }
 
@@ -107,116 +123,48 @@ struct ProposeListView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(proposes, id: \.id) { propose in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(propose.message)
-                                .font(.headline)
-                                .lineLimit(2)
-                            
-                            Spacer()
-                            
-                            Button {
-                                proposeToDelete = propose
-                                showDeleteAlert = true
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(.red)
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.borderless)
-                        }
-                        
-                        HStack {
-                            Text("Created:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        HStack {
-                            Text("Hash:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(propose.payloadHash.prefix(16) + "...")
-                                .font(.caption)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        HStack {
-                            Text("ID:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(propose.id.uuidString)
-                                .font(.caption)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        
-                        HStack {
-                            Text("Space ID:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(propose.spaceID.uuidString)
-                                .font(.caption)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        
-                        HStack {
-                            Image(systemName: "signature")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(propose.signatures.count) signature(s)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
-                            Spacer()
-
-                            Text("Updated: \(propose.updatedAt, format: .dateTime.month().day().hour().minute())")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        
-                        // Signatures
-                        if !propose.signatures.isEmpty {
-                            Divider()
-                                .padding(.vertical, 4)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Signatures:")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
+                    NavigationLink {
+                        ProposeDetailView(propose: propose)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(propose.message)
+                                    .font(.headline)
+                                    .lineLimit(2)
                                 
-                                ForEach(propose.signatures, id: \.id) { signature in
-                                    HStack {
-                                        Image(systemName: "checkmark.seal.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(.green)
-                                        
-                                        Text(signature.publicKey.prefix(16) + "...")
-                                            .font(.caption2)
-                                            .fontDesign(.monospaced)
-                                            .foregroundStyle(.secondary)
-                                        
-                                        Spacer()
-
-                                        Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                    .padding(.leading, 8)
+                                Spacer()
+                                
+                                Button {
+                                    proposeToDelete = propose
+                                    showDeleteAlert = true
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.red)
+                                        .font(.caption)
                                 }
+                                .buttonStyle(.borderless)
+                            }
+                            
+                            HStack {
+                                Text("Created:")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            HStack {
+                                Image(systemName: "signature")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(propose.signatures.count) signature(s)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
                 }
             }
         }
@@ -260,71 +208,267 @@ struct SpaceListView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(spaces) { space in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(space.name)
-                                .font(.headline)
-                            
-                            Spacer()
-                            
-                            Text("Order: \(space.orderIndex)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        HStack {
-                            Text("URL:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(space.urlString)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        
-                        HStack {
-                            Text("ID:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(space.id.uuidString)
-                                .font(.caption)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        
-                        if let defaultIdentityID = space.defaultIdentityID {
+                    NavigationLink {
+                        SpaceDetailSettingsView(space: space)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Default Identity ID:")
+                                Text(space.name)
+                                    .font(.headline)
+                                
+                                Spacer()
+                                
+                                Text("Order: \(space.orderIndex)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(defaultIdentityID.uuidString)
+                            }
+                            
+                            HStack {
+                                Text("URL:")
                                     .font(.caption)
-                                    .fontDesign(.monospaced)
+                                    .foregroundStyle(.secondary)
+                                Text(space.urlString)
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
-                                    .truncationMode(.middle)
                             }
                         }
-                        
-                        HStack {
-                            Text("Created: \(space.createdAt, format: .dateTime.month().day().hour().minute())")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            
-                            Spacer()
-                            
-                            Text("Updated: \(space.updatedAt, format: .dateTime.month().day().hour().minute())")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
                 }
             }
         }
         .listStyle(.plain)
+    }
+}
+
+// MARK: - Signature List View
+
+struct SignatureListView: View {
+    let signatures: [SignatureSwiftData]
+    
+    var body: some View {
+        List {
+            if signatures.isEmpty {
+                Text("No signatures in database")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                ForEach(signatures, id: \.id) { signature in
+                    NavigationLink {
+                        SignatureDetailView(signature: signature)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(.green)
+                                
+                                Text(signature.publicKey.prefix(16) + "...")
+                                    .font(.body)
+                                    .fontDesign(.monospaced)
+                                
+                                Spacer()
+                            }
+                            
+                            HStack {
+                                Text("Created:")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+    }
+}
+
+// MARK: - Propose Detail View
+
+struct ProposeDetailView: View {
+    let propose: ProposeSwiftData
+    
+    var body: some View {
+        List {
+            Section("Message") {
+                Text(propose.message)
+                    .font(.body)
+            }
+            
+            Section("Hash") {
+                LabeledContent("Payload Hash") {
+                    Text(propose.payloadHash)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .textSelection(.enabled)
+                }
+            }
+            
+            Section("IDs") {
+                LabeledContent("Propose ID") {
+                    Text(propose.id.uuidString)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .textSelection(.enabled)
+                }
+                
+                LabeledContent("Space ID") {
+                    Text(propose.spaceID.uuidString)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .textSelection(.enabled)
+                }
+            }
+            
+            Section("Timestamps") {
+                LabeledContent("Created At") {
+                    Text(propose.createdAt, format: .dateTime)
+                }
+                
+                LabeledContent("Updated At") {
+                    Text(propose.updatedAt, format: .dateTime)
+                }
+            }
+            
+            Section("Signatures (\(propose.signatures.count))") {
+                if propose.signatures.isEmpty {
+                    Text("No signatures")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(propose.signatures, id: \.id) { signature in
+                        NavigationLink {
+                            SignatureDetailView(signature: signature)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(signature.publicKey.prefix(32) + "...")
+                                    .font(.caption)
+                                    .fontDesign(.monospaced)
+                                
+                                Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Propose Details")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+}
+
+// MARK: - Space Detail Settings View
+
+struct SpaceDetailSettingsView: View {
+    let space: SpaceSwiftData
+    
+    var body: some View {
+        List {
+            Section("Information") {
+                LabeledContent("Name") {
+                    Text(space.name)
+                        .textSelection(.enabled)
+                }
+                
+                LabeledContent("URL") {
+                    Text(space.urlString)
+                        .font(.caption)
+                        .textSelection(.enabled)
+                }
+                
+                LabeledContent("Order Index") {
+                    Text("\(space.orderIndex)")
+                }
+            }
+            
+            Section("IDs") {
+                LabeledContent("Space ID") {
+                    Text(space.id.uuidString)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .textSelection(.enabled)
+                }
+                
+                if let defaultIdentityID = space.defaultIdentityID {
+                    LabeledContent("Default Identity ID") {
+                        Text(defaultIdentityID.uuidString)
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .textSelection(.enabled)
+                    }
+                } else {
+                    LabeledContent("Default Identity") {
+                        Text("None")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            
+            Section("Timestamps") {
+                LabeledContent("Created At") {
+                    Text(space.createdAt, format: .dateTime)
+                }
+                
+                LabeledContent("Updated At") {
+                    Text(space.updatedAt, format: .dateTime)
+                }
+            }
+        }
+        .navigationTitle("Space Details")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+}
+
+// MARK: - Signature Detail View
+
+struct SignatureDetailView: View {
+    let signature: SignatureSwiftData
+    
+    var body: some View {
+        List {
+            Section("Public Key") {
+                Text(signature.publicKey)
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+                    .textSelection(.enabled)
+            }
+            
+            Section("Signature Data") {
+                Text(signature.signatureData)
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+                    .textSelection(.enabled)
+            }
+            
+            Section("IDs") {
+                LabeledContent("Signature ID") {
+                    Text(signature.id.uuidString)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .textSelection(.enabled)
+                }
+            }
+            
+            Section("Timestamp") {
+                LabeledContent("Created At") {
+                    Text(signature.createdAt, format: .dateTime)
+                }
+            }
+        }
+        .navigationTitle("Signature Details")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
