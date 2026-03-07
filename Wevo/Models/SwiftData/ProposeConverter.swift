@@ -29,7 +29,7 @@ struct ProposeConverter {
     
     /// ProposeSwiftDataからPropose構造体へ変換
     static func toEntity(from model: ProposeSwiftData) -> Propose {
-        let signatureEntities = model.signatures.map { signatureModel in
+        let signatureEntities = (model.signatures ?? []).map { signatureModel in
             SignatureConverter.toEntity(from: signatureModel)
         }
         
@@ -56,8 +56,8 @@ struct ProposeConverter {
         model.updatedAt = Date()
         
         // 既存の署名のIDセットを取得
-        let existingSignatureIDs = Set(model.signatures.map { $0.id })
-        
+        let existingSignatureIDs = Set((model.signatures ?? []).map { $0.id })
+
         // 新しい署名のみを追加（既存の署名は維持）
         let newSignatures = propose.signatures.compactMap { signature -> SignatureSwiftData? in
             // 既にモデルに存在する署名はスキップ
@@ -66,9 +66,9 @@ struct ProposeConverter {
         }
         
         // 新しい署名のみを追加
-        model.signatures.append(contentsOf: newSignatures)
-        
-        print("📝 Updated ProposeSwiftData: existing=\(existingSignatureIDs.count), new=\(newSignatures.count), total=\(model.signatures.count)")
+        model.signatures?.append(contentsOf: newSignatures)
+
+        print("📝 Updated ProposeSwiftData: existing=\(existingSignatureIDs.count), new=\(newSignatures.count), total=\((model.signatures ?? []).count)")
     }
 }
 
