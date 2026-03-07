@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
     @State private var shouldShowAddSpace = false
+    @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
     @Environment(\.modelContext) private var modelContext
 
@@ -41,6 +42,12 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
             .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Button(action: { shouldShowSettings = true }) {
+                        Label("Settings", systemImage: "gearshape.fill")
+                    }
+                }
+                
                 ToolbarItem {
                     Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
@@ -58,6 +65,9 @@ struct ContentView: View {
             }
         } detail: {
             Text("Select an item")
+        }
+        .sheet(isPresented: $shouldShowSettings) {
+            SettingsView()
         }
         .sheet(isPresented: $shouldShowIdentityList) {
             IdentityListView()
