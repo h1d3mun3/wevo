@@ -25,9 +25,9 @@ final class ProposeSwiftData {
         message: String,
         payloadHash: String,
         spaceID: UUID,
-        signatures: [SignatureSwiftData] = [],
-        createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        signatures: [SignatureSwiftData],
+        createdAt: Date,
+        updatedAt: Date
     ) {
         self.id = id
         self.message = message

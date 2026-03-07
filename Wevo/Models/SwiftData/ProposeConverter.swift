@@ -22,7 +22,8 @@ struct ProposeConverter {
             payloadHash: propose.payloadHash,
             spaceID: spaceID,
             signatures: signatureModels,
-            createdAt: propose.createdAt
+            createdAt: propose.createdAt,
+            updatedAt: propose.updatedAt
         )
     }
     
