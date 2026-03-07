@@ -218,7 +218,9 @@ struct CreateProposeView: View {
             name: "Example Space",
             url: "https://api.example.com",
             defaultIdentityID: UUID(),
-            orderIndex: 0
+            orderIndex: 0,
+            createdAt: .now,
+            updatedAt: .now
         ),
         identity: Identity(
             id: UUID(),

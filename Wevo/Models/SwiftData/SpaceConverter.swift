@@ -17,7 +17,9 @@ struct SpaceConverter {
             name: space.name,
             urlString: space.url,
             defaultIdentityID: space.defaultIdentityID,
-            orderIndex: space.orderIndex
+            orderIndex: space.orderIndex,
+            createdAt: space.createdAt,
+            updatedAt: space.updatedAt
         )
     }
     
@@ -28,7 +30,9 @@ struct SpaceConverter {
             name: model.name,
             url: model.urlString,
             defaultIdentityID: model.defaultIdentityID,
-            orderIndex: model.orderIndex
+            orderIndex: model.orderIndex,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
         )
     }
     
