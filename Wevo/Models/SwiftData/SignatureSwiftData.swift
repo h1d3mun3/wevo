@@ -10,10 +10,13 @@ import SwiftData
 
 @Model
 final class SignatureSwiftData {
-    @Attribute(.unique) var id: UUID = UUID()
-    var publicKey: String = ""
-    var signatureData: String = ""
-    var createdAt: Date = Date()
+    @Attribute(.unique) var id: UUID
+    var publicKey: String
+    var signatureData: String
+    var createdAt: Date
+    
+    // ProposeSwiftDataとの関係（逆方向）
+    @Relationship(inverse: \ProposeSwiftData.signatures) var propose: ProposeSwiftData?
 
     init(
         id: UUID,
