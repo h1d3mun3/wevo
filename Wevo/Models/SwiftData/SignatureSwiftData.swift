@@ -19,7 +19,7 @@ final class SignatureSwiftData {
         id: UUID,
         publicKey: String,
         signatureData: String,
-        createdAt: Date = Date()
+        createdAt: Date
     ) {
         self.id = id
         self.publicKey = publicKey
