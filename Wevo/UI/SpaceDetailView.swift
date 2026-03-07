@@ -521,7 +521,7 @@ struct ProposeRowView: View {
                         Spacer()
                         
                         // 署名ボタン（自分の署名がない場合のみ表示）
-                        if let identity = defaultIdentity, !hasMySignature(identity: identity) {
+                        if let identity = defaultIdentity, !hasMySignature(identity: identity), signSuccess != true {
                             Button {
                                 Task {
                                     await signPropose(with: identity)
@@ -820,7 +820,9 @@ struct ProposeRowView: View {
     
     private func hasMySignature(identity: Identity) -> Bool {
         let myPublicKey = identity.publicKey
-        return propose.signatures.contains { signature in
+        // ローカルの署名とサーバーから取得した署名の両方をチェック
+        let allSignatures = propose.signatures + serverSignatures
+        return allSignatures.contains { signature in
             signature.publicKey == myPublicKey
         }
     }
