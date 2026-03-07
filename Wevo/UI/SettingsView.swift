@@ -23,8 +23,8 @@ struct SettingsView: View {
                 // タブ選択
                 Picker("Data Type", selection: $selectedTab) {
                     Text("Proposes").tag(0)
-                    Text("Spaces").tag(1)
-                    Text("Signatures").tag(2)
+                    Text("Signatures").tag(1)
+                    Text("Spaces").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .padding()
@@ -35,9 +35,9 @@ struct SettingsView: View {
                 if selectedTab == 0 {
                     ProposeListView(proposes: proposes, onDelete: loadData)
                 } else if selectedTab == 1 {
-                    SpaceListView(spaces: spaces)
+                    SignatureListView(signatures: signatures, onDelete: loadData)
                 } else {
-                    SignatureListView(signatures: signatures)
+                    SpaceListView(spaces: spaces, onDelete: loadData)
                 }
             }
             .navigationTitle("Settings")
@@ -127,23 +127,9 @@ struct ProposeListView: View {
                         ProposeDetailView(propose: propose)
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(propose.message)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                
-                                Spacer()
-                                
-                                Button {
-                                    proposeToDelete = propose
-                                    showDeleteAlert = true
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundStyle(.red)
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.borderless)
-                            }
+                            Text(propose.message)
+                                .font(.headline)
+                                .lineLimit(2)
                             
                             HStack {
                                 Text("Created:")
@@ -164,6 +150,12 @@ struct ProposeListView: View {
                             }
                         }
                         .padding(.vertical, 8)
+                    }
+                }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let propose = proposes[index]
+                        deletePropose(propose)
                     }
                 }
             }
@@ -199,6 +191,9 @@ struct ProposeListView: View {
 
 struct SpaceListView: View {
     let spaces: [SpaceSwiftData]
+    @Environment(\.modelContext) private var modelContext
+    
+    var onDelete: () -> Void = {}
     
     var body: some View {
         List {
@@ -236,9 +231,26 @@ struct SpaceListView: View {
                         .padding(.vertical, 8)
                     }
                 }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let space = spaces[index]
+                        deleteSpace(space)
+                    }
+                }
             }
         }
         .listStyle(.plain)
+    }
+    
+    private func deleteSpace(_ space: SpaceSwiftData) {
+        do {
+            let repository = SpaceRepository(modelContext: modelContext)
+            try repository.delete(by: space.id)
+            print("✅ Space deleted: \(space.id)")
+            onDelete()
+        } catch {
+            print("❌ Error deleting space: \(error)")
+        }
     }
 }
 
@@ -246,6 +258,9 @@ struct SpaceListView: View {
 
 struct SignatureListView: View {
     let signatures: [SignatureSwiftData]
+    @Environment(\.modelContext) private var modelContext
+    
+    var onDelete: () -> Void = {}
     
     var body: some View {
         List {
@@ -282,9 +297,27 @@ struct SignatureListView: View {
                         .padding(.vertical, 8)
                     }
                 }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let signature = signatures[index]
+                        deleteSignature(signature)
+                    }
+                }
             }
         }
         .listStyle(.plain)
+    }
+    
+    private func deleteSignature(_ signature: SignatureSwiftData) {
+        modelContext.delete(signature)
+        
+        do {
+            try modelContext.save()
+            print("✅ Signature deleted: \(signature.id)")
+            onDelete()
+        } catch {
+            print("❌ Error deleting signature: \(error)")
+        }
     }
 }
 
