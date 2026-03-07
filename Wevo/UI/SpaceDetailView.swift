@@ -731,7 +731,7 @@ struct ProposeRowView: View {
             let newServerSignatures = hashedPropose.signatures.compactMap { signInput -> Signature? in
                 guard !localPublicKeys.contains(signInput.publicKey) else { return nil }
                 return Signature(
-                    id: UUID(),
+                    id: signInput.id,
                     publicKey: signInput.publicKey,
                     signature: signInput.signature,
                     createdAt: signInput.createdAt
