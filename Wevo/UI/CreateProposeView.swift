@@ -53,7 +53,6 @@ struct CreateProposeView: View {
                 
                 Section {
                     TextField("Message", text: $message, axis: .vertical)
-                        .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .lineLimit(3...10)
                 } header: {

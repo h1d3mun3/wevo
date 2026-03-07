@@ -39,7 +39,6 @@ struct EditSpaceView: View {
             Form {
                 Section {
                     TextField("Space Name", text: $name)
-                        .textInputAutocapitalization(.words)
                 } header: {
                     Text("Name")
                 } footer: {
@@ -48,7 +47,6 @@ struct EditSpaceView: View {
                 
                 Section {
                     TextField("Server URL", text: $url)
-                        .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         #if os(iOS)
                         .keyboardType(.URL)
