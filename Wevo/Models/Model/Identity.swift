@@ -10,5 +10,5 @@ import SwiftUI
 struct Identity: Identifiable {
     let id: UUID
     let nickname: String
-    let publicKey: Data
+    let publicKey: String
 }

@@ -14,10 +14,6 @@ struct IdentityDetailView: View {
     @State private var errorMessage: String?
     @State private var showingEditSheet = false
     
-    private var publicKeyString: String {
-        identity.publicKey.base64EncodedString()
-    }
-    
     var body: some View {
         List {
             Section("Information") {
@@ -28,13 +24,13 @@ struct IdentityDetailView: View {
             
             Section("Public Key") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(publicKeyString)
+                    Text(identity.publicKey)
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
                     
                     Button(action: {
                         #if os(iOS)
-                        UIPasteboard.general.string = publicKeyString
+                        UIPasteboard.general.string = identity.publicKey
                         #elseif os(macOS)
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(publicKeyString, forType: .string)
@@ -162,7 +158,7 @@ struct EditIdentityView: View {
         IdentityDetailView(identity: Identity(
             id: UUID(),
             nickname: "My Identity",
-            publicKey: Data(repeating: 0x01, count: 32)
+            publicKey: "SOME PUBLIC KEY"
         ))
     }
 }
@@ -171,6 +167,6 @@ struct EditIdentityView: View {
     EditIdentityView(identity: Identity(
         id: UUID(),
         nickname: "My Identity",
-        publicKey: Data(repeating: 0x01, count: 32)
+        publicKey: "SOME PUBLIC KEY"
     ))
 }
