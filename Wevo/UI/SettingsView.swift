@@ -326,6 +326,9 @@ struct SignatureListView: View {
 struct ProposeDetailView: View {
     let propose: ProposeSwiftData
     
+    @State private var selectedSignature: SignatureSwiftData?
+    @State private var showSignatureDetail = false
+    
     var body: some View {
         List {
             Section("Message") {
@@ -374,8 +377,9 @@ struct ProposeDetailView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(propose.signatures, id: \.id) { signature in
-                        NavigationLink {
-                            SignatureDetailView(signature: signature)
+                        Button {
+                            selectedSignature = signature
+                            showSignatureDetail = true
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(signature.publicKey.prefix(32) + "...")
@@ -387,6 +391,7 @@ struct ProposeDetailView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -395,6 +400,20 @@ struct ProposeDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .sheet(isPresented: $showSignatureDetail) {
+            if let signature = selectedSignature {
+                NavigationStack {
+                    SignatureDetailView(signature: signature)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Close") {
+                                    showSignatureDetail = false
+                                }
+                            }
+                        }
+                }
+            }
+        }
     }
 }
 
