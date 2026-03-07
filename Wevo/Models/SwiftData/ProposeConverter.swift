@@ -55,12 +55,20 @@ struct ProposeConverter {
         model.payloadHash = propose.payloadHash
         model.updatedAt = Date()
         
-        // 既存のSignatureをクリアして新しいものを追加
-        model.signatures.removeAll()
-        let newSignatures = propose.signatures.map { signature in
-            SignatureConverter.toModel(from: signature)
+        // 既存の署名のIDセットを取得
+        let existingSignatureIDs = Set(model.signatures.map { $0.id })
+        
+        // 新しい署名のみを追加（既存の署名は維持）
+        let newSignatures = propose.signatures.compactMap { signature -> SignatureSwiftData? in
+            // 既にモデルに存在する署名はスキップ
+            guard !existingSignatureIDs.contains(signature.id) else { return nil }
+            return SignatureConverter.toModel(from: signature)
         }
+        
+        // 新しい署名のみを追加
         model.signatures.append(contentsOf: newSignatures)
+        
+        print("📝 Updated ProposeSwiftData: existing=\(existingSignatureIDs.count), new=\(newSignatures.count), total=\(model.signatures.count)")
     }
 }
 
