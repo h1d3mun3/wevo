@@ -33,7 +33,7 @@ struct IdentityDetailView: View {
                         UIPasteboard.general.string = identity.publicKey
                         #elseif os(macOS)
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(publicKeyString, forType: .string)
+                        NSPasteboard.general.setString(identity.publicKey, forType: .string)
                         #endif
                     }) {
                         Label("Copy to Clipboard", systemImage: "doc.on.doc")
