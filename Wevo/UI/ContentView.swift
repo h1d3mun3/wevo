@@ -11,7 +11,6 @@ import SwiftData
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
     @State private var shouldShowAddSpace = false
-    @State private var shouldShowImportPropose = false
     @State private var spaces: [Space] = []
     @Environment(\.modelContext) private var modelContext
 
@@ -47,12 +46,6 @@ struct ContentView: View {
                         Label("Manage Keys", systemImage: "key.fill")
                     }
                 }
-                
-                ToolbarItem {
-                    Button(action: { shouldShowImportPropose = true }) {
-                        Label("Import Propose", systemImage: "square.and.arrow.down")
-                    }
-                }
 
                 ToolbarItem{
                     Button(action: { shouldShowAddSpace = true }) {
@@ -68,13 +61,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $shouldShowIdentityList) {
             IdentityListView()
-        }
-        .sheet(isPresented: $shouldShowImportPropose, onDismiss: {
-            Task {
-                await loadSpaces()
-            }
-        }) {
-            ProposeImportView()
         }
         .sheet(isPresented: $shouldShowAddSpace, onDismiss: {
             Task {
