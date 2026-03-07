@@ -22,7 +22,7 @@ struct ContentView: View {
                     Text("No spaces available")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(spaces, id: \.id) { space in
+                    ForEach(spaces) { space in
                         NavigationLink {
                             SpaceDetailView(space: space)
                         } label: {
