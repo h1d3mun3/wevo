@@ -63,6 +63,11 @@ struct WevoApp: App {
     }
     
     private func importPropose(from url: URL) {
+        defer {
+            // ファイルをクリーンアップ
+            try? FileManager.default.removeItem(at: url)
+        }
+
         do {
             let exportData = try ProposeExporter.importPropose(from: url)
             
@@ -85,10 +90,6 @@ struct WevoApp: App {
             } else {
                 print("❌ No spaces found. Cannot import propose.")
             }
-            
-            // ファイルをクリーンアップ
-            try? FileManager.default.removeItem(at: url)
-            
         } catch {
             print("❌ Error importing propose: \(error)")
         }
