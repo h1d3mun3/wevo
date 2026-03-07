@@ -167,7 +167,7 @@ final class KeychainRepository {
     func getAllIdentities() throws -> [Identity] {
         let metadataList = try getAllIdentityMetadata()
         return metadataList.map { metadata in
-            Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
+            Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
         }
     }
     
@@ -202,7 +202,7 @@ final class KeychainRepository {
     func getIdentity(id: UUID) throws -> Identity {
         let metadata = try getIdentityMetadata(id: id)
 
-        return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
+        return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
     }
 
     /// 秘密鍵を取得（生体認証必須）

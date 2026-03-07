@@ -123,13 +123,10 @@ struct CreateProposeView: View {
                 withIdentityId: identity.id
             )
 
-            // 公開鍵をBase64エンコード
-            let publicKeyString = identity.publicKey.base64EncodedString()
-            
             // Signatureエンティティを作成
             let signatureEntity = Signature(
                 id: UUID(),
-                publicKey: publicKeyString,
+                publicKey: identity.publicKey,
                 signatureData: signature,
                 createdAt: Date()
             )
@@ -175,8 +172,8 @@ struct CreateProposeView: View {
             let input = ProposeAPIClient.ProposeInput(
                 id: proposeID,
                 payloadHash: signedPropose.payloadHash,
-                publicKey: publicKeyString,
-                signatures: [.init(publicKey: identity.publicKey.base64EncodedString(), signature: signature)]
+                publicKey: identity.publicKey,
+                signatures: [.init(publicKey: identity.publicKey, signature: signature)]
             )
             
             do {
@@ -223,7 +220,7 @@ struct CreateProposeView: View {
         identity: Identity(
             id: UUID(),
             nickname: "My Key",
-            publicKey: Data()
+            publicKey: "SOME PUBLIC KEY"
         ),
         onSuccess: {}
     )

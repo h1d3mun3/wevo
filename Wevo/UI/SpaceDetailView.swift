@@ -677,7 +677,7 @@ struct ProposeRowView: View {
     }
     
     private func hasMySignature(identity: Identity) -> Bool {
-        let myPublicKey = identity.publicKey.base64EncodedString()
+        let myPublicKey = identity.publicKey
         return propose.signatures.contains { signature in
             signature.publicKey == myPublicKey
         }
@@ -697,12 +697,10 @@ struct ProposeRowView: View {
                 withIdentityId: identity.id
             )
             
-            let publicKeyString = identity.publicKey.base64EncodedString()
-            
             // 新しいSignatureを作成
             let newSignature = Signature(
                 id: UUID(),
-                publicKey: publicKeyString,
+                publicKey: identity.publicKey,
                 signatureData: signatureData,
                 createdAt: Date()
             )
@@ -755,11 +753,11 @@ struct ProposeRowView: View {
 
 struct SignatureRowView: View {
     let signature: Signature
-    let myPublicKey: Data?
-    
+    let myPublicKey: String?
+
     private var isMySignature: Bool {
         guard let myPublicKey = myPublicKey else { return false }
-        return signature.publicKey == myPublicKey.base64EncodedString()
+        return signature.publicKey == myPublicKey
     }
     
     var body: some View {
