@@ -27,21 +27,42 @@ struct WevoApp: App {
     
     @State private var importedProposeURL: URL?
     @State private var showImportAlert = false
+    @State private var showSpaceSelector = false
+    @State private var importedProposeData: (propose: Propose, spaceID: UUID)?
+    @State private var availableSpaces: [Space] = []
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .sheet(isPresented: $showSpaceSelector) {
+                    if let proposeData = importedProposeData {
+                        SpaceSelectorView(
+                            propose: proposeData.propose,
+                            originalSpaceID: proposeData.spaceID,
+                            spaces: availableSpaces,
+                            onSelect: { selectedSpace in
+                                importPropose(proposeData.propose, to: selectedSpace)
+                                showSpaceSelector = false
+                                cleanup()
+                            },
+                            onCancel: {
+                                showSpaceSelector = false
+                                cleanup()
+                            }
+                        )
+                    }
+                }
                 .alert("Propose Received", isPresented: $showImportAlert) {
-                    Button("Import") {
+                    Button("Choose Space") {
                         if let url = importedProposeURL {
-                            importPropose(from: url)
+                            prepareImport(from: url)
                         }
                     }
                     Button("Cancel", role: .cancel) {
-                        importedProposeURL = nil
+                        cleanup()
                     }
                 } message: {
-                    Text("A Propose file has been received via AirDrop. Would you like to import it?")
+                    Text("A Propose file has been received via AirDrop. Choose which Space to import it to.")
                 }
                 .onOpenURL { url in
                     handleIncomingURL(url)
@@ -62,12 +83,7 @@ struct WevoApp: App {
         }
     }
     
-    private func importPropose(from url: URL) {
-        defer {
-            // ファイルをクリーンアップ
-            try? FileManager.default.removeItem(at: url)
-        }
-
+    private func prepareImport(from url: URL) {
         do {
             let exportData = try ProposeExporter.importPropose(from: url)
             
@@ -75,25 +91,132 @@ struct WevoApp: App {
             let spaceRepository = SpaceRepository(modelContext: modelContext)
             let spaces = try spaceRepository.fetchAll()
             
-            // 対応するSpaceを探す
-            if let matchingSpace = spaces.first(where: { $0.id == exportData.spaceID }) {
-                let proposeRepository = ProposeRepository(modelContext: modelContext)
-                try proposeRepository.create(exportData.propose, spaceID: matchingSpace.id)
-                
-                print("✅ Propose imported successfully to space: \(matchingSpace.name)")
-            } else if let firstSpace = spaces.first {
-                // Space IDが一致しない場合、最初のSpaceに保存
-                let proposeRepository = ProposeRepository(modelContext: modelContext)
-                try proposeRepository.create(exportData.propose, spaceID: firstSpace.id)
-                
-                print("⚠️ Original space not found. Saved to: \(firstSpace.name)")
-            } else {
+            guard !spaces.isEmpty else {
                 print("❌ No spaces found. Cannot import propose.")
+                cleanup()
+                return
             }
+            
+            importedProposeData = (propose: exportData.propose, spaceID: exportData.spaceID)
+            availableSpaces = spaces
+            showSpaceSelector = true
+            
+        } catch {
+            print("❌ Error preparing import: \(error)")
+            cleanup()
+        }
+    }
+    
+    private func importPropose(_ propose: Propose, to space: Space) {
+        let modelContext = sharedModelContainer.mainContext
+        let proposeRepository = ProposeRepository(modelContext: modelContext)
+        
+        do {
+            try proposeRepository.create(propose, spaceID: space.id)
+            print("✅ Propose imported successfully to space: \(space.name)")
         } catch {
             print("❌ Error importing propose: \(error)")
         }
-        
+    }
+    
+    private func cleanup() {
+        if let url = importedProposeURL {
+            try? FileManager.default.removeItem(at: url)
+        }
         importedProposeURL = nil
+        importedProposeData = nil
+        availableSpaces = []
     }
 }
+// MARK: - Space Selector View
+
+struct SpaceSelectorView: View {
+    let propose: Propose
+    let originalSpaceID: UUID
+    let spaces: [Space]
+    let onSelect: (Space) -> Void
+    let onCancel: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Propose to Import")
+                            .font(.headline)
+                        
+                        Text(propose.message)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                        
+                        HStack {
+                            Image(systemName: "signature")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                            Text("\(propose.signatures.count) signature(s)")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                            
+                            Spacer()
+                            
+                            Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section("Select Space") {
+                    ForEach(spaces) { space in
+                        Button {
+                            onSelect(space)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(space.name)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Text(space.url)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                if space.id == originalSpaceID {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .foregroundStyle(.blue)
+                                        .font(.title3)
+                                    Text("Original")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Import Propose")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onCancel()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
