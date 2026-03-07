@@ -60,7 +60,6 @@ struct SpaceDetailView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.systemBackground))
             
             Divider()
             
