@@ -16,7 +16,10 @@ struct WevoApp: App {
             ProposeSwiftData.self,
             SignatureSwiftData.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            cloudKitDatabase: .automatic
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
