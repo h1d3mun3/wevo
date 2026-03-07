@@ -12,12 +12,12 @@ struct Signature: Codable, Identifiable {
     let id: UUID
     let publicKey: String
     let signature: String
-    let createdAt: Date?
+    let createdAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id
-        case publicKey = "publicKey"
+        case publicKey
         case signature = "signatureData"
-        case createdAt = "createdAt"
+        case createdAt
     }
 }
