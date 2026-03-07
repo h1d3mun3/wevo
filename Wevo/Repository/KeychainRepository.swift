@@ -60,7 +60,13 @@ final class KeychainRepository {
         )
         try saveIdentityKey(item)
     }
-    
+
+    /// IdentityKeyを保存（メタデータと秘密鍵の両方）
+    private func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
+        try saveIdentityMetadata(item)
+        try savePrivateKey(item)
+    }
+
     /// IdentityKeyのメタデータを保存（認証不要）
     private func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
@@ -125,13 +131,7 @@ final class KeychainRepository {
             throw KeychainError.unhandledError(status: status)
         }
     }
-    
-    /// IdentityKeyを保存（メタデータと秘密鍵の両方）
-    private func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
-        try saveIdentityMetadata(item)
-        try savePrivateKey(item)
-    }
-    
+
     // MARK: - Retrieve
     
     /// すべてのIdentityメタデータを取得（認証不要）
