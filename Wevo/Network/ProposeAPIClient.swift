@@ -29,6 +29,12 @@ actor ProposeAPIClient {
         let id: UUID
         let payloadHash: String
         let publicKey: String
+        let signatures: [SignInput]
+    }
+
+    /// 署名追加時の入力データ
+    struct SignInput: Codable {
+        let publicKey: String
         let signature: String
     }
 
