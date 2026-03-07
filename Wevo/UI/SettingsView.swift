@@ -31,7 +31,7 @@ struct SettingsView: View {
                 
                 // コンテンツ
                 if selectedTab == 0 {
-                    ProposeListView(proposes: proposes)
+                    ProposeListView(proposes: proposes, onDelete: loadData)
                 } else {
                     SpaceListView(spaces: spaces)
                 }
@@ -92,6 +92,12 @@ struct SettingsView: View {
 
 struct ProposeListView: View {
     let proposes: [ProposeSwiftData]
+    @Environment(\.modelContext) private var modelContext
+    
+    @State private var proposeToDelete: ProposeSwiftData?
+    @State private var showDeleteAlert = false
+    
+    var onDelete: () -> Void = {}
     
     var body: some View {
         List {
@@ -109,6 +115,21 @@ struct ProposeListView: View {
                             
                             Spacer()
                             
+                            Button {
+                                proposeToDelete = propose
+                                showDeleteAlert = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        
+                        HStack {
+                            Text("Created:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -200,6 +221,29 @@ struct ProposeListView: View {
             }
         }
         .listStyle(.plain)
+        .alert("Delete Propose", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let propose = proposeToDelete {
+                    deletePropose(propose)
+                }
+            }
+        } message: {
+            if let propose = proposeToDelete {
+                Text("Are you sure you want to delete this propose?\n\n\(propose.message)")
+            }
+        }
+    }
+    
+    private func deletePropose(_ propose: ProposeSwiftData) {
+        do {
+            let repository = ProposeRepository(modelContext: modelContext)
+            try repository.delete(by: propose.id)
+            print("✅ Propose deleted: \(propose.id)")
+            onDelete()
+        } catch {
+            print("❌ Error deleting propose: \(error)")
+        }
     }
 }
 
