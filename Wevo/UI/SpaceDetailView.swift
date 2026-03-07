@@ -786,11 +786,9 @@ struct SignatureRowView: View {
                 
                 Spacer()
                 
-                if let createdAt = signature.createdAt {
-                    Text(createdAt, format: .dateTime.month().day().hour().minute())
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+                Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.leading, 8)
