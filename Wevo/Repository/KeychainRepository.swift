@@ -247,22 +247,7 @@ final class KeychainRepository {
             publicKey: metadata.publicKey
         )
     }
-    
-    /// すべてのIdentityKeyを取得（生体認証必須）
-    @available(*, deprecated, message: "Use getAllIdentityMetadata() for listing, and getPrivateKey(id:) when needed")
-    private func getAllIdentityKeys() throws -> [IdentityKeyChainItem] {
-        let metadataList = try getAllIdentityMetadata()
-        return try metadataList.map { metadata in
-            let privateKey = try getPrivateKey(id: metadata.id)
-            return IdentityKeyChainItem(
-                id: metadata.id,
-                nickname: metadata.nickname,
-                privateKey: privateKey,
-                publicKey: metadata.publicKey
-            )
-        }
-    }
-    
+
     // MARK: - Update
     
     /// IdentityKeyのニックネームを更新
