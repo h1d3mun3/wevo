@@ -198,7 +198,13 @@ final class KeychainRepository {
         let decoder = JSONDecoder()
         return try decoder.decode(IdentityMetadataKeychainItem.self, from: data)
     }
-    
+
+    func getIdentity(id: UUID) throws -> Identity {
+        let metadata = try getIdentityMetadata(id: id)
+
+        return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
+    }
+
     /// 秘密鍵を取得（生体認証必須）
     fileprivate func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
         let authContext = context ?? LAContext()
