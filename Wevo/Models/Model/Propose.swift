@@ -17,7 +17,6 @@ struct Propose: Codable, Identifiable {
     let createdAt: Date
     let updatedAt: Date
     
-    /// メッセージから自動的にハッシュを生成するイニシャライザ
     init(
         id: UUID,
         message: String,
@@ -31,15 +30,5 @@ struct Propose: Codable, Identifiable {
         self.signatures = signatures
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-    }
-
-    /// API送信用のHashedProposeに変換
-    func toHashedPropose() -> HashedPropose {
-        return HashedPropose(
-            id: id,
-            payloadHash: payloadHash,
-            signatures: signatures,
-            createdAt: createdAt
-        )
     }
 }
