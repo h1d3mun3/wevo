@@ -54,12 +54,6 @@ struct IdentityDetailView: View {
                 }) {
                     Label("Edit Nickname", systemImage: "pencil")
                 }
-                
-                Button(role: .destructive, action: {
-                    // TODO: 削除確認とアクション
-                }) {
-                    Label("Delete Identity", systemImage: "trash")
-                }
             }
         }
         .navigationTitle("Identity Detail")
