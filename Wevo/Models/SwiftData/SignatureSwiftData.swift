@@ -10,10 +10,10 @@ import SwiftData
 
 @Model
 final class SignatureSwiftData {
-    @Attribute(.unique) var id: UUID
-    var publicKey: String
-    var signatureData: String
-    var createdAt: Date
+    @Attribute(.unique) var id: UUID = UUID()
+    var publicKey: String = ""
+    var signatureData: String = ""
+    var createdAt: Date = Date()
 
     init(
         id: UUID,
