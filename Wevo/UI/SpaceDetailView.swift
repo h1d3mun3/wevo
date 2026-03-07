@@ -280,74 +280,77 @@ struct ProposeRowView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // メッセージ
-            HStack {
-                Text(propose.message)
-                    .font(.headline)
-                    .lineLimit(2)
+        NavigationLink {
+            ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                // メッセージ
+                HStack {
+                    Text(propose.message)
+                        .font(.headline)
+                        .lineLimit(2)
 
-                Spacer()
+                    Spacer()
 
-                Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            // ハッシュ
-            HStack {
-                Text("Hash:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(propose.payloadHash.prefix(16) + "...")
-                    .font(.caption)
-                    .fontDesign(.monospaced)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                
-                Spacer()
-                
-                // サーバーステータス
-                HStack(spacing: 4) {
-                    Image(systemName: serverStatus.icon)
-                        .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
-                    Text(serverStatus.description)
-                        .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
+                    Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-            }
-            
-            HStack {
-                Text("ID:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(propose.id.uuidString)
-                    .font(.caption)
-                    .fontDesign(.monospaced)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            
-            HStack {
-                Image(systemName: "signature")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(propose.signatures.count) signature(s)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 
-                Spacer()
-                
-                // 再送信ボタン
-                Button {
-                    Task {
-                        await resendToServer()
+                // ハッシュ
+                HStack {
+                    Text("Hash:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(propose.payloadHash.prefix(16) + "...")
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    // サーバーステータス
+                    HStack(spacing: 4) {
+                        Image(systemName: serverStatus.icon)
+                            .font(.caption2)
+                            .foregroundStyle(serverStatus.color)
+                        Text(serverStatus.description)
+                            .font(.caption2)
+                            .foregroundStyle(serverStatus.color)
                     }
-                } label: {
-                    if isResending {
-                        ProgressView()
+                }
+                
+                HStack {
+                    Text("ID:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(propose.id.uuidString)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                
+                HStack {
+                    Image(systemName: "signature")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(propose.signatures.count) signature(s)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    // 再送信ボタン
+                    Button {
+                        Task {
+                            await resendToServer()
+                        }
+                    } label: {
+                        if isResending {
+                            ProgressView()
                             .scaleEffect(0.7)
                     } else {
                         Label("Resend", systemImage: "arrow.clockwise")
@@ -560,6 +563,8 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
         .task {
             await checkServerStatus()
         }
@@ -1063,6 +1068,61 @@ struct ShareSheet: NSViewRepresentable {
     }
 }
 #endif
+
+// MARK: - Propose Detail View From Entity
+
+struct ProposeDetailViewFromEntity: View {
+    let propose: Propose
+    let space: Space
+    let modelContext: ModelContext
+    
+    @State private var proposeSwiftData: ProposeSwiftData?
+    @State private var isLoading = true
+    
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView("Loading...")
+            } else if let proposeSwiftData = proposeSwiftData {
+                ProposeDetailView(propose: proposeSwiftData)
+            } else {
+                VStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text("Propose not found")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .task {
+            await loadProposeSwiftData()
+        }
+    }
+    
+    private func loadProposeSwiftData() async {
+        let proposeID = propose.id
+        let predicate = #Predicate<ProposeSwiftData> { model in
+            model.id == proposeID
+        }
+        
+        var descriptor = FetchDescriptor<ProposeSwiftData>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        
+        do {
+            let models = try modelContext.fetch(descriptor)
+            await MainActor.run {
+                proposeSwiftData = models.first
+                isLoading = false
+            }
+        } catch {
+            print("❌ Error loading ProposeSwiftData: \(error)")
+            await MainActor.run {
+                isLoading = false
+            }
+        }
+    }
+}
 
 // MARK: - Preview
 
