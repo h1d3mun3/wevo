@@ -22,7 +22,7 @@ struct ProposeConverter {
             payloadHash: propose.payloadHash,
             spaceID: spaceID,
             signatures: signatureModels,
-            createdAt: propose.createdAt ?? Date()
+            createdAt: propose.createdAt
         )
     }
     
@@ -35,9 +35,9 @@ struct ProposeConverter {
         return Propose(
             id: model.id,
             message: model.message,
-            payloadHash: model.payloadHash,
             signatures: signatureEntities,
-            createdAt: model.createdAt
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
         )
     }
     
