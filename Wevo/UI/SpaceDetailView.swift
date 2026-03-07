@@ -280,12 +280,12 @@ struct ProposeRowView: View {
                 Text(propose.message)
                     .font(.headline)
                     .lineLimit(2)
+
                 Spacer()
-                if let createdAt = propose.createdAt {
-                    Text(createdAt, format: .dateTime.month().day().hour().minute())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+
+                Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             
             // ハッシュ
@@ -716,9 +716,9 @@ struct ProposeRowView: View {
             let updatedPropose = Propose(
                 id: propose.id,
                 message: propose.message,
-                payloadHash: propose.payloadHash,
                 signatures: updatedSignatures,
-                createdAt: propose.createdAt
+                createdAt: propose.createdAt,
+                updatedAt: propose.updatedAt
             )
             
             // ローカルに保存

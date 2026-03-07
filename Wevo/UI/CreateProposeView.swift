@@ -114,9 +114,12 @@ struct CreateProposeView: View {
             // メッセージからPropose作成（自動的にハッシュ化される）
             let propose = Propose(
                 id: proposeID,
-                message: trimmedMessage
+                message: message,
+                signatures: [],
+                createdAt: Date(),
+                updatedAt: Date()
             )
-            
+
             // 署名を作成（ハッシュ化されたメッセージに対して署名）
             let signature = try KeychainRepository.shared.signMessage(
                 propose.payloadHash,
@@ -135,9 +138,9 @@ struct CreateProposeView: View {
             let signedPropose = Propose(
                 id: propose.id,
                 message: propose.message,
-                payloadHash: propose.payloadHash,
                 signatures: [signatureEntity],
-                createdAt: Date()
+                createdAt: Date(),
+                updatedAt: Date()
             )
             
             // 1. 先にローカル（SwiftData）に保存（元のメッセージを含む）
