@@ -127,7 +127,7 @@ struct CreateProposeView: View {
             let signatureEntity = Signature(
                 id: UUID(),
                 publicKey: identity.publicKey,
-                signatureData: signature,
+                signature: signature,
                 createdAt: Date()
             )
             

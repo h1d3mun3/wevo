@@ -556,7 +556,7 @@ struct ProposeRowView: View {
                 payloadHash: propose.payloadHash,
                 publicKey: firstSignature.publicKey,
                 signatures: propose.signatures.compactMap({
-                    return ProposeAPIClient.SignInput(publicKey: $0.publicKey, signature: $0.signatureData)
+                    return ProposeAPIClient.SignInput(publicKey: $0.publicKey, signature: $0.signature)
                 })
             )
             
@@ -701,7 +701,7 @@ struct ProposeRowView: View {
             let newSignature = Signature(
                 id: UUID(),
                 publicKey: identity.publicKey,
-                signatureData: signatureData,
+                signature: signatureData,
                 createdAt: Date()
             )
             
