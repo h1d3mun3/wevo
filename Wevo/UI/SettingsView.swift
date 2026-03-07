@@ -330,6 +330,7 @@ struct ProposeDetailView: View {
     @State private var selectedSignature: SignatureSwiftData?
     @State private var showSignatureDetail = false
     @State private var signatureVerifications: [UUID: Bool] = [:]
+    @State private var isHashValid: Bool?
     
     var body: some View {
         List {
@@ -340,10 +341,30 @@ struct ProposeDetailView: View {
             
             Section("Hash") {
                 LabeledContent("Payload Hash") {
-                    Text(propose.payloadHash)
+                    HStack {
+                        Text(propose.payloadHash)
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .textSelection(.enabled)
+                        
+                        Spacer()
+                        
+                        // ハッシュ検証結果
+                        if let isValid = isHashValid {
+                            Image(systemName: isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(isValid ? .green : .red)
+                                .font(.title3)
+                        } else {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                }
+                
+                if let isValid = isHashValid, !isValid {
+                    Text("⚠️ Hash mismatch: The payload hash does not match the message")
                         .font(.caption)
-                        .fontDesign(.monospaced)
-                        .textSelection(.enabled)
+                        .foregroundStyle(.red)
                 }
             }
             
@@ -413,6 +434,7 @@ struct ProposeDetailView: View {
             }
         }
         .task {
+            await verifyHash()
             await verifyAllSignatures()
         }
         .navigationTitle("Propose Details")
@@ -432,6 +454,21 @@ struct ProposeDetailView: View {
                         }
                 }
             }
+        }
+    }
+    
+    private func verifyHash() async {
+        let messageHash = propose.message.sha256HashedString
+        let isValid = messageHash == propose.payloadHash
+        
+        await MainActor.run {
+            isHashValid = isValid
+        }
+        
+        if isValid {
+            print("✅ Hash valid: message hash matches payloadHash")
+        } else {
+            print("❌ Hash invalid: message hash (\(messageHash)) does not match payloadHash (\(propose.payloadHash))")
         }
     }
     
