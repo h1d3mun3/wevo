@@ -13,4 +13,6 @@ struct Space {
     let url: String
     let defaultIdentityID: UUID?
     let orderIndex: Int
+    let createdAt: Date
+    let updatedAt: Date
 }

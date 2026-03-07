@@ -123,7 +123,9 @@ struct AddSpaceView: View {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             url: trimmedURL,
             defaultIdentityID: selectedIdentityID,
-            orderIndex: orderIndex
+            orderIndex: orderIndex,
+            createdAt: .now,
+            updatedAt: .now
         )
         
         // SwiftDataに保存

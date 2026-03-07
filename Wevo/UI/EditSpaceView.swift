@@ -138,7 +138,9 @@ struct EditSpaceView: View {
                 name: trimmedName,
                 url: trimmedURL,
                 defaultIdentityID: space.defaultIdentityID,
-                orderIndex: space.orderIndex
+                orderIndex: space.orderIndex,
+                createdAt: space.createdAt,
+                updatedAt: .now
             )
             
             // リポジトリで更新
@@ -189,7 +191,9 @@ struct EditSpaceView: View {
             name: "Example Space",
             url: "https://api.example.com",
             defaultIdentityID: UUID(),
-            orderIndex: 0
+            orderIndex: 0,
+            createdAt: .now,
+            updatedAt: .now
         ),
         onUpdate: {}
     )

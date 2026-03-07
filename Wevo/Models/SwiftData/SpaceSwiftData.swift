@@ -24,8 +24,8 @@ final class SpaceSwiftData {
         urlString: String,
         defaultIdentityID: UUID?,
         orderIndex: Int,
-        createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        createdAt: Date,
+        updatedAt: Date
     ) {
         self.id = id
         self.name = name
