@@ -108,7 +108,9 @@ struct SpaceDetailView: View {
             } else {
                 List {
                     ForEach(proposes) { propose in
-                        ProposeRowView(propose: propose, space: space)
+                        ProposeRowView(propose: propose, space: space) {
+                            loadProposesFromLocal()
+                        }
                     }
                 }
                 .listStyle(.plain)
@@ -216,7 +218,8 @@ struct SpaceDetailView: View {
 struct ProposeRowView: View {
     let propose: Propose
     let space: Space
-    
+    let onSigned: () -> Void
+
     @Environment(\.modelContext) private var modelContext
     
     @State private var shareURL: URL?
@@ -427,6 +430,7 @@ struct ProposeRowView: View {
                             Button {
                                 Task {
                                     await signPropose(with: identity)
+                                    onSigned()
                                 }
                             } label: {
                                 if isSigning {
