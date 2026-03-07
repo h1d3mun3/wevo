@@ -10,15 +10,15 @@ import SwiftData
 
 @Model
 final class ProposeSwiftData {
-    @Attribute(.unique) var id: UUID
-    var message: String // 元のメッセージ
-    var payloadHash: String // ハッシュ化されたメッセージ
-    var spaceID: UUID
-    var createdAt: Date
-    var updatedAt: Date
+    var id: UUID = UUID()
+    var message: String = "" // 元のメッセージ
+    var payloadHash: String = "" // ハッシュ化されたメッセージ
+    var spaceID: UUID = UUID()
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     // Signatureのデータ（cascadeで削除時に関連するSignatureも削除）
-    @Relationship(deleteRule: .cascade) var signatures: [SignatureSwiftData]
+    @Relationship(deleteRule: .cascade) var signatures: [SignatureSwiftData]?
     
     init(
         id: UUID,

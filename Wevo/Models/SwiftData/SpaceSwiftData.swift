@@ -10,13 +10,13 @@ import SwiftData
 
 @Model
 final class SpaceSwiftData {
-    @Attribute(.unique) var id: UUID
-    var name: String
-    var urlString: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var urlString: String = ""
     var defaultIdentityID: UUID?
-    var orderIndex: Int
-    var createdAt: Date
-    var updatedAt: Date
+    var orderIndex: Int = 0
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     init(
         id: UUID,
