@@ -41,13 +41,9 @@ struct SpaceDetailView: View {
                             .foregroundStyle(.secondary)
                         
                         if let identity = defaultIdentity {
-                            HStack {
-                                Image(systemName: "key.fill")
-                                    .foregroundStyle(.secondary)
-                                Text("Default Key: \(identity.nickname)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            Text("Default Key: \(identity.nickname)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     
@@ -56,10 +52,10 @@ struct SpaceDetailView: View {
                     Button {
                         shouldShowEditSpace = true
                     } label: {
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.title2)
+                        Text("Edit Space")
+                            .font(.caption)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.bordered)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
