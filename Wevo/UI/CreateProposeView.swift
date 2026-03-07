@@ -122,7 +122,7 @@ struct CreateProposeView: View {
                 propose.payloadHash,
                 withIdentityId: identity.id
             )
-            
+
             // 公開鍵をBase64エンコード
             let publicKeyString = identity.publicKey.base64EncodedString()
             
@@ -170,13 +170,13 @@ struct CreateProposeView: View {
                 }
                 return
             }
-            
+
             // ProposeInputを作成（ハッシュのみ送信）
             let input = ProposeAPIClient.ProposeInput(
                 id: proposeID,
                 payloadHash: signedPropose.payloadHash,
                 publicKey: publicKeyString,
-                signature: signature
+                signatures: [.init(publicKey: identity.publicKey.base64EncodedString(), signature: signature)]
             )
             
             do {

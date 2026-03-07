@@ -549,13 +549,15 @@ struct ProposeRowView: View {
                 }
                 return
             }
-            
+
             // ProposeInputを作成（ハッシュのみ送信）
             let input = ProposeAPIClient.ProposeInput(
                 id: propose.id,
                 payloadHash: propose.payloadHash,
                 publicKey: firstSignature.publicKey,
-                signature: firstSignature.signatureData
+                signatures: propose.signatures.compactMap({
+                    return ProposeAPIClient.SignInput(publicKey: $0.publicKey, signature: $0.signatureData)
+                })
             )
             
             // APIクライアントで送信
