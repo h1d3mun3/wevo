@@ -73,7 +73,7 @@ struct SignatureConverter {
             id: signature.id,
             publicKey: signature.publicKey,
             signatureData: signature.signature,
-            createdAt: signature.createdAt ?? Date()
+            createdAt: signature.createdAt
         )
     }
     
