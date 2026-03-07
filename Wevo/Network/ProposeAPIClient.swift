@@ -74,6 +74,32 @@ actor ProposeAPIClient {
         }
     }
 
+    /// 指定したUUIDの署名状況を更新
+    /// - Parameter proposeID: 提案のUUID
+    /// - Throws: APIError
+    func updatePropose(proposeID: UUID, input: ProposeInput) async throws {
+        let url = baseURL
+            .appendingPathComponent("proposes")
+            .appendingPathComponent(proposeID.uuidString)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(input)
+
+        let (_, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+    }
+
     /// 指定したUUIDの提案詳細を取得
     /// - Parameter proposeID: 提案のUUID
     /// - Returns: ハッシュ化された提案データ

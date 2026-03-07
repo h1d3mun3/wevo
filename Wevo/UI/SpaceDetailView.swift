@@ -234,6 +234,12 @@ struct ProposeRowView: View {
     @State private var signSuccess: Bool?
     @State private var signErrorMessage: String?
     @State private var defaultIdentity: Identity?
+    @State private var serverSignatures: [Signature] = []
+    @State private var hasNewSignatures = false
+    @State private var isSyncingSignatures = false
+    @State private var localOnlySignatures: [Signature] = []
+    @State private var hasLocalOnlySignatures = false
+    @State private var isSendingSignatures = false
     
     enum ServerStatus: Equatable {
         case unknown
@@ -411,6 +417,89 @@ struct ProposeRowView: View {
                 Text(shareError)
                     .font(.caption2)
                     .foregroundStyle(.red)
+            }
+            
+            // サーバーに新しい署名がある場合の通知
+            if hasNewSignatures {
+                HStack {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    
+                    Text("Server has \(serverSignatures.count) new signature(s)")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .fontWeight(.medium)
+                    
+                    Spacer()
+                    
+                    Button {
+                        Task {
+                            await syncSignaturesFromServer()
+                            onSigned()
+                        }
+                    } label: {
+                        if isSyncingSignatures {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                Text("Syncing...")
+                                    .font(.caption)
+                            }
+                        } else {
+                            Label("Sync from Server", systemImage: "arrow.down.circle.fill")
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .disabled(isSyncingSignatures)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            // ローカルにのみある署名がある場合の通知
+            if hasLocalOnlySignatures {
+                HStack {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    
+                    Text("You have \(localOnlySignatures.count) local signature(s)")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                        .fontWeight(.medium)
+                    
+                    Spacer()
+                    
+                    Button {
+                        Task {
+                            await sendLocalSignaturesToServer()
+                        }
+                    } label: {
+                        if isSendingSignatures {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                Text("Sending...")
+                                    .font(.caption)
+                            }
+                        } else {
+                            Label("Send to Server", systemImage: "arrow.up.circle.fill")
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .disabled(isSendingSignatures)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
             }
             
             if !propose.signatures.isEmpty {
@@ -619,13 +708,51 @@ struct ProposeRowView: View {
             
             // APIクライアントで確認
             let client = ProposeAPIClient(baseURL: baseURL)
-            let _ = try await client.getPropose(proposeID: propose.id)
+            let hashedPropose = try await client.getPropose(proposeID: propose.id)
             
             // 成功 = サーバーに存在する
             print("✅ Propose exists on server: \(propose.id)")
+            print("📊 Server has \(hashedPropose.signatures.count) signatures, local has \(propose.signatures.count)")
+            
+            // 署名の公開鍵で比較するためのセット
+            let localPublicKeys = Set(propose.signatures.map { $0.publicKey })
+            let serverPublicKeys = Set(hashedPropose.signatures.map { $0.publicKey })
+            
+            // サーバーにのみある署名を抽出（ローカルにない新しい署名）
+            let newServerSignatures = hashedPropose.signatures.compactMap { signInput -> Signature? in
+                guard !localPublicKeys.contains(signInput.publicKey) else { return nil }
+                return Signature(
+                    id: UUID(),
+                    publicKey: signInput.publicKey,
+                    signature: signInput.signature,
+                    createdAt: signInput.createdAt
+                )
+            }
+            
+            // ローカルにのみある署名を抽出（サーバーにまだ送られていない署名）
+            let localOnlySigs = propose.signatures.filter { signature in
+                !serverPublicKeys.contains(signature.publicKey)
+            }
+            
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
+                
+                // サーバーから取得した新しい署名
+                self.serverSignatures = newServerSignatures
+                self.hasNewSignatures = !newServerSignatures.isEmpty
+                
+                // ローカルのみの署名
+                self.localOnlySignatures = localOnlySigs
+                self.hasLocalOnlySignatures = !localOnlySigs.isEmpty
+                
+                if !newServerSignatures.isEmpty {
+                    print("🔄 Found \(newServerSignatures.count) new signature(s) on server")
+                }
+                
+                if !localOnlySigs.isEmpty {
+                    print("📤 Found \(localOnlySigs.count) local-only signature(s)")
+                }
             }
             
         } catch let error as ProposeAPIClient.APIError {
@@ -748,6 +875,108 @@ struct ProposeRowView: View {
             await MainActor.run {
                 signSuccess = nil
                 signErrorMessage = nil
+            }
+        }
+    }
+    
+    private func syncSignaturesFromServer() async {
+        await MainActor.run {
+            isSyncingSignatures = true
+        }
+        
+        do {
+            // サーバーから取得した署名をローカルのProposeに追加
+            var updatedSignatures = propose.signatures
+            updatedSignatures.append(contentsOf: serverSignatures)
+            
+            let updatedPropose = Propose(
+                id: propose.id,
+                message: propose.message,
+                signatures: updatedSignatures,
+                createdAt: propose.createdAt,
+                updatedAt: Date()
+            )
+            
+            // ローカルに保存
+            await MainActor.run {
+                let repository = ProposeRepository(modelContext: modelContext)
+                do {
+                    try repository.update(updatedPropose)
+                    print("✅ Synced \(serverSignatures.count) new signature(s) from server: \(propose.id)")
+                    
+                    // 同期完了後、状態をリセット
+                    hasNewSignatures = false
+                    serverSignatures = []
+                    isSyncingSignatures = false
+                } catch {
+                    print("❌ Failed to sync signatures locally: \(error)")
+                    isSyncingSignatures = false
+                }
+            }
+        }
+    }
+    
+    private func sendLocalSignaturesToServer() async {
+        await MainActor.run {
+            isSendingSignatures = true
+        }
+        
+        do {
+            // URLを確認
+            guard let baseURL = URL(string: space.url) else {
+                await MainActor.run {
+                    isSendingSignatures = false
+                }
+                print("❌ Invalid server URL")
+                return
+            }
+            
+            // 最初のSignatureを取得（Proposeを作成した人の署名）
+            guard let firstSignature = propose.signatures.first else {
+                await MainActor.run {
+                    isSendingSignatures = false
+                }
+                print("❌ No signature found")
+                return
+            }
+            
+            // 全ての署名（既存 + ローカルのみ）をSignInputに変換
+            let allSignInputs = propose.signatures.map { signature in
+                ProposeAPIClient.SignInput(
+                    publicKey: signature.publicKey,
+                    signature: signature.signature
+                )
+            }
+            
+            // ProposeInputを作成（全ての署名を送信）
+            let input = ProposeAPIClient.ProposeInput(
+                id: propose.id,
+                payloadHash: propose.payloadHash,
+                publicKey: firstSignature.publicKey,
+                signatures: allSignInputs
+            )
+            
+            // APIクライアントでcreateProposeを使用（サーバー側で既存の場合は更新される想定）
+            let client = ProposeAPIClient(baseURL: baseURL)
+            try await client.updatePropose(proposeID: input.id, input: input)
+
+            print("✅ Sent \(localOnlySignatures.count) local signature(s) to server (total: \(allSignInputs.count)): \(propose.id)")
+            
+            await MainActor.run {
+                isSendingSignatures = false
+                hasLocalOnlySignatures = false
+                localOnlySignatures = []
+                
+                // サーバーステータスを再チェック
+                Task {
+                    await checkServerStatus()
+                }
+            }
+            
+        } catch {
+            print("❌ Error sending local signatures to server: \(error)")
+            await MainActor.run {
+                isSendingSignatures = false
             }
         }
     }
