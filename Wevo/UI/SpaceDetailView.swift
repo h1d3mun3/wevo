@@ -525,6 +525,7 @@ struct ProposeRowView: View {
                             Button {
                                 Task {
                                     await signPropose(with: identity)
+                                    // 親ビューでProposeリストを再読み込み
                                     onSigned()
                                 }
                             } label: {
@@ -566,7 +567,8 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
-        .task {
+        .task(id: propose.signatures.count) {
+            // 署名の数が変わったら再チェック
             await checkServerStatus()
         }
         .task {
@@ -863,6 +865,10 @@ struct ProposeRowView: View {
                 do {
                     try repository.update(updatedPropose)
                     print("✅ Signature added locally: \(propose.id)")
+                    
+                    // 署名が成功したらサーバーステータスを再チェック
+                    signSuccess = true
+                    isSigning = false
                 } catch {
                     print("❌ Failed to update propose locally: \(error)")
                     signSuccess = false
@@ -871,6 +877,13 @@ struct ProposeRowView: View {
                     return
                 }
             }
+            
+            // 3秒後に成功メッセージを消す
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run {
+                signSuccess = nil
+            }
+            
         } catch {
             print("❌ Error signing propose: \(error)")
             await MainActor.run {
