@@ -259,7 +259,7 @@ struct SpaceListView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
-                ForEach(spaces, id: \.id) { space in
+                ForEach(spaces) { space in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(space.name)
