@@ -71,7 +71,7 @@ struct SignatureConverter {
         return SignatureSwiftData(
             id: signature.id,
             publicKey: signature.publicKey,
-            signatureData: signature.signatureData,
+            signatureData: signature.signature,
             createdAt: signature.createdAt ?? Date()
         )
     }
@@ -81,7 +81,7 @@ struct SignatureConverter {
         return Signature(
             id: model.id,
             publicKey: model.publicKey,
-            signatureData: model.signatureData,
+            signature: model.signatureData,
             createdAt: model.createdAt
         )
     }

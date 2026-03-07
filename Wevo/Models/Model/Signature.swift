@@ -11,13 +11,13 @@ import Foundation
 struct Signature: Codable, Identifiable {
     let id: UUID
     let publicKey: String
-    let signatureData: String
+    let signature: String
     let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
         case publicKey = "publicKey"
-        case signatureData = "signatureData"
+        case signature = "signatureData"
         case createdAt = "createdAt"
     }
 }
