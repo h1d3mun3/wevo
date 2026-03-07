@@ -145,7 +145,7 @@ struct ProposeListView: View {
                                 Image(systemName: "signature")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text("\(propose.signatures.count) signature(s)")
+                                Text("\((propose.signatures ?? []).count) signature(s)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -394,12 +394,12 @@ struct ProposeDetailView: View {
                 }
             }
             
-            Section("Signatures (\(propose.signatures.count))") {
-                if propose.signatures.isEmpty {
+            Section("Signatures (\((propose.signatures ?? []).count))") {
+                if (propose.signatures ?? []).isEmpty {
                     Text("No signatures")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(propose.signatures, id: \.id) { signature in
+                    ForEach((propose.signatures ?? []), id: \.id) { signature in
                         Button {
                             selectedSignature = signature
                             showSignatureDetail = true
@@ -473,7 +473,7 @@ struct ProposeDetailView: View {
     }
     
     private func verifyAllSignatures() async {
-        for signature in propose.signatures {
+        for signature in (propose.signatures ?? []) {
             let isValid = await verifySignature(signature)
             await MainActor.run {
                 signatureVerifications[signature.id] = isValid
