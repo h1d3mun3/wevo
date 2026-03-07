@@ -17,7 +17,7 @@ final class ProposeSwiftData {
     var createdAt: Date
     var updatedAt: Date
     
-    // Signatureのデータ
+    // Signatureのデータ（cascadeで削除時に関連するSignatureも削除）
     @Relationship(deleteRule: .cascade) var signatures: [SignatureSwiftData]
     
     init(
