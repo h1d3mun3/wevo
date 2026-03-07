@@ -240,6 +240,7 @@ struct ProposeRowView: View {
     @State private var localOnlySignatures: [Signature] = []
     @State private var hasLocalOnlySignatures = false
     @State private var isSendingSignatures = false
+    @State private var showProposeDetail = false
     
     enum ServerStatus: Equatable {
         case unknown
@@ -280,9 +281,10 @@ struct ProposeRowView: View {
     }
     
     var body: some View {
-        NavigationLink {
-            ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
-        } label: {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                showProposeDetail = true
+            } label: {
             VStack(alignment: .leading, spacing: 8) {
                 // メッセージ
                 HStack {
@@ -340,8 +342,13 @@ struct ProposeRowView: View {
                     Text("\(propose.signatures.count) signature(s)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
-                    Spacer()
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        
+        // アクションボタン（Buttonの外）
+        HStack {
                     
                     // 再送信ボタン
                     Button {
@@ -563,8 +570,6 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
         .task {
             await checkServerStatus()
         }
@@ -575,6 +580,9 @@ struct ProposeRowView: View {
         .task {
             // デフォルトIdentityを読み込み
             await loadDefaultIdentity()
+        }
+        .sheet(isPresented: $showProposeDetail) {
+            ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
         }
         #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
