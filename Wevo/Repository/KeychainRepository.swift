@@ -169,7 +169,8 @@ final class KeychainRepository {
             kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: id.uuidString,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var result: AnyObject?
@@ -207,7 +208,8 @@ final class KeychainRepository {
             kSecAttrAccount as String: id.uuidString,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationContext as String: authContext
+            kSecUseAuthenticationContext as String: authContext,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var result: AnyObject?
@@ -409,3 +411,27 @@ extension KeychainRepository {
     }
 }
 
+extension KeychainRepository {
+    func migrateKey(id: UUID) throws {
+        /// 古いIdentityと秘密鍵を取得
+        let oldMetadata = try getIdentity(id: id)
+        let oldPrivateKey = try getPrivateKey(id: id)
+
+        // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
+        let key = try P256.Signing.PrivateKey(rawRepresentation: oldPrivateKey)
+        // x963Representation形式で保存（サーバーと互換性を持たせるため）
+        let oldPublicKey = key.publicKey.x963Representation
+
+
+        try deleteIdentityKey(id: id)
+
+        try saveIdentityKey(
+            .init(
+                id: oldMetadata.id,
+                nickname: oldMetadata.nickname,
+                privateKey: oldPrivateKey,
+                publicKey: oldPublicKey
+            )
+        )
+    }
+}
