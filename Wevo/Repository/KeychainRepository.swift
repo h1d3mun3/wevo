@@ -130,7 +130,8 @@ final class KeychainRepository {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var result: AnyObject?
@@ -288,7 +289,8 @@ final class KeychainRepository {
         let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
@@ -297,7 +299,8 @@ final class KeychainRepository {
         let privateKeyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: servicePrivateKey,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let privateKeyStatus = SecItemDelete(privateKeyQuery as CFDictionary)
