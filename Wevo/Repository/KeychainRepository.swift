@@ -168,11 +168,11 @@ final class KeychainRepository {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: id.uuidString,
-            kSecReturnData as String: true,
+            kSecReturnData as String: kCFBooleanTrue as Any, // 明示的にCFBoolean
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // キャストを確認
         ]
-        
+
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         
@@ -251,10 +251,8 @@ final class KeychainRepository {
     
     /// IdentityKeyのニックネームを更新
     func updateNickname(id: UUID, newNickname: String) throws {
-        // 既存のメタデータを取得（公開鍵を保持するため）
         let existingMetadata = try getIdentityMetadata(id: id)
-        
-        // メタデータを更新
+
         let encoder = JSONEncoder()
         let updatedMetadata = IdentityMetadataKeychainItem(
             id: id,
@@ -262,19 +260,21 @@ final class KeychainRepository {
             publicKey: existingMetadata.publicKey
         )
         let metadataData = try encoder.encode(updatedMetadata)
-        
+
+        // 💡 検索条件に同期フラグを追加
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // これが必要！
         ]
-        
+
         let attributesToUpdate: [String: Any] = [
             kSecValueData as String: metadataData
         ]
-        
+
         let status = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
-        
+
         guard status == errSecSuccess else {
             if status == errSecItemNotFound {
                 throw KeychainError.itemNotFound
