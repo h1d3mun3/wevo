@@ -83,7 +83,7 @@ final class KeychainRepository {
             kSecAttrAccount as String: item.id.uuidString,
             kSecValueData as String: metadataData,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-            kSecAttrSynchronizable as String: false
+            kSecAttrSynchronizable as String: true
         ]
         
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -99,16 +99,6 @@ final class KeychainRepository {
     
     /// 秘密鍵を保存（生体認証必須）
     private func savePrivateKey(_ item: IdentityKeyChainItem) throws {
-        // アクセス制御の作成：生体認証またはパスコード必須
-        guard let access = SecAccessControlCreateWithFlags(
-            nil,
-            kSecAttrAccessibleAfterFirstUnlock,
-            .userPresence, // Face ID / Touch ID / パスコード
-            nil
-        ) else {
-            throw KeychainError.accessControlCreationFailed
-        }
-        
         let encoder = JSONEncoder()
         let privateKeyData = try encoder.encode(PrivateKeyData(privateKey: item.privateKey))
         
@@ -117,10 +107,10 @@ final class KeychainRepository {
             kSecAttrService as String: servicePrivateKey,
             kSecAttrAccount as String: item.id.uuidString,
             kSecValueData as String: privateKeyData,
-            kSecAttrAccessControl as String: access,
-            kSecAttrSynchronizable as String: false // 生体認証使用時は同期不可
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrSynchronizable as String: true
         ]
-        
+
         let status = SecItemAdd(query as CFDictionary, nil)
         
         guard status != errSecDuplicateItem else {
