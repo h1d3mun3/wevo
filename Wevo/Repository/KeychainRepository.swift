@@ -82,7 +82,7 @@ final class KeychainRepository {
             kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: item.id.uuidString,
             kSecValueData as String: metadataData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecAttrSynchronizable as String: false
         ]
         
@@ -102,7 +102,7 @@ final class KeychainRepository {
         // アクセス制御の作成：生体認証またはパスコード必須
         guard let access = SecAccessControlCreateWithFlags(
             nil,
-            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            kSecAttrAccessibleAfterFirstUnlock,
             .userPresence, // Face ID / Touch ID / パスコード
             nil
         ) else {
