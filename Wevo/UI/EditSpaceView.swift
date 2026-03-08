@@ -119,54 +119,45 @@ struct EditSpaceView: View {
             isSaving = true
             errorMessage = nil
         }
-        
-        do {
-            // URLの妥当性を確認
-            guard URL(string: trimmedURL) != nil else {
-                await MainActor.run {
-                    errorMessage = "Invalid URL format"
-                    isSaving = false
-                }
-                return
-            }
-            
-            // 更新されたSpaceを作成
-            let updatedSpace = Space(
-                id: space.id,
-                name: trimmedName,
-                url: trimmedURL,
-                defaultIdentityID: space.defaultIdentityID,
-                orderIndex: space.orderIndex,
-                createdAt: space.createdAt,
-                updatedAt: .now
-            )
-            
-            // リポジトリで更新
+
+        // URLの妥当性を確認
+        guard URL(string: trimmedURL) != nil else {
             await MainActor.run {
-                let repository = SpaceRepository(modelContext: modelContext)
-                do {
-                    try repository.update(updatedSpace)
-                    print("✅ Space updated successfully: \(updatedSpace.name)")
-                    
-                    isSaving = false
-                    onUpdate()
-                    dismiss()
-                } catch {
-                    print("❌ Failed to update space: \(error)")
-                    errorMessage = "Failed to save: \(error.localizedDescription)"
-                    isSaving = false
-                }
+                errorMessage = "Invalid URL format"
+                isSaving = false
             }
-            
-        } catch {
-            print("❌ Error updating space: \(error)")
-            await MainActor.run {
+            return
+        }
+
+        // 更新されたSpaceを作成
+        let updatedSpace = Space(
+            id: space.id,
+            name: trimmedName,
+            url: trimmedURL,
+            defaultIdentityID: space.defaultIdentityID,
+            orderIndex: space.orderIndex,
+            createdAt: space.createdAt,
+            updatedAt: .now
+        )
+
+        // リポジトリで更新
+        await MainActor.run {
+            let repository = SpaceRepository(modelContext: modelContext)
+            do {
+                try repository.update(updatedSpace)
+                print("✅ Space updated successfully: \(updatedSpace.name)")
+
+                isSaving = false
+                onUpdate()
+                dismiss()
+            } catch {
+                print("❌ Failed to update space: \(error)")
                 errorMessage = "Failed to save: \(error.localizedDescription)"
                 isSaving = false
             }
         }
     }
-    
+
     private func getIdentityNickname(for id: UUID) -> String {
         do {
             let identities = try KeychainRepository.shared.getAllIdentities()
