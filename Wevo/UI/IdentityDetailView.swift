@@ -7,12 +7,16 @@
 
 import SwiftUI
 import CryptoKit
+import UniformTypeIdentifiers
 
 struct IdentityDetailView: View {
     let identity: Identity
     
     @State private var errorMessage: String?
+    @State private var exportError: String?
     @State private var showingEditSheet = false
+    @State private var shareURL: URL?
+    @State private var showShareSheet = false
     
     var body: some View {
         List {
@@ -55,6 +59,33 @@ struct IdentityDetailView: View {
                     Label("Edit Nickname", systemImage: "pencil")
                 }
             }
+            
+            Section("Share") {
+#if os(iOS)
+                Button {
+                    preparePlainExport()
+                } label: {
+                    Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
+                }
+                .alert("Export Error", isPresented: .constant(exportError != nil)) {
+                    Button("OK", role: .cancel) { exportError = nil }
+                } message: {
+                    Text(exportError ?? "")
+                }
+                if let shareURL = shareURL {
+                    ShareLink(item: shareURL) {
+                        Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
+                    }
+                }
+#else
+                Button {
+                    preparePlainExport()
+                    showShareSheet = true
+                } label: {
+                    Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
+                }
+#endif
+            }
         }
         .navigationTitle("Identity Detail")
 #if os(iOS)
@@ -62,6 +93,25 @@ struct IdentityDetailView: View {
 #endif
         .sheet(isPresented: $showingEditSheet) {
             EditIdentityView(identity: identity)
+        }
+#if os(macOS)
+        .sheet(isPresented: $showShareSheet) {
+            if let shareURL = shareURL {
+                ShareSheet(items: [shareURL])
+            }
+        }
+#endif
+    }
+    
+    private func preparePlainExport() {
+        do {
+            // Fetch private key from Keychain (biometric auth may be required)
+            let privateKeyData = try KeychainRepository.shared.getPrivateKey(id: identity.id)
+            let base64 = privateKeyData.base64EncodedString()
+            let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
+            shareURL = url
+        } catch {
+            exportError = "Failed to export identity: \(error.localizedDescription)"
         }
     }
 }

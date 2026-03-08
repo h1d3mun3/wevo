@@ -33,6 +33,11 @@ struct WevoApp: App {
     @State private var showSpaceSelector = false
     @State private var importedProposeData: (propose: Propose, spaceID: UUID)?
     @State private var availableSpaces: [Space] = []
+    
+    @State private var importedIdentityURL: URL?
+    @State private var showIdentityImportAlert = false
+    @State private var pendingIdentityPlain: IdentityPlainExport?
+    @State private var showIdentityImportSheet = false
 
     var body: some Scene {
         WindowGroup {
@@ -55,6 +60,16 @@ struct WevoApp: App {
                         )
                     }
                 }
+                .sheet(isPresented: $showIdentityImportSheet) {
+                    if let export = pendingIdentityPlain {
+                        IdentityImportView(exportData: export) {
+                            // onComplete
+                            cleanupIdentityImport()
+                        } onCancel: {
+                            cleanupIdentityImport()
+                        }
+                    }
+                }
                 .alert("Propose Received", isPresented: $showImportAlert) {
                     Button("Choose Space") {
                         if let url = importedProposeURL {
@@ -67,6 +82,18 @@ struct WevoApp: App {
                 } message: {
                     Text("A Propose file has been received via AirDrop. Choose which Space to import it to.")
                 }
+                .alert("Identity Received", isPresented: $showIdentityImportAlert) {
+                    Button("Preview") {
+                        if let url = importedIdentityURL {
+                            prepareIdentityImport(from: url)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {
+                        cleanupIdentityImport()
+                    }
+                } message: {
+                    Text("An Identity file has been received via AirDrop. Preview and import it?")
+                }
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
@@ -76,13 +103,15 @@ struct WevoApp: App {
     
     private func handleIncomingURL(_ url: URL) {
         print("📥 Received URL: \(url)")
-        
-        // .wevo-propose ファイルかチェック
-        if url.pathExtension == "wevo-propose" {
+        let ext = url.pathExtension
+        if ext == "wevo-propose" {
             importedProposeURL = url
             showImportAlert = true
+        } else if ext == "wevo-identity" {
+            importedIdentityURL = url
+            showIdentityImportAlert = true
         } else {
-            print("⚠️ Unknown file type: \(url.pathExtension)")
+            print("⚠️ Unknown file type: \(ext)")
         }
     }
     
@@ -108,6 +137,27 @@ struct WevoApp: App {
             print("❌ Error preparing import: \(error)")
             cleanup()
         }
+    }
+    
+    private func prepareIdentityImport(from url: URL) {
+        do {
+            let plain = try IdentityPlainTransfer.importPlainFromFile(url: url)
+            pendingIdentityPlain = plain
+            showIdentityImportSheet = true
+        } catch {
+            print("❌ Error preparing identity import: \(error)")
+            cleanupIdentityImport()
+        }
+    }
+
+    private func cleanupIdentityImport() {
+        if let url = importedIdentityURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        importedIdentityURL = nil
+        pendingIdentityPlain = nil
+        showIdentityImportSheet = false
+        showIdentityImportAlert = false
     }
     
     private func importPropose(_ propose: Propose, to space: Space) {
