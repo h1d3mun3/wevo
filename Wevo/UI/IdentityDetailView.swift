@@ -17,7 +17,8 @@ struct IdentityDetailView: View {
     @State private var showingEditSheet = false
     @State private var shareURL: URL?
     @State private var showShareSheet = false
-    
+    @State private var migrationError: String?
+
     var body: some View {
         List {
             Section("Information") {
@@ -59,7 +60,20 @@ struct IdentityDetailView: View {
                     Label("Edit Nickname", systemImage: "pencil")
                 }
             }
-            
+
+            Section {
+                Button(action: {
+                    migrateKey()
+                }) {
+                    Label("Migration Key", systemImage: "icloud")
+                }
+                .alert("Migration Error", isPresented: .constant(migrationError != nil)) {
+                    Button("OK", role: .cancel) { migrationError = nil }
+                } message: {
+                    Text(migrationError ?? "")
+                }
+            }
+
             Section("Share") {
 #if os(iOS)
                 Button {
@@ -112,6 +126,14 @@ struct IdentityDetailView: View {
             shareURL = url
         } catch {
             exportError = "Failed to export identity: \(error.localizedDescription)"
+        }
+    }
+
+    private func migrateKey() {
+        do {
+            try KeychainRepository.shared.migrateKey(id: identity.id)
+        } catch {
+            migrationError = "Failed to migrateError identity: \(error.localizedDescription)"
         }
     }
 }
