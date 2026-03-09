@@ -112,58 +112,36 @@ struct EditSpaceView: View {
     }
     
     private func saveChanges() async {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+        let editSpaceUseCase = EditSpaceUseCaseImpl(
+            spaceRepository: SpaceRepositoryImpl(modelContext: modelContext),
+            getSpaceUseCase: GetSpaceUseCaseImpl(
+                spaceRepository: SpaceRepositoryImpl(modelContext: modelContext)
+            )
+        )
+
         await MainActor.run {
             isSaving = true
             errorMessage = nil
         }
 
-        // URLの妥当性を確認
-        guard URL(string: trimmedURL) != nil else {
-            await MainActor.run {
-                errorMessage = "Invalid URL format"
-                isSaving = false
-            }
-            return
-        }
+        do {
+            try editSpaceUseCase.execute(id: space.id, name: name, urlString: url)
 
-        // 更新されたSpaceを作成
-        let updatedSpace = Space(
-            id: space.id,
-            name: trimmedName,
-            url: trimmedURL,
-            defaultIdentityID: space.defaultIdentityID,
-            orderIndex: space.orderIndex,
-            createdAt: space.createdAt,
-            updatedAt: .now
-        )
-
-        // リポジトリで更新
-        await MainActor.run {
-            let repository = SpaceRepositoryImpl(modelContext: modelContext)
-            do {
-                try repository.update(updatedSpace)
-                print("✅ Space updated successfully: \(updatedSpace.name)")
-
-                isSaving = false
-                onUpdate()
-                dismiss()
-            } catch {
-                print("❌ Failed to update space: \(error)")
-                errorMessage = "Failed to save: \(error.localizedDescription)"
-                isSaving = false
-            }
+            isSaving = false
+            onUpdate()
+            dismiss()
+        } catch {
+            print("❌ Failed to update space: \(error)")
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            isSaving = false
         }
     }
 
     private func getIdentityNickname(for id: UUID) -> String {
+        let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
-            let identities = try KeychainRepositoryImpl().getAllIdentities()
-            if let identity = identities.first(where: { $0.id == id }) {
-                return identity.nickname
-            }
+            let identity = try getIdentityUseCase.execute(id: id)
+            return identity.nickname
         } catch {
             print("❌ Error loading identities: \(error)")
         }
