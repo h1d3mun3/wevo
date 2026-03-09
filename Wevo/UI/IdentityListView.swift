@@ -50,7 +50,7 @@ struct IdentityListView: View {
     
     private func loadIdentities() async {
         do {
-            let loadedIdentities = try KeychainRepositoryImpl.shared.getAllIdentities()
+            let loadedIdentities = try KeychainRepositoryImpl().getAllIdentities()
             await MainActor.run {
                 identities = loadedIdentities
             }
@@ -67,7 +67,7 @@ struct IdentityListView: View {
             do {
                 for index in offsets {
                     let identity = identities[index]
-                    try KeychainRepositoryImpl.shared.deleteIdentityKey(id: identity.id)
+                    try KeychainRepositoryImpl().deleteIdentityKey(id: identity.id)
                 }
                 await loadIdentities()
             } catch {
