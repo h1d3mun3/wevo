@@ -71,6 +71,7 @@ struct IdentityImportView: View {
             guard let privateKeyData = Data(base64Encoded: exportData.privateKey) else {
                 throw NSError(domain: "Wevo", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid private key encoding."])
             }
+            // TODO: ここはUseCase切り出しが難しいので直参照をOKにする
             try KeychainRepositoryImpl().createIdentity(id: exportData.id, nickname: exportData.nickname, privateKey: privateKeyData)
             isImporting = false
             onComplete()
