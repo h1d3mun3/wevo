@@ -49,7 +49,7 @@ struct IdentityListView: View {
     }
     
     private func loadIdentities() async {
-        let getAllIdentityUseCase = GetAllIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getAllIdentityUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
             let loadedIdentities = try getAllIdentityUseCase.execute()
             await MainActor.run {
