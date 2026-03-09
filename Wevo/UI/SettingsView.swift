@@ -177,9 +177,9 @@ struct ProposeListView: View {
     }
     
     private func deletePropose(_ propose: ProposeSwiftData) {
+        let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
         do {
-            let repository = ProposeRepositoryImpl(modelContext: modelContext)
-            try repository.delete(by: propose.id)
+            try deleteProposeUseCase.execute(id: propose.id)
             print("✅ Propose deleted: \(propose.id)")
             onDelete()
         } catch {
@@ -244,9 +244,9 @@ struct SpaceListView: View {
     }
     
     private func deleteSpace(_ space: SpaceSwiftData) {
+        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
         do {
-            let repository = SpaceRepositoryImpl(modelContext: modelContext)
-            try repository.delete(by: space.id)
+            try deleteSpaceUseCase.execute(id: space.id)
             print("✅ Space deleted: \(space.id)")
             onDelete()
         } catch {

@@ -118,9 +118,10 @@ struct IdentityDetailView: View {
     }
     
     private func preparePlainExport() {
+        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
             // Fetch private key from Keychain (biometric auth may be required)
-            let privateKeyData = try KeychainRepositoryImpl().getPrivateKey(id: identity.id)
+            let privateKeyData = try getPrivateKeyUseCase.execute(id: identity.id)
             let base64 = privateKeyData.base64EncodedString()
             let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
             shareURL = url
@@ -130,8 +131,9 @@ struct IdentityDetailView: View {
     }
 
     private func migrateKey() {
+        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
-            try KeychainRepositoryImpl().migrateKey(id: identity.id)
+            try migrateIdentityUseCase.execute(id: identity.id)
         } catch {
             migrationError = "Failed to migrateError identity: \(error.localizedDescription)"
         }

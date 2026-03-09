@@ -42,6 +42,7 @@ protocol KeychainRepository {
     func updateNickname(id: UUID, newNickname: String) throws
     func deleteIdentityKey(id: UUID) throws
     func deleteAllIdentityKeys() throws
+    func migrateKey(id: UUID) throws
 }
 
 final class KeychainRepositoryImpl: KeychainRepository {

@@ -14,7 +14,7 @@ protocol DeleteSpaceUseCase {
 struct DeleteSpaceUseCaseImpl {
     let spaceRepository: SpaceRepository
 
-    init (spaceRepository: SpaceRepository) {
+    init(spaceRepository: SpaceRepository) {
         self.spaceRepository = spaceRepository
     }
 }
