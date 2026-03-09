@@ -802,9 +802,11 @@ struct ProposeRowView: View {
             }
             return
         }
-        
+
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+
         do {
-            let identities = try KeychainRepositoryImpl().getAllIdentities()
+            let identities = try getAllIdentitiesUseCase.execute()
             await MainActor.run {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
