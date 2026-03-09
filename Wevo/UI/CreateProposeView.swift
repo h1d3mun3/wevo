@@ -144,7 +144,7 @@ struct CreateProposeView: View {
             
             // 1. 先にローカル（SwiftData）に保存（元のメッセージを含む）
             await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
+                let repository = ProposeRepositoryImpl(modelContext: modelContext)
                 do {
                     try repository.create(signedPropose, spaceID: space.id)
                     print("✅ Propose saved to SwiftData: \(proposeID)")
