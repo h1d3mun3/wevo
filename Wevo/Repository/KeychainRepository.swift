@@ -43,6 +43,7 @@ protocol KeychainRepository {
     func deleteIdentityKey(id: UUID) throws
     func deleteAllIdentityKeys() throws
     func migrateKey(id: UUID) throws
+    func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext?) throws -> String
 }
 
 final class KeychainRepositoryImpl: KeychainRepository {
