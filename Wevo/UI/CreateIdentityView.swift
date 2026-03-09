@@ -44,28 +44,11 @@ struct CreateIdentityView: View {
     private func create() {
         isSaving = true
         
+        let useCase = CreateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        
         Task {
             do {
-                // P256鍵ペアの生成（SecureEnclave対応のため）
-                let privateKey = P256.Signing.PrivateKey()
-                let privateKeyData = privateKey.rawRepresentation
-                
-                // Keychainに保存
-                let id = UUID()
-                let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-                try KeychainRepositoryImpl().createIdentity(
-                    id: id,
-                    nickname: trimmedNickname,
-                    privateKey: privateKeyData
-                )
-                
-                // 公開鍵をログ出力（デバッグ用）
-                let publicKeyData = privateKey.publicKey.rawRepresentation
-                
-                print("✅ Identity Key saved successfully")
-                print("ID: \(id)")
-                print("Nickname: \(trimmedNickname)")
-                print("Public Key: \(publicKeyData.base64EncodedString())")
+                try useCase.execute(nickname: nickname)
                 
                 await MainActor.run {
                     isSaving = false
@@ -76,7 +59,6 @@ struct CreateIdentityView: View {
                 await MainActor.run {
                     isSaving = false
                 }
-                // TODO: エラーをユーザーに表示
             }
         }
     }
