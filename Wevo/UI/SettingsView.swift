@@ -261,6 +261,8 @@ struct SignatureListView: View {
     let signatures: [SignatureSwiftData]
     @Environment(\.modelContext) private var modelContext
     
+    @State private var signatureVerifications: [UUID: Bool] = [:]
+    
     var onDelete: () -> Void = {}
     
     var body: some View {
@@ -274,28 +276,19 @@ struct SignatureListView: View {
                     NavigationLink {
                         SignatureDetailView(signature: signature)
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .foregroundStyle(.green)
-                                
-                                Text(signature.publicKey.prefix(16) + "...")
-                                    .font(.body)
-                                    .fontDesign(.monospaced)
-                                
-                                Spacer()
-                            }
-                            
-                            HStack {
-                                Text("Created:")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        SignatureRowItemView(
+                            signature: signature,
+                            isValid: signatureVerifications[signature.id]
+                        )
+                    }
+                    .task {
+                        // 署名を検証
+                        if signatureVerifications[signature.id] == nil {
+                            let isValid = await verifySignature(signature)
+                            await MainActor.run {
+                                signatureVerifications[signature.id] = isValid
                             }
                         }
-                        .padding(.vertical, 8)
                     }
                 }
                 .onDelete { indexSet in
@@ -307,6 +300,36 @@ struct SignatureListView: View {
             }
         }
         .listStyle(.plain)
+    }
+    
+    private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
+        // 全てのProposeSwiftDataを取得して、署名が含まれているものを探す
+        let descriptor = FetchDescriptor<ProposeSwiftData>()
+        
+        do {
+            let allProposes = try modelContext.fetch(descriptor)
+            
+            // 署名が含まれているProposeを探す
+            guard let propose = allProposes.first(where: { propose in
+                (propose.signatures ?? []).contains(where: { $0.id == signature.id })
+            }) else {
+                print("⚠️ No propose found for signature: \(signature.id)")
+                return false
+            }
+            
+            let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+            
+            let isValid = try verifySignatureUseCase.execute(
+                signature: signature.signatureData,
+                message: propose.payloadHash,
+                publicKey: signature.publicKey
+            )
+            
+            return isValid
+        } catch {
+            print("❌ Error verifying signature \(signature.id): \(error)")
+            return false
+        }
     }
     
     private func deleteSignature(_ signature: SignatureSwiftData) {
@@ -322,13 +345,50 @@ struct SignatureListView: View {
     }
 }
 
+// MARK: - Signature Row Item View
+
+struct SignatureRowItemView: View {
+    let signature: SignatureSwiftData
+    let isValid: Bool?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                // 検証状態に応じてアイコンと色を変更
+                if let isValid = isValid {
+                    Image(systemName: isValid ? "checkmark.seal.fill" : "xmark.seal.fill")
+                        .foregroundStyle(isValid ? .green : .red)
+                } else {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+                
+                Text(signature.publicKey.prefix(16) + "...")
+                    .font(.body)
+                    .fontDesign(.monospaced)
+                
+                Spacer()
+            }
+            
+            HStack {
+                Text("Created:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 // MARK: - Propose Detail View
 
 struct ProposeDetailView: View {
     let propose: ProposeSwiftData
     
     @State private var selectedSignature: SignatureSwiftData?
-    @State private var showSignatureDetail = false
     @State private var signatureVerifications: [UUID: Bool] = [:]
     @State private var isHashValid: Bool?
     
@@ -402,7 +462,6 @@ struct ProposeDetailView: View {
                     ForEach((propose.signatures ?? []), id: \.id) { signature in
                         Button {
                             selectedSignature = signature
-                            showSignatureDetail = true
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -441,18 +500,16 @@ struct ProposeDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .sheet(isPresented: $showSignatureDetail) {
-            if let signature = selectedSignature {
-                NavigationStack {
-                    SignatureDetailView(signature: signature)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") {
-                                    showSignatureDetail = false
-                                }
+        .sheet(item: $selectedSignature) { signature in
+            NavigationStack {
+                SignatureDetailView(signature: signature)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") {
+                                selectedSignature = nil
                             }
                         }
-                }
+                    }
             }
         }
     }
@@ -482,34 +539,17 @@ struct ProposeDetailView: View {
     }
     
     private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
+        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+
         do {
-            // Base64デコードして公開鍵を取得
-            guard let publicKeyData = Data(base64Encoded: signature.publicKey) else {
-                print("❌ Failed to decode public key for signature: \(signature.id)")
-                return false
-            }
+            // VerifySignatureUseCaseを使用して署名を検証
+            let isValid = try verifySignatureUseCase.execute(
+                signature: signature.signatureData,
+                message: propose.payloadHash,
+                publicKey: signature.publicKey
+            )
             
-            // P256公開鍵を作成
-            let publicKey = try CryptoKit.P256.Signing.PublicKey(x963Representation: publicKeyData)
-            
-            // 署名データをBase64デコード
-            guard let signatureData = Data(base64Encoded: signature.signatureData) else {
-                print("❌ Failed to decode signature data for signature: \(signature.id)")
-                return false
-            }
-            
-            // P256署名を作成（DER形式から）
-            let sig = try CryptoKit.P256.Signing.ECDSASignature(derRepresentation: signatureData)
-            
-            // payloadHashをUTF-8データに変換
-            let messageData = Data(propose.payloadHash.utf8)
-            
-            // 署名を検証
-            let isValid = publicKey.isValidSignature(sig, for: messageData)
-            
-            print(isValid ? "✅ Signature valid: \(signature.id)" : "❌ Signature invalid: \(signature.id)")
             return isValid
-            
         } catch {
             print("❌ Error verifying signature \(signature.id): \(error)")
             return false
