@@ -23,6 +23,6 @@ struct EditIdentityUseCaseImpl {
 extension EditIdentityUseCaseImpl: EditIdentityUseCase {
     func execute(id: UUID, newNickname: String) throws {
         let trimmedNickname = newNickname.trimmingCharacters(in: .whitespacesAndNewlines)
-        try KeychainRepositoryImpl().updateNickname(id: id, newNickname: trimmedNickname)
+        try keychainRepository.updateNickname(id: id, newNickname: trimmedNickname)
     }
 }
