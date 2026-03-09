@@ -176,9 +176,9 @@ struct SpaceDetailView: View {
         errorMessage = nil
         
         do {
-            let repository = ProposeRepositoryImpl(modelContext: modelContext)
-            let loadedProposes = try repository.fetchAll(for: currentSpace.id)
-            
+            let loadAllProposesUseCase = LoadAllProposesUseCaseIpml(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+            let loadedProposes = try loadAllProposesUseCase.execute(id: currentSpace.id)
+
             proposes = loadedProposes
             isLoading = false
             
