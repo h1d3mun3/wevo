@@ -870,36 +870,21 @@ struct ProposeRowView: View {
         await MainActor.run {
             isSyncingSignatures = true
         }
-        
+
+        let appendServerSignaturesToLocalProposeUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
+            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+        )
+
         do {
-            // サーバーから取得した署名をローカルのProposeに追加
-            var updatedSignatures = propose.signatures
-            updatedSignatures.append(contentsOf: serverSignatures)
-            
-            let updatedPropose = Propose(
-                id: propose.id,
-                message: propose.message,
-                signatures: updatedSignatures,
-                createdAt: propose.createdAt,
-                updatedAt: Date()
-            )
-            
-            // ローカルに保存
-            await MainActor.run {
-                let repository = ProposeRepositoryImpl(modelContext: modelContext)
-                do {
-                    try repository.update(updatedPropose)
-                    print("✅ Synced \(serverSignatures.count) new signature(s) from server: \(propose.id)")
-                    
-                    // 同期完了後、状態をリセット
-                    hasNewSignatures = false
-                    serverSignatures = []
-                    isSyncingSignatures = false
-                } catch {
-                    print("❌ Failed to sync signatures locally: \(error)")
-                    isSyncingSignatures = false
-                }
-            }
+            try appendServerSignaturesToLocalProposeUseCase.execute(proposeID: propose.id, with: serverSignatures)
+
+            // 同期完了後、状態をリセット
+            hasNewSignatures = false
+            serverSignatures = []
+            isSyncingSignatures = false
+        } catch {
+            print("❌ Failed to sync signatures locally: \(error)")
+            isSyncingSignatures = false
         }
     }
     
