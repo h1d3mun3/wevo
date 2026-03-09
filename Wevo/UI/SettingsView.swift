@@ -389,7 +389,6 @@ struct ProposeDetailView: View {
     let propose: ProposeSwiftData
     
     @State private var selectedSignature: SignatureSwiftData?
-    @State private var showSignatureDetail = false
     @State private var signatureVerifications: [UUID: Bool] = [:]
     @State private var isHashValid: Bool?
     
@@ -463,7 +462,6 @@ struct ProposeDetailView: View {
                     ForEach((propose.signatures ?? []), id: \.id) { signature in
                         Button {
                             selectedSignature = signature
-                            showSignatureDetail = true
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -502,18 +500,16 @@ struct ProposeDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .sheet(isPresented: $showSignatureDetail) {
-            if let signature = selectedSignature {
-                NavigationStack {
-                    SignatureDetailView(signature: signature)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") {
-                                    showSignatureDetail = false
-                                }
+        .sheet(item: $selectedSignature) { signature in
+            NavigationStack {
+                SignatureDetailView(signature: signature)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") {
+                                selectedSignature = nil
                             }
                         }
-                }
+                    }
             }
         }
     }
