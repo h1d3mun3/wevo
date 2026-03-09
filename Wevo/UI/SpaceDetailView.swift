@@ -176,7 +176,7 @@ struct SpaceDetailView: View {
         errorMessage = nil
         
         do {
-            let repository = ProposeRepository(modelContext: modelContext)
+            let repository = ProposeRepositoryImpl(modelContext: modelContext)
             let loadedProposes = try repository.fetchAll(for: currentSpace.id)
             
             proposes = loadedProposes
@@ -862,7 +862,7 @@ struct ProposeRowView: View {
             
             // ローカルに保存
             await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
+                let repository = ProposeRepositoryImpl(modelContext: modelContext)
                 do {
                     try repository.update(updatedPropose)
                     print("✅ Signature added locally: \(propose.id)")
@@ -922,7 +922,7 @@ struct ProposeRowView: View {
             
             // ローカルに保存
             await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
+                let repository = ProposeRepositoryImpl(modelContext: modelContext)
                 do {
                     try repository.update(updatedPropose)
                     print("✅ Synced \(serverSignatures.count) new signature(s) from server: \(propose.id)")

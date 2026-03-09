@@ -178,7 +178,7 @@ struct ProposeListView: View {
     
     private func deletePropose(_ propose: ProposeSwiftData) {
         do {
-            let repository = ProposeRepository(modelContext: modelContext)
+            let repository = ProposeRepositoryImpl(modelContext: modelContext)
             try repository.delete(by: propose.id)
             print("✅ Propose deleted: \(propose.id)")
             onDelete()

@@ -162,7 +162,7 @@ struct WevoApp: App {
     
     private func importPropose(_ propose: Propose, to space: Space) {
         let modelContext = sharedModelContainer.mainContext
-        let proposeRepository = ProposeRepository(modelContext: modelContext)
+        let proposeRepository = ProposeRepositoryImpl(modelContext: modelContext)
         
         do {
             try proposeRepository.create(propose, spaceID: space.id)
