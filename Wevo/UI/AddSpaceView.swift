@@ -107,7 +107,7 @@ struct AddSpaceView: View {
         let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 既存のSpaceの数を取得してorderIndexを決定
-        let repository = SpaceRepository(modelContext: modelContext)
+        let repository = SpaceRepositoryImpl(modelContext: modelContext)
         let orderIndex: Int
         do {
             let existingSpaces = try repository.fetchAll()

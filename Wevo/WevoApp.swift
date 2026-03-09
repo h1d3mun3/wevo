@@ -120,7 +120,7 @@ struct WevoApp: App {
             let exportData = try ProposeExporter.importPropose(from: url)
             
             let modelContext = sharedModelContainer.mainContext
-            let spaceRepository = SpaceRepository(modelContext: modelContext)
+            let spaceRepository = SpaceRepositoryImpl(modelContext: modelContext)
             let spaces = try spaceRepository.fetchAll()
             
             guard !spaces.isEmpty else {

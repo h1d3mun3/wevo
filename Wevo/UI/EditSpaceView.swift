@@ -142,7 +142,7 @@ struct EditSpaceView: View {
 
         // リポジトリで更新
         await MainActor.run {
-            let repository = SpaceRepository(modelContext: modelContext)
+            let repository = SpaceRepositoryImpl(modelContext: modelContext)
             do {
                 try repository.update(updatedSpace)
                 print("✅ Space updated successfully: \(updatedSpace.name)")

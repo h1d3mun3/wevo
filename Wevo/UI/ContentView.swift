@@ -82,7 +82,7 @@ struct ContentView: View {
     }
 
     private func loadSpaces() async {
-        let repository = SpaceRepository(modelContext: modelContext)
+        let repository = SpaceRepositoryImpl(modelContext: modelContext)
         do {
             let loadedSpaces = try repository.fetchAll()
             await MainActor.run {
@@ -98,7 +98,7 @@ struct ContentView: View {
     
     private func deleteSpace(offsets: IndexSet) {
         Task {
-            let repository = SpaceRepository(modelContext: modelContext)
+            let repository = SpaceRepositoryImpl(modelContext: modelContext)
             do {
                 for index in offsets {
                     let space = spaces[index]
