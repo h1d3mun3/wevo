@@ -16,10 +16,18 @@ enum ProposeRepositoryError: Error {
     case fetchError(Error)
 }
 
-/// SwiftDataを使用してProposeのCRUD操作を提供するRepository
 @MainActor
-final class ProposeRepository {
-    
+protocol ProposeRepository {
+    func create(_ propose: Propose, spaceID: UUID) throws
+    func fetchAll(for spaceID: UUID) throws -> [Propose]
+    func fetch(by id: UUID) throws -> Propose
+    func update(_ propose: Propose) throws
+    func delete(by id: UUID) throws
+    func deleteAll(for spaceID: UUID) throws
+}
+
+/// SwiftDataを使用してProposeのCRUD操作を提供するRepository
+final class ProposeRepositoryImpl: ProposeRepository {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {

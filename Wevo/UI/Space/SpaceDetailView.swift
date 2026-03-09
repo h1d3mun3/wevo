@@ -159,10 +159,8 @@ struct SpaceDetailView: View {
         }
         
         do {
-            let identities = try KeychainRepository.shared.getAllIdentities()
-            await MainActor.run {
-                self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
-            }
+            let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
+            self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
             print("❌ Error loading default identity: \(error)")
             await MainActor.run {
@@ -176,9 +174,9 @@ struct SpaceDetailView: View {
         errorMessage = nil
         
         do {
-            let repository = ProposeRepository(modelContext: modelContext)
-            let loadedProposes = try repository.fetchAll(for: currentSpace.id)
-            
+            let loadAllProposesUseCase = LoadAllProposesUseCaseIpml(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+            let loadedProposes = try loadAllProposesUseCase.execute(id: currentSpace.id)
+
             proposes = loadedProposes
             isLoading = false
             
@@ -197,12 +195,13 @@ struct SpaceDetailView: View {
     
     private func reloadSpace() async {
         await MainActor.run {
-            let repository = SpaceRepository(modelContext: modelContext)
+            let getSpaceUseCase = GetSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
             do {
-                if let updatedSpace = try? repository.fetch(by: space.id) {
-                    currentSpace = updatedSpace
-                    print("✅ Space reloaded: \(updatedSpace.name)")
-                }
+                let updatedSpace = try getSpaceUseCase.execute(id: space.id)
+                currentSpace = updatedSpace
+                print("✅ Space reloaded: \(updatedSpace.name)")
+            } catch {
+                print("Failed to Reload Space: \(error)")
             }
         }
     }
@@ -803,9 +802,11 @@ struct ProposeRowView: View {
             }
             return
         }
-        
+
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+
         do {
-            let identities = try KeychainRepository.shared.getAllIdentities()
+            let identities = try getAllIdentitiesUseCase.execute()
             await MainActor.run {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
@@ -832,59 +833,22 @@ struct ProposeRowView: View {
             signSuccess = nil
             signErrorMessage = nil
         }
-        
+
+        let signProposeUseCase = SignProposeUseCaseImpl(
+            keychainRepository: KeychainRepositoryImpl(),
+            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+        )
+
         do {
-            // ペイロードハッシュに署名
-            let signatureData = try KeychainRepository.shared.signMessage(
-                propose.payloadHash,
-                withIdentityId: identity.id
-            )
-            
-            // 新しいSignatureを作成
-            let newSignature = Signature(
-                id: UUID(),
-                publicKey: identity.publicKey,
-                signature: signatureData,
-                createdAt: Date()
-            )
-            
-            // Proposeに署名を追加
-            var updatedSignatures = propose.signatures
-            updatedSignatures.append(newSignature)
-            
-            let updatedPropose = Propose(
-                id: propose.id,
-                message: propose.message,
-                signatures: updatedSignatures,
-                createdAt: propose.createdAt,
-                updatedAt: propose.updatedAt
-            )
-            
-            // ローカルに保存
-            await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
-                do {
-                    try repository.update(updatedPropose)
-                    print("✅ Signature added locally: \(propose.id)")
-                    
-                    // 署名が成功したらサーバーステータスを再チェック
-                    signSuccess = true
-                    isSigning = false
-                } catch {
-                    print("❌ Failed to update propose locally: \(error)")
-                    signSuccess = false
-                    signErrorMessage = "Failed to save locally"
-                    isSigning = false
-                    return
-                }
-            }
-            
+            try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
+            signSuccess = true
+            isSigning = false
+
             // 3秒後に成功メッセージを消す
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run {
                 signSuccess = nil
             }
-            
         } catch {
             print("❌ Error signing propose: \(error)")
             await MainActor.run {
@@ -892,7 +856,7 @@ struct ProposeRowView: View {
                 signSuccess = false
                 signErrorMessage = error.localizedDescription
             }
-            
+
             // 5秒後にエラーメッセージを消す
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run {
@@ -906,36 +870,21 @@ struct ProposeRowView: View {
         await MainActor.run {
             isSyncingSignatures = true
         }
-        
+
+        let appendServerSignaturesToLocalProposeUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
+            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+        )
+
         do {
-            // サーバーから取得した署名をローカルのProposeに追加
-            var updatedSignatures = propose.signatures
-            updatedSignatures.append(contentsOf: serverSignatures)
-            
-            let updatedPropose = Propose(
-                id: propose.id,
-                message: propose.message,
-                signatures: updatedSignatures,
-                createdAt: propose.createdAt,
-                updatedAt: Date()
-            )
-            
-            // ローカルに保存
-            await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
-                do {
-                    try repository.update(updatedPropose)
-                    print("✅ Synced \(serverSignatures.count) new signature(s) from server: \(propose.id)")
-                    
-                    // 同期完了後、状態をリセット
-                    hasNewSignatures = false
-                    serverSignatures = []
-                    isSyncingSignatures = false
-                } catch {
-                    print("❌ Failed to sync signatures locally: \(error)")
-                    isSyncingSignatures = false
-                }
-            }
+            try appendServerSignaturesToLocalProposeUseCase.execute(proposeID: propose.id, with: serverSignatures)
+
+            // 同期完了後、状態をリセット
+            hasNewSignatures = false
+            serverSignatures = []
+            isSyncingSignatures = false
+        } catch {
+            print("❌ Failed to sync signatures locally: \(error)")
+            isSyncingSignatures = false
         }
     }
     

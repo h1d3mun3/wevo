@@ -120,7 +120,7 @@ struct WevoApp: App {
             let exportData = try ProposeExporter.importPropose(from: url)
             
             let modelContext = sharedModelContainer.mainContext
-            let spaceRepository = SpaceRepository(modelContext: modelContext)
+            let spaceRepository = SpaceRepositoryImpl(modelContext: modelContext)
             let spaces = try spaceRepository.fetchAll()
             
             guard !spaces.isEmpty else {
@@ -162,7 +162,7 @@ struct WevoApp: App {
     
     private func importPropose(_ propose: Propose, to space: Space) {
         let modelContext = sharedModelContainer.mainContext
-        let proposeRepository = ProposeRepository(modelContext: modelContext)
+        let proposeRepository = ProposeRepositoryImpl(modelContext: modelContext)
         
         do {
             try proposeRepository.create(propose, spaceID: space.id)
