@@ -118,9 +118,10 @@ struct IdentityDetailView: View {
     }
     
     private func preparePlainExport() {
+        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
             // Fetch private key from Keychain (biometric auth may be required)
-            let privateKeyData = try KeychainRepository.shared.getPrivateKey(id: identity.id)
+            let privateKeyData = try getPrivateKeyUseCase.execute(id: identity.id)
             let base64 = privateKeyData.base64EncodedString()
             let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
             shareURL = url
@@ -130,91 +131,11 @@ struct IdentityDetailView: View {
     }
 
     private func migrateKey() {
+        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
-            try KeychainRepository.shared.migrateKey(id: identity.id)
+            try migrateIdentityUseCase.execute(id: identity.id)
         } catch {
             migrationError = "Failed to migrateError identity: \(error.localizedDescription)"
-        }
-    }
-}
-
-// MARK: - Edit Identity View
-
-struct EditIdentityView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    let identity: Identity
-    @State private var nickname: String
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    
-    init(identity: Identity) {
-        self.identity = identity
-        _nickname = State(initialValue: identity.nickname)
-    }
-    
-    private var canSave: Bool {
-        !nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        nickname != identity.nickname &&
-        !isSaving
-    }
-    
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Nickname") {
-                    TextField("Nickname", text: $nickname)
-                }
-                
-                if let errorMessage = errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.caption)
-                    }
-                }
-            }
-            .navigationTitle("Edit Identity")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .disabled(isSaving)
-                }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            await save()
-                        }
-                    }
-                    .disabled(!canSave)
-                }
-            }
-        }
-    }
-    
-    private func save() async {
-        isSaving = true
-        errorMessage = nil
-        
-        do {
-            let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-            try KeychainRepository.shared.updateNickname(id: identity.id, newNickname: trimmedNickname)
-            
-            await MainActor.run {
-                isSaving = false
-                dismiss()
-            }
-        } catch {
-            await MainActor.run {
-                errorMessage = "Failed to update: \(error.localizedDescription)"
-                isSaving = false
-            }
         }
     }
 }
@@ -227,12 +148,4 @@ struct EditIdentityView: View {
             publicKey: "SOME PUBLIC KEY"
         ))
     }
-}
-
-#Preview("Edit Identity") {
-    EditIdentityView(identity: Identity(
-        id: UUID(),
-        nickname: "My Identity",
-        publicKey: "SOME PUBLIC KEY"
-    ))
 }

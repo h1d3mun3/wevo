@@ -16,9 +16,19 @@ enum SpaceRepositoryError: Error {
     case fetchError(Error)
 }
 
+@MainActor
+protocol SpaceRepository {
+    func create(_ space: Space) throws
+    func fetchAll() throws -> [Space]
+    func fetch(by id: UUID) throws -> Space
+    func update(_ space: Space) throws
+    func delete(by id: UUID) throws
+    func deleteAll() throws
+}
+
 /// SwiftDataを使用してSpaceのCRUD操作を提供するRepository
 @MainActor
-final class SpaceRepository {
+final class SpaceRepositoryImpl: SpaceRepository {
     
     private let modelContext: ModelContext
     

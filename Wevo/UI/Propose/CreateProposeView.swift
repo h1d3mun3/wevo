@@ -99,99 +99,21 @@ struct CreateProposeView: View {
     }
     
     private func createPropose() async {
-        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         await MainActor.run {
             isSaving = true
             errorMessage = nil
         }
-        
+
+        let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
+            keychainRepository: KeychainRepositoryImpl(),
+            spaceRepository: SpaceRepositoryImpl(modelContext: modelContext),
+            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+        )
+
         do {
-            // ProposeIDを生成
-            let proposeID = UUID()
-            
-            // メッセージからPropose作成（自動的にハッシュ化される）
-            let propose = Propose(
-                id: proposeID,
-                message: message,
-                signatures: [],
-                createdAt: Date(),
-                updatedAt: Date()
-            )
+            try await createProposeUseCaseImpl.execute(identityID: identity.id, spaceID: space.id, message: message)
 
-            // 署名を作成（ハッシュ化されたメッセージに対して署名）
-            let signature = try KeychainRepository.shared.signMessage(
-                propose.payloadHash,
-                withIdentityId: identity.id
-            )
-
-            // Signatureエンティティを作成
-            let signatureEntity = Signature(
-                id: UUID(),
-                publicKey: identity.publicKey,
-                signature: signature,
-                createdAt: Date()
-            )
-            
-            // Proposeに署名を追加
-            let signedPropose = Propose(
-                id: propose.id,
-                message: propose.message,
-                signatures: [signatureEntity],
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-            
-            // 1. 先にローカル（SwiftData）に保存（元のメッセージを含む）
-            await MainActor.run {
-                let repository = ProposeRepository(modelContext: modelContext)
-                do {
-                    try repository.create(signedPropose, spaceID: space.id)
-                    print("✅ Propose saved to SwiftData: \(proposeID)")
-                    print("   Message: \(trimmedMessage)")
-                    print("   Hash: \(propose.payloadHash)")
-                } catch {
-                    print("❌ Failed to save propose to SwiftData: \(error)")
-                    // ローカル保存失敗時はエラーを表示
-                    errorMessage = "Failed to save locally: \(error.localizedDescription)"
-                    isSaving = false
-                    return
-                }
-            }
-            
-            // 2. その後、APIに送信（ハッシュのみ、失敗しても画面は閉じる）
-            guard let baseURL = URL(string: space.url) else {
-                print("⚠️ Invalid server URL: \(space.url)")
-                await MainActor.run {
-                    isSaving = false
-                    onSuccess()
-                    dismiss()
-                }
-                return
-            }
-
-            // ProposeInputを作成（ハッシュのみ送信）
-            let input = ProposeAPIClient.ProposeInput(
-                id: proposeID,
-                payloadHash: signedPropose.payloadHash,
-                publicKey: identity.publicKey,
-                signatures: [.init(publicKey: identity.publicKey, signature: signature)]
-            )
-            
-            do {
-                // APIクライアントで送信
-                let client = ProposeAPIClient(baseURL: baseURL)
-                try await client.createPropose(input: input)
-                
-                print("✅ Propose sent to API successfully: \(proposeID)")
-                print("   Only hash sent: \(signedPropose.payloadHash)")
-            } catch {
-                // API送信に失敗してもローカルには保存済みなので警告のみ
-                print("⚠️ Failed to send propose to API: \(error)")
-                print("ℹ️ Propose is saved locally and can be synced later")
-            }
-            
-            // API送信の成否に関わらず画面を閉じる
+            // 結果に関わらず画面を閉じる
             await MainActor.run {
                 isSaving = false
                 onSuccess()
