@@ -45,13 +45,10 @@ protocol KeychainRepository {
 }
 
 final class KeychainRepositoryImpl {
-    
-    static let shared = KeychainRepositoryImpl()
-    
     private let serviceMetadata = "com.wevo.identitykeys.metadata"
     private let servicePrivateKey = "com.wevo.identitykeys.privatekey"
     
-    private init() {}
+    init() {}
     
     // MARK: - Save
     

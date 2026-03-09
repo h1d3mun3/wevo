@@ -160,7 +160,7 @@ struct EditSpaceView: View {
 
     private func getIdentityNickname(for id: UUID) -> String {
         do {
-            let identities = try KeychainRepositoryImpl.shared.getAllIdentities()
+            let identities = try KeychainRepositoryImpl().getAllIdentities()
             if let identity = identities.first(where: { $0.id == id }) {
                 return identity.nickname
             }

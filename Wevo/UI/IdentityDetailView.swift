@@ -120,7 +120,7 @@ struct IdentityDetailView: View {
     private func preparePlainExport() {
         do {
             // Fetch private key from Keychain (biometric auth may be required)
-            let privateKeyData = try KeychainRepositoryImpl.shared.getPrivateKey(id: identity.id)
+            let privateKeyData = try KeychainRepositoryImpl().getPrivateKey(id: identity.id)
             let base64 = privateKeyData.base64EncodedString()
             let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
             shareURL = url
@@ -131,7 +131,7 @@ struct IdentityDetailView: View {
 
     private func migrateKey() {
         do {
-            try KeychainRepositoryImpl.shared.migrateKey(id: identity.id)
+            try KeychainRepositoryImpl().migrateKey(id: identity.id)
         } catch {
             migrationError = "Failed to migrateError identity: \(error.localizedDescription)"
         }
@@ -204,7 +204,7 @@ struct EditIdentityView: View {
         
         do {
             let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-            try KeychainRepositoryImpl.shared.updateNickname(id: identity.id, newNickname: trimmedNickname)
+            try KeychainRepositoryImpl().updateNickname(id: identity.id, newNickname: trimmedNickname)
             
             await MainActor.run {
                 isSaving = false
