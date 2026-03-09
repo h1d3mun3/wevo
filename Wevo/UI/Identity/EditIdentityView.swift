@@ -69,9 +69,10 @@ struct EditIdentityView: View {
         isSaving = true
         errorMessage = nil
         
+        let useCase = EditIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        
         do {
-            let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-            try KeychainRepositoryImpl().updateNickname(id: identity.id, newNickname: trimmedNickname)
+            try useCase.execute(id: identity.id, newNickname: nickname)
             
             await MainActor.run {
                 isSaving = false
