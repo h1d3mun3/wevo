@@ -38,13 +38,13 @@ protocol KeychainRepository {
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws
     func getAllIdentities() throws -> [Identity]
     func getIdentity(id: UUID) throws -> Identity
-    func getPrivateKey(id: UUID, context: LAContext) throws -> Data
+    func getPrivateKey(id: UUID, context: LAContext?) throws -> Data
     func updateNickname(id: UUID, newNickname: String) throws
     func deleteIdentityKey(id: UUID) throws
     func deleteAllIdentityKeys() throws
 }
 
-final class KeychainRepositoryImpl {
+final class KeychainRepositoryImpl: KeychainRepository {
     private let serviceMetadata = "com.wevo.identitykeys.metadata"
     private let servicePrivateKey = "com.wevo.identitykeys.privatekey"
     
