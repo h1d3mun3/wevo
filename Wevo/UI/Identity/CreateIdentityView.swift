@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 
 struct CreateIdentityView: View {
     @Environment(\.dismiss) private var dismiss
