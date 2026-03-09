@@ -245,7 +245,7 @@ struct SpaceListView: View {
     
     private func deleteSpace(_ space: SpaceSwiftData) {
         do {
-            let repository = SpaceRepository(modelContext: modelContext)
+            let repository = SpaceRepositoryImpl(modelContext: modelContext)
             try repository.delete(by: space.id)
             print("✅ Space deleted: \(space.id)")
             onDelete()

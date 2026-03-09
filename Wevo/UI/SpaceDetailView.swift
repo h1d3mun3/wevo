@@ -197,7 +197,7 @@ struct SpaceDetailView: View {
     
     private func reloadSpace() async {
         await MainActor.run {
-            let repository = SpaceRepository(modelContext: modelContext)
+            let repository = SpaceRepositoryImpl(modelContext: modelContext)
             do {
                 if let updatedSpace = try? repository.fetch(by: space.id) {
                     currentSpace = updatedSpace
