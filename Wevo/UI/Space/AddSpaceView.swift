@@ -102,36 +102,12 @@ struct AddSpaceView: View {
         guard canSave else { return }
         
         isSaving = true
-        
-        // URLの妥当性チェック（オプショナル）
-        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // 既存のSpaceの数を取得してorderIndexを決定
-        let repository = SpaceRepositoryImpl(modelContext: modelContext)
-        let orderIndex: Int
+
+        let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+
         do {
-            let existingSpaces = try repository.fetchAll()
-            orderIndex = existingSpaces.count
-        } catch {
-            print("❌ Error fetching spaces: \(error)")
-            orderIndex = 0
-        }
-        
-        // Spaceエンティティの作成
-        let space = Space(
-            id: UUID(),
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            url: trimmedURL,
-            defaultIdentityID: selectedIdentityID,
-            orderIndex: orderIndex,
-            createdAt: .now,
-            updatedAt: .now
-        )
-        
-        // SwiftDataに保存
-        do {
-            try repository.create(space)
-            print("✅ Space saved: \(space.name)")
+            try addSpaceUseCase.execute(name: name, urlString: urlString, defaultIdentityID: selectedIdentityID)
+
             isSaving = false
             dismiss()
         } catch {
