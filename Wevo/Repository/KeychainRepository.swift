@@ -44,6 +44,7 @@ protocol KeychainRepository {
     func deleteAllIdentityKeys() throws
     func migrateKey(id: UUID) throws
     func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext?) throws -> String
+    func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool
 }
 
 final class KeychainRepositoryImpl: KeychainRepository {
@@ -417,6 +418,20 @@ extension KeychainRepositoryImpl {
         // メタデータから公開鍵を取得
         let metadata = try getIdentityMetadata(id: identityId)
         return try verifySignature(signature, for: message, withPublicKey: metadata.publicKey)
+    }
+    
+    /// 署名を検証する（Base64エンコードされた公開鍵文字列を使用）
+    /// - Parameters:
+    ///   - signature: Base64エンコードされた署名文字列
+    ///   - message: 署名対象の文字列
+    ///   - publicKeyString: Base64エンコードされた公開鍵文字列（x963Representation形式）
+    /// - Returns: 署名が有効な場合はtrue
+    func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
+        // Base64デコードして公開鍵Dataに変換
+        guard let publicKeyData = Data(base64Encoded: publicKeyString) else {
+            throw KeychainError.invalidData
+        }
+        return try verifySignature(signature, for: message, withPublicKey: publicKeyData)
     }
 }
 
