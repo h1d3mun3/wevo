@@ -159,10 +159,8 @@ struct SpaceDetailView: View {
         }
         
         do {
-            let identities = try KeychainRepositoryImpl().getAllIdentities()
-            await MainActor.run {
-                self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
-            }
+            let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
+            self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
             print("❌ Error loading default identity: \(error)")
             await MainActor.run {
@@ -197,12 +195,13 @@ struct SpaceDetailView: View {
     
     private func reloadSpace() async {
         await MainActor.run {
-            let repository = SpaceRepositoryImpl(modelContext: modelContext)
+            let getSpaceUseCase = GetSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
             do {
-                if let updatedSpace = try? repository.fetch(by: space.id) {
-                    currentSpace = updatedSpace
-                    print("✅ Space reloaded: \(updatedSpace.name)")
-                }
+                let updatedSpace = try getSpaceUseCase.execute(id: space.id)
+                currentSpace = updatedSpace
+                print("✅ Space reloaded: \(updatedSpace.name)")
+            } catch {
+                print("Failed to Reload Space: \(error)")
             }
         }
     }
