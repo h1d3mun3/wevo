@@ -56,11 +56,14 @@ struct IdentityImportView: View {
 
     private func importNow() async {
         isImporting = true
+        let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
             // Overwrite existing identity if present: delete then create
             do {
-                _ = try KeychainRepositoryImpl().getIdentity(id: exportData.id)
-                try KeychainRepositoryImpl().deleteIdentityKey(id: exportData.id)
+
+                _ = try getIdentityUseCase.execute(id: exportData.id)
+                try deleteIdentityUseCase.execute(id: exportData.id)
             } catch {
                 // Not found or deletable; continue
             }

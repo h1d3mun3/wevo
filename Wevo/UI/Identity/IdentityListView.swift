@@ -49,8 +49,9 @@ struct IdentityListView: View {
     }
     
     private func loadIdentities() async {
+        let getAllIdentityUseCase = GetAllIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
-            let loadedIdentities = try KeychainRepositoryImpl().getAllIdentities()
+            let loadedIdentities = try getAllIdentityUseCase.execute()
             await MainActor.run {
                 identities = loadedIdentities
             }
@@ -63,11 +64,12 @@ struct IdentityListView: View {
     }
     
     private func deleteIdentities(offsets: IndexSet) {
+        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         Task {
             do {
                 for index in offsets {
                     let identity = identities[index]
-                    try KeychainRepositoryImpl().deleteIdentityKey(id: identity.id)
+                    try deleteIdentityUseCase.execute(id: identity.id)
                 }
                 await loadIdentities()
             } catch {
