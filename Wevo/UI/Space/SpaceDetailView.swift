@@ -833,59 +833,22 @@ struct ProposeRowView: View {
             signSuccess = nil
             signErrorMessage = nil
         }
-        
+
+        let signProposeUseCase = SignProposeUseCaseImpl(
+            keychainRepository: KeychainRepositoryImpl(),
+            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+        )
+
         do {
-            // ペイロードハッシュに署名
-            let signatureData = try KeychainRepositoryImpl().signMessage(
-                propose.payloadHash,
-                withIdentityId: identity.id
-            )
-            
-            // 新しいSignatureを作成
-            let newSignature = Signature(
-                id: UUID(),
-                publicKey: identity.publicKey,
-                signature: signatureData,
-                createdAt: Date()
-            )
-            
-            // Proposeに署名を追加
-            var updatedSignatures = propose.signatures
-            updatedSignatures.append(newSignature)
-            
-            let updatedPropose = Propose(
-                id: propose.id,
-                message: propose.message,
-                signatures: updatedSignatures,
-                createdAt: propose.createdAt,
-                updatedAt: propose.updatedAt
-            )
-            
-            // ローカルに保存
-            await MainActor.run {
-                let repository = ProposeRepositoryImpl(modelContext: modelContext)
-                do {
-                    try repository.update(updatedPropose)
-                    print("✅ Signature added locally: \(propose.id)")
-                    
-                    // 署名が成功したらサーバーステータスを再チェック
-                    signSuccess = true
-                    isSigning = false
-                } catch {
-                    print("❌ Failed to update propose locally: \(error)")
-                    signSuccess = false
-                    signErrorMessage = "Failed to save locally"
-                    isSigning = false
-                    return
-                }
-            }
-            
+            try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
+            signSuccess = true
+            isSigning = false
+
             // 3秒後に成功メッセージを消す
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run {
                 signSuccess = nil
             }
-            
         } catch {
             print("❌ Error signing propose: \(error)")
             await MainActor.run {
@@ -893,7 +856,7 @@ struct ProposeRowView: View {
                 signSuccess = false
                 signErrorMessage = error.localizedDescription
             }
-            
+
             // 5秒後にエラーメッセージを消す
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run {
