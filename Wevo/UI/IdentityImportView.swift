@@ -59,8 +59,8 @@ struct IdentityImportView: View {
         do {
             // Overwrite existing identity if present: delete then create
             do {
-                _ = try KeychainRepository.shared.getIdentity(id: exportData.id)
-                try KeychainRepository.shared.deleteIdentityKey(id: exportData.id)
+                _ = try KeychainRepositoryImpl.shared.getIdentity(id: exportData.id)
+                try KeychainRepositoryImpl.shared.deleteIdentityKey(id: exportData.id)
             } catch {
                 // Not found or deletable; continue
             }
@@ -68,7 +68,7 @@ struct IdentityImportView: View {
             guard let privateKeyData = Data(base64Encoded: exportData.privateKey) else {
                 throw NSError(domain: "Wevo", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid private key encoding."])
             }
-            try KeychainRepository.shared.createIdentity(id: exportData.id, nickname: exportData.nickname, privateKey: privateKeyData)
+            try KeychainRepositoryImpl.shared.createIdentity(id: exportData.id, nickname: exportData.nickname, privateKey: privateKeyData)
             isImporting = false
             onComplete()
             dismiss()

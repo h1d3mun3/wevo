@@ -53,7 +53,7 @@ struct CreateIdentityView: View {
                 // Keychainに保存
                 let id = UUID()
                 let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-                try KeychainRepository.shared.createIdentity(
+                try KeychainRepositoryImpl.shared.createIdentity(
                     id: id,
                     nickname: trimmedNickname,
                     privateKey: privateKeyData

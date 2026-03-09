@@ -120,7 +120,7 @@ struct CreateProposeView: View {
             )
 
             // 署名を作成（ハッシュ化されたメッセージに対して署名）
-            let signature = try KeychainRepository.shared.signMessage(
+            let signature = try KeychainRepositoryImpl.shared.signMessage(
                 propose.payloadHash,
                 withIdentityId: identity.id
             )

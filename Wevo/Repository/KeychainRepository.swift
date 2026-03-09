@@ -18,7 +18,7 @@ private struct IdentityKeyChainItem {
     let publicKey: Data
 }
 
-/// メタデータのみ（認証不要でアクセス可能）
+/// メタデータのみ
 private struct IdentityMetadataKeychainItem: Codable {
     let id: UUID
     let nickname: String
@@ -34,9 +34,19 @@ enum KeychainError: Error {
     case accessControlCreationFailed
 }
 
-final class KeychainRepository {
+protocol KeychainRepository {
+    func createIdentity(id: UUID, nickname: String, privateKey: Data) throws
+    func getAllIdentities() throws -> [Identity]
+    func getIdentity(id: UUID) throws -> Identity
+    func getPrivateKey(id: UUID, context: LAContext) throws -> Data
+    func updateNickname(id: UUID, newNickname: String) throws
+    func deleteIdentityKey(id: UUID) throws
+    func deleteAllIdentityKeys() throws
+}
+
+final class KeychainRepositoryImpl {
     
-    static let shared = KeychainRepository()
+    static let shared = KeychainRepositoryImpl()
     
     private let serviceMetadata = "com.wevo.identitykeys.metadata"
     private let servicePrivateKey = "com.wevo.identitykeys.privatekey"
@@ -45,7 +55,7 @@ final class KeychainRepository {
     
     // MARK: - Save
     
-    /// 新しいIdentityを作成して保存（認証不要でメタデータ、認証必須で秘密鍵）
+    /// 新しいIdentityを作成して保存
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
         // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
         let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
@@ -61,13 +71,13 @@ final class KeychainRepository {
         try saveIdentityKey(item)
     }
 
-    /// IdentityKeyを保存（メタデータと秘密鍵の両方）
+    /// IdentityKeyを保存
     private func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
         try saveIdentityMetadata(item)
         try savePrivateKey(item)
     }
 
-    /// IdentityKeyのメタデータを保存（認証不要）
+    /// IdentityKeyのメタデータを保存
     private func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
         let metadata = IdentityMetadataKeychainItem(
@@ -97,7 +107,7 @@ final class KeychainRepository {
         }
     }
     
-    /// 秘密鍵を保存（生体認証必須）
+    /// 秘密鍵を保存
     private func savePrivateKey(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
         let privateKeyData = try encoder.encode(PrivateKeyData(privateKey: item.privateKey))
@@ -124,7 +134,7 @@ final class KeychainRepository {
 
     // MARK: - Retrieve
     
-    /// すべてのIdentityメタデータを取得（認証不要）
+    /// すべてのIdentityメタデータを取得
     private func getAllIdentityMetadata() throws -> [IdentityMetadataKeychainItem] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -154,7 +164,7 @@ final class KeychainRepository {
         }
     }
     
-    /// すべてのIdentityを取得（認証不要、ドメインモデルを返す）
+    /// すべてのIdentityを取得
     func getAllIdentities() throws -> [Identity] {
         let metadataList = try getAllIdentityMetadata()
         return metadataList.map { metadata in
@@ -162,7 +172,7 @@ final class KeychainRepository {
         }
     }
     
-    /// 特定のIDのメタデータを取得（認証不要）
+    /// 特定のIDのメタデータを取得
     fileprivate func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -197,7 +207,7 @@ final class KeychainRepository {
         return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
     }
 
-    /// 秘密鍵を取得（生体認証必須）
+    /// 秘密鍵を取得
     func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
         let authContext = context ?? LAContext()
         authContext.localizedReason = "Authentication is required to access the private key"
@@ -234,7 +244,7 @@ final class KeychainRepository {
         return privateKeyData.privateKey
     }
     
-    /// 特定のIDのIdentityKeyを取得（生体認証必須）
+    /// 特定のIDのIdentityKeyを取得
     private func getIdentityKey(id: UUID, context: LAContext? = nil) throws -> IdentityKeyChainItem {
         let metadata = try getIdentityMetadata(id: id)
         let privateKey = try getPrivateKey(id: id, context: context)
@@ -346,16 +356,16 @@ private struct PrivateKeyData: Codable {
 }
 // MARK: - Signing Extension
 
-extension KeychainRepository {
+extension KeychainRepositoryImpl {
     
-    /// 指定されたIdentityの秘密鍵でStringに署名する（生体認証必須）
+    /// 指定されたIdentityの秘密鍵でStringに署名する
     /// - Parameters:
     ///   - message: 署名対象の文字列
     ///   - identityId: 使用するIdentityのID
     ///   - context: オプションのLAContext（複数回の署名操作で認証を再利用する場合）
     /// - Returns: Base64エンコードされた署名文字列
     func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext? = nil) throws -> String {
-        // 秘密鍵を取得（生体認証が必要）
+        // 秘密鍵を取得
         let privateKeyData = try getPrivateKey(id: identityId, context: context)
         
         // 秘密鍵をP256.Signing.PrivateKeyに変換
@@ -405,13 +415,13 @@ extension KeychainRepository {
     ///   - identityId: 検証に使用するIdentityのID
     /// - Returns: 署名が有効な場合はtrue
     func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
-        // メタデータから公開鍵を取得（認証不要）
+        // メタデータから公開鍵を取得
         let metadata = try getIdentityMetadata(id: identityId)
         return try verifySignature(signature, for: message, withPublicKey: metadata.publicKey)
     }
 }
 
-extension KeychainRepository {
+extension KeychainRepositoryImpl {
     func migrateKey(id: UUID) throws {
         /// 古いIdentityと秘密鍵を取得
         let oldMetadata = try getIdentity(id: id)

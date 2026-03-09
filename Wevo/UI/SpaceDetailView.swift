@@ -159,7 +159,7 @@ struct SpaceDetailView: View {
         }
         
         do {
-            let identities = try KeychainRepository.shared.getAllIdentities()
+            let identities = try KeychainRepositoryImpl.shared.getAllIdentities()
             await MainActor.run {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
@@ -805,7 +805,7 @@ struct ProposeRowView: View {
         }
         
         do {
-            let identities = try KeychainRepository.shared.getAllIdentities()
+            let identities = try KeychainRepositoryImpl.shared.getAllIdentities()
             await MainActor.run {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
@@ -835,7 +835,7 @@ struct ProposeRowView: View {
         
         do {
             // ペイロードハッシュに署名
-            let signatureData = try KeychainRepository.shared.signMessage(
+            let signatureData = try KeychainRepositoryImpl.shared.signMessage(
                 propose.payloadHash,
                 withIdentityId: identity.id
             )
