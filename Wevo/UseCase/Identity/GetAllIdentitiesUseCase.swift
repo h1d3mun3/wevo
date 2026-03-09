@@ -7,11 +7,11 @@
 
 import Foundation
 
-protocol GetAllIdentityUseCase {
+protocol GetAllIdentitiesUseCase {
     func execute() throws -> [Identity]
 }
 
-struct GetAllIdentityUseCaseImpl {
+struct GetAllIdentitiesUseCaseImpl {
     let keychainRepository: KeychainRepository
 
     init(keychainRepository: KeychainRepository) {
@@ -19,7 +19,7 @@ struct GetAllIdentityUseCaseImpl {
     }
 }
 
-extension GetAllIdentityUseCaseImpl: GetAllIdentityUseCase {
+extension GetAllIdentitiesUseCaseImpl: GetAllIdentitiesUseCase {
     func execute() throws -> [Identity] {
         try keychainRepository.getAllIdentities()
     }
