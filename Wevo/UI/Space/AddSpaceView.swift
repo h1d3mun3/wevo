@@ -81,8 +81,9 @@ struct AddSpaceView: View {
     }
 
     private func loadIdentities() async {
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
-            let loadedIdentities = try KeychainRepositoryImpl().getAllIdentities()
+            let loadedIdentities = try getAllIdentitiesUseCase.execute()
             await MainActor.run {
                 identities = loadedIdentities
                 // 最初のIdentityをデフォルトで選択
