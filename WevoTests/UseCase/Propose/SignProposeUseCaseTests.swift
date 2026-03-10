@@ -22,6 +22,7 @@ struct SignProposeUseCaseTests {
         let existingSignature = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
         let testPropose = Propose(
             id: proposeID,
+            spaceID: UUID(),
             message: "test",
             signatures: [existingSignature],
             createdAt: .now,
@@ -59,6 +60,7 @@ struct SignProposeUseCaseTests {
         let sig2 = Signature(id: UUID(), publicKey: "key2", signature: "sig2", createdAt: .now)
         let testPropose = Propose(
             id: proposeID,
+            spaceID: UUID(),
             message: "test",
             signatures: [sig1, sig2],
             createdAt: .now,
@@ -94,6 +96,7 @@ struct SignProposeUseCaseTests {
         let identityID = UUID()
         let testPropose = Propose(
             id: proposeID,
+            spaceID: UUID(),
             message: "test",
             signatures: [],
             createdAt: .now,
@@ -164,6 +167,7 @@ struct SignProposeUseCaseTests {
         let identityID = UUID()
         let testPropose = Propose(
             id: proposeID,
+            spaceID: UUID(),
             message: "test",
             signatures: [],
             createdAt: .now,
