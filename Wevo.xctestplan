@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "F5803990-7456-48EC-B6DD-BB07C77E91EC",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Wevo.xcodeproj",
+      "identifier" : "83A5458D2F5893F600342AE7",
+      "name" : "Wevo"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Wevo.xcodeproj",
+        "identifier" : "83A5459E2F5893F800342AE7",
+        "name" : "WevoTests"
+      }
+    }
+  ],
+  "version" : 1
+}
