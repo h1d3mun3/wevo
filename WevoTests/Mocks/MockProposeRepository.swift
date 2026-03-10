@@ -21,6 +21,11 @@ class MockProposeRepository: ProposeRepository {
     var fetchAllError: Error?
     var fetchAllForSpaceID: UUID?
 
+    // MARK: - fetchAllOrphaned
+    var fetchAllOrphanedResult: [Propose] = []
+    var fetchAllOrphanedError: Error?
+    var fetchAllOrphanedValidSpaceIDs: Set<UUID>?
+
     // MARK: - fetch
     var fetchByIDResult: Propose?
     var fetchByIDError: Error?
@@ -60,6 +65,15 @@ class MockProposeRepository: ProposeRepository {
             throw error
         }
         return fetchAllResult
+    }
+
+    func fetchAllOrphaned(validSpaceIDs: Set<UUID>) throws -> [Propose] {
+        fetchAllOrphanedValidSpaceIDs = validSpaceIDs
+
+        if let error = fetchAllOrphanedError {
+            throw error
+        }
+        return fetchAllOrphanedResult
     }
 
     func fetch(by id: UUID) throws -> Propose {
