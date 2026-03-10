@@ -29,37 +29,11 @@ struct SpaceDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(currentSpace.name)
-                            .font(.title)
-                            .fontWeight(.bold)
-
-                        Text(currentSpace.url)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if let identity = defaultIdentity {
-                            Text("Default Key: \(identity.nickname)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    Button {
-                        shouldShowEditSpace = true
-                    } label: {
-                        Text("Edit Space")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+            SpaceHeaderView(
+                space: currentSpace,
+                defaultIdentity: defaultIdentity,
+                onEditTapped: { shouldShowEditSpace = true }
+            )
 
             Divider()
 
@@ -71,34 +45,14 @@ struct SpaceDetailView: View {
                 Spacer()
             } else if let errorMessage = errorMessage {
                 Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.red)
-                    Text(errorMessage)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("Retry") {
-                        loadProposesFromLocal()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding()
+                ProposeErrorView(
+                    errorMessage: errorMessage,
+                    onRetry: loadProposesFromLocal
+                )
                 Spacer()
             } else if proposes.isEmpty {
                 Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.text")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text("No proposes found")
-                        .foregroundStyle(.secondary)
-                    if defaultIdentity == nil {
-                        Text("Please set a default key for this space")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
+                EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
                 Spacer()
             } else {
                 List {
