@@ -159,7 +159,7 @@ struct SpaceDetailView: View {
         }
         
         do {
-            let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
+            let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
             self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
             print("❌ Error loading default identity: \(error)")

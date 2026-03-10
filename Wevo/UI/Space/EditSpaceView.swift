@@ -138,7 +138,7 @@ struct EditSpaceView: View {
     }
 
     private func getIdentityNickname(for id: UUID) -> String {
-        let getIdentityUseCase = GetIdentityCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
         do {
             let identity = try getIdentityUseCase.execute(id: id)
             return identity.nickname

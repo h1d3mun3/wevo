@@ -11,7 +11,7 @@ protocol GetIdentityUseCase {
     func execute(id: UUID) throws -> Identity
 }
 
-struct GetIdentityCaseImpl {
+struct GetIdentityUseCaseImpl {
     let keychainRepository: KeychainRepository
 
     init(keychainRepository: KeychainRepository) {
@@ -19,7 +19,7 @@ struct GetIdentityCaseImpl {
     }
 }
 
-extension GetIdentityCaseImpl: GetIdentityUseCase {
+extension GetIdentityUseCaseImpl: GetIdentityUseCase {
     func execute(id: UUID) throws -> Identity {
         try keychainRepository.getIdentity(id: id)
     }
