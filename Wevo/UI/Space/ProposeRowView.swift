@@ -761,20 +761,21 @@ struct ProposeRowView: View {
         createdAt: .now
     )
 
-    let propose = Propose(
-        id: UUID(),
-        message: "Preview message",
-        signatures: [signature],
-        createdAt: .now,
-        updatedAt: .now
-    )
-
     let space = Space(
         id: UUID(),
         name: "Preview Space",
         url: "https://example.com",
         defaultIdentityID: nil,
         orderIndex: 0,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    let propose = Propose(
+        id: UUID(),
+        spaceID: space.id,
+        message: "Preview message",
+        signatures: [signature],
         createdAt: .now,
         updatedAt: .now
     )
