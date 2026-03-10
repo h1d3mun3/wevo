@@ -82,3 +82,19 @@ struct IdentityImportView: View {
         }
     }
 }
+
+#Preview("Identity Import") {
+    let exportData = IdentityPlainExport(
+        id: UUID(),
+        nickname: "Preview Key",
+        publicKey: "PreviewPublicKey",
+        privateKey: "PreviewPrivateKeyBase64",
+        exportedAt: .now
+    )
+
+    IdentityImportView(
+        exportData: exportData,
+        onComplete: {},
+        onCancel: {}
+    )
+}

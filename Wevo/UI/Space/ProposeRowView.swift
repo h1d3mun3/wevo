@@ -752,3 +752,33 @@ struct ProposeRowView: View {
         }
     }
 }
+
+#Preview("Propose Row") {
+    let signature = Signature(
+        id: UUID(),
+        publicKey: "PreviewPk",
+        signature: "PreviewSig",
+        createdAt: .now
+    )
+
+    let propose = Propose(
+        id: UUID(),
+        message: "Preview message",
+        signatures: [signature],
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    let space = Space(
+        id: UUID(),
+        name: "Preview Space",
+        url: "https://example.com",
+        defaultIdentityID: nil,
+        orderIndex: 0,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    ProposeRowView(propose: propose, space: space, onSigned: {})
+        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
+}

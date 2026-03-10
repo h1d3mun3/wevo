@@ -60,3 +60,44 @@ struct ProposeDetailViewFromEntity: View {
         }
     }
 }
+
+#Preview("Propose Detail From Entity") {
+    let schema = Schema([
+        SpaceSwiftData.self,
+        ProposeSwiftData.self,
+        SignatureSwiftData.self
+    ])
+    let configuration = ModelConfiguration(schema: schema)
+    let container = try! ModelContainer(for: schema, configurations: [configuration])
+
+    let signature = Signature(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signature: "PreviewSignature",
+        createdAt: .now
+    )
+
+    let propose = Propose(
+        id: UUID(),
+        message: "Preview message",
+        signatures: [signature],
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    let space = Space(
+        id: UUID(),
+        name: "Preview Space",
+        url: "https://example.com",
+        defaultIdentityID: nil,
+        orderIndex: 0,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    ProposeDetailViewFromEntity(
+        propose: propose,
+        space: space,
+        modelContext: container.mainContext
+    )
+}

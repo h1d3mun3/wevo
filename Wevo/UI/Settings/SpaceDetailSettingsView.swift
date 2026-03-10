@@ -69,3 +69,17 @@ struct SpaceDetailSettingsView: View {
         #endif
     }
 }
+
+#Preview("Space Detail Settings") {
+    let space = SpaceSwiftData(
+        id: UUID(),
+        name: "Preview Space",
+        urlString: "https://example.com",
+        defaultIdentityID: UUID(),
+        orderIndex: 1,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    SpaceDetailSettingsView(space: space)
+}

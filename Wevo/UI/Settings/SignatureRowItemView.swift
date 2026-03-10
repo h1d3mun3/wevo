@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SignatureRowItemView: View {
     let signature: SignatureSwiftData
@@ -41,4 +42,16 @@ struct SignatureRowItemView: View {
         }
         .padding(.vertical, 8)
     }
+}
+
+#Preview("Signature Row Item") {
+    let signature = SignatureSwiftData(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signatureData: "PreviewSignatureData",
+        createdAt: .now
+    )
+
+    SignatureRowItemView(signature: signature, isValid: true)
+        .modelContainer(for: [SignatureSwiftData.self], inMemory: true)
 }

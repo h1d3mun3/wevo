@@ -49,3 +49,14 @@ struct SignatureRowView: View {
         .cornerRadius(4)
     }
 }
+
+#Preview("Signature Row") {
+    let signature = Signature(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signature: "PreviewSignature",
+        createdAt: .now
+    )
+
+    SignatureRowView(signature: signature, myPublicKey: signature.publicKey)
+}

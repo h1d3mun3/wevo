@@ -95,3 +95,15 @@ struct SignatureListView: View {
         }
     }
 }
+
+#Preview("Signature List") {
+    let signature = SignatureSwiftData(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signatureData: "PreviewSignatureData",
+        createdAt: .now
+    )
+
+    SignatureListView(signatures: [signature])
+        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
+}

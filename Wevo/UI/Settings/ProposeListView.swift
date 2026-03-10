@@ -88,3 +88,25 @@ struct ProposeListView: View {
         }
     }
 }
+
+#Preview("Propose List") {
+    let signature = SignatureSwiftData(
+        id: UUID(),
+        publicKey: "SamplePublicKey",
+        signatureData: "SampleSignature",
+        createdAt: .now
+    )
+
+    let propose = ProposeSwiftData(
+        id: UUID(),
+        message: "Preview propose",
+        payloadHash: "samplehash",
+        spaceID: UUID(),
+        signatures: [signature],
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    ProposeListView(proposes: [propose])
+        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
+}

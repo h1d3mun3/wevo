@@ -206,3 +206,18 @@ struct SpaceDetailView: View {
         }
     }
 }
+
+#Preview("Space Detail") {
+    let space = Space(
+        id: UUID(),
+        name: "Preview Space",
+        url: "https://example.com",
+        defaultIdentityID: nil,
+        orderIndex: 0,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    SpaceDetailView(space: space)
+        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
+}
