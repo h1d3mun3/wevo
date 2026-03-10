@@ -25,7 +25,7 @@ private struct IdentityMetadataKeychainItem: Codable {
     let publicKey: Data
 }
 
-enum KeychainError: Error {
+enum KeychainError: Error, Equatable {
     case duplicateItem
     case itemNotFound
     case invalidData

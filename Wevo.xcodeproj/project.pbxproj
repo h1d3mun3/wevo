@@ -28,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Wevo.xctestplan; sourceTree = "<group>"; };
 		83A5458E2F5893F600342AE7 /* Wevo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wevo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A5459F2F5893F800342AE7 /* WevoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A545A92F5893F800342AE7 /* WevoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				83A545BD2F58957F00342AE7 /* README.md */,
+				839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */,
 				83A545902F5893F600342AE7 /* Wevo */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
 				83A545AC2F5893F800342AE7 /* WevoUITests */,
