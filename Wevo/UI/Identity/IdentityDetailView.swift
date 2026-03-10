@@ -111,7 +111,7 @@ struct IdentityDetailView: View {
 #if os(macOS)
         .sheet(isPresented: $showShareSheet) {
             if let shareURL = shareURL {
-                ShareSheet(items: [shareURL])
+                ShareSheetView(items: [shareURL])
             }
         }
 #endif
