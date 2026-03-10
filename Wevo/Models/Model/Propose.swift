@@ -11,20 +11,23 @@ import Foundation
 /// 元のメッセージとハッシュ化されたメッセージの両方を持つ
 struct Propose: Codable, Identifiable {
     let id: UUID
+    let spaceID: UUID
     let message: String // 元のメッセージ（ローカルのみ）
     let payloadHash: String // ハッシュ化されたメッセージ
     let signatures: [Signature]
     let createdAt: Date
     let updatedAt: Date
-    
+
     init(
         id: UUID,
+        spaceID: UUID,
         message: String,
         signatures: [Signature],
         createdAt: Date,
         updatedAt: Date
     ) {
         self.id = id
+        self.spaceID = spaceID
         self.message = message
         self.payloadHash = message.sha256HashedString
         self.signatures = signatures

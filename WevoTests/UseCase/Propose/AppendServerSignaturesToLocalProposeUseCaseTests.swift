@@ -16,6 +16,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Arrange
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
+        let spaceID = UUID()
         let existingSignature1 = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
         let existingSignature2 = Signature(id: UUID(), publicKey: "key2", signature: "sig2", createdAt: .now)
         let serverSignature1 = Signature(id: UUID(), publicKey: "key3", signature: "sig3", createdAt: .now)
@@ -24,6 +25,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
 
         let existingPropose = Propose(
             id: proposeID,
+            spaceID: spaceID,
             message: "test",
             signatures: [existingSignature1, existingSignature2],
             createdAt: .now,
@@ -49,9 +51,11 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Arrange
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
+        let spaceID = UUID()
         let existingSignature = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
         let existingPropose = Propose(
             id: proposeID,
+            spaceID: spaceID,
             message: "test",
             signatures: [existingSignature],
             createdAt: .now,
@@ -86,8 +90,10 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Arrange
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
+        let spaceID = UUID()
         let existingPropose = Propose(
             id: proposeID,
+            spaceID: spaceID,
             message: "test",
             signatures: [],
             createdAt: .now,

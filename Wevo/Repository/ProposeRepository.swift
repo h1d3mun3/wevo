@@ -20,6 +20,7 @@ enum ProposeRepositoryError: Error {
 protocol ProposeRepository {
     func create(_ propose: Propose, spaceID: UUID) throws
     func fetchAll(for spaceID: UUID) throws -> [Propose]
+    func fetchAllOrphaned(validSpaceIDs: Set<UUID>) throws -> [Propose]
     func fetch(by id: UUID) throws -> Propose
     func update(_ propose: Propose) throws
     func delete(by id: UUID) throws
@@ -55,12 +56,31 @@ final class ProposeRepositoryImpl: ProposeRepository {
         let predicate = #Predicate<ProposeSwiftData> { model in
             model.spaceID == spaceID
         }
-        
+
         let descriptor = FetchDescriptor<ProposeSwiftData>(
             predicate: predicate,
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        
+
+        do {
+            let models = try modelContext.fetch(descriptor)
+            return ProposeConverter.toEntities(from: models)
+        } catch {
+            throw ProposeRepositoryError.fetchError(error)
+        }
+    }
+
+    /// SpaceIDが有効なセットに含まれないProposeを取得（作成日時の降順でソート）
+    func fetchAllOrphaned(validSpaceIDs: Set<UUID>) throws -> [Propose] {
+        let predicate = #Predicate<ProposeSwiftData> { model in
+            !validSpaceIDs.contains(model.spaceID)
+        }
+
+        let descriptor = FetchDescriptor<ProposeSwiftData>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
         do {
             let models = try modelContext.fetch(descriptor)
             return ProposeConverter.toEntities(from: models)

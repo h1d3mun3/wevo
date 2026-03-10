@@ -32,9 +32,10 @@ struct ProposeConverter {
         let signatureEntities = (model.signatures ?? []).map { signatureModel in
             SignatureConverter.toEntity(from: signatureModel)
         }
-        
+
         return Propose(
             id: model.id,
+            spaceID: model.spaceID,
             message: model.message,
             signatures: signatureEntities,
             createdAt: model.createdAt,
