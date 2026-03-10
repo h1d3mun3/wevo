@@ -29,6 +29,7 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
 
         let updatedPropose = Propose(
             id: localPropose.id,
+            spaceID: localPropose.spaceID,
             message: localPropose.message,
             signatures: updatedSignatures,
             createdAt: localPropose.createdAt,

@@ -17,8 +17,8 @@ struct LoadAllProposesUseCaseTests {
         let mockRepository = MockProposeRepository()
         let spaceID = UUID()
         let testProposes = [
-            Propose(id: UUID(), message: "Propose 1", signatures: [], createdAt: .now, updatedAt: .now),
-            Propose(id: UUID(), message: "Propose 2", signatures: [], createdAt: .now, updatedAt: .now)
+            Propose(id: UUID(), spaceID: spaceID, message: "Propose 1", signatures: [], createdAt: .now, updatedAt: .now),
+            Propose(id: UUID(), spaceID: spaceID, message: "Propose 2", signatures: [], createdAt: .now, updatedAt: .now)
         ]
         mockRepository.fetchAllResult = testProposes
 

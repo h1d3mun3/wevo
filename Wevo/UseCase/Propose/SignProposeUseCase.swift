@@ -51,6 +51,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
 
         let updatedPropose = Propose(
             id: propose.id,
+            spaceID: propose.spaceID,
             message: propose.message,
             signatures: updatedSignatures,
             createdAt: propose.createdAt,

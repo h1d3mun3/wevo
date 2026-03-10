@@ -37,6 +37,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         // メッセージからPropose作成（自動的にハッシュ化される）
         let propose = Propose(
             id: proposeID,
+            spaceID: spaceID,
             message: message,
             signatures: [],
             createdAt: Date(),
@@ -61,6 +62,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         // Proposeに署名を追加
         let signedPropose = Propose(
             id: propose.id,
+            spaceID: spaceID,
             message: propose.message,
             signatures: [signatureEntity],
             createdAt: Date(),
