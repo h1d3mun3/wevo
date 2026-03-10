@@ -104,3 +104,8 @@ struct SettingsView: View {
         }
     }
 }
+
+#Preview("Settings") {
+    SettingsView()
+        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
+}

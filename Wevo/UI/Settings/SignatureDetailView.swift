@@ -48,3 +48,15 @@ struct SignatureDetailView: View {
         #endif
     }
 }
+
+#Preview("Signature Detail") {
+    let signature = SignatureSwiftData(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signatureData: "PreviewSignatureData",
+        createdAt: .now
+    )
+
+    SignatureDetailView(signature: signature)
+        .modelContainer(for: [SignatureSwiftData.self], inMemory: true)
+}

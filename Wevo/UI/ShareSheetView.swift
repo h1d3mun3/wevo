@@ -41,3 +41,7 @@ struct ShareSheetView: NSViewRepresentable {
     }
 }
 #endif
+
+#Preview("Share Sheet") {
+    ShareSheetView(items: ["Preview Item"])
+}

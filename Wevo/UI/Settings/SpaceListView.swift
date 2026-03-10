@@ -72,3 +72,18 @@ struct SpaceListView: View {
         }
     }
 }
+
+#Preview("Space List") {
+    let space = SpaceSwiftData(
+        id: UUID(),
+        name: "Preview Space",
+        urlString: "https://example.com",
+        defaultIdentityID: UUID(),
+        orderIndex: 1,
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    SpaceListView(spaces: [space])
+        .modelContainer(for: [SpaceSwiftData.self], inMemory: true)
+}
