@@ -7,14 +7,14 @@
 
 import Foundation
 
-struct ProposeServerStatus {
+struct ProposeServerCheckResult {
     let exists: Bool
     let newServerSignatures: [Signature]
     let localOnlySignatures: [Signature]
 }
 
 protocol CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerStatus
+    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerCheckResult
 }
 
 enum CheckProposeServerStatusUseCaseError: Error {
@@ -30,7 +30,7 @@ struct CheckProposeServerStatusUseCaseImpl {
 }
 
 extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerStatus {
+    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerCheckResult {
         guard let baseURL = URL(string: serverURL) else {
             throw CheckProposeServerStatusUseCaseError.invalidServerURL
         }
@@ -67,7 +67,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
             print("📤 Found \(localOnlySigs.count) local-only signature(s)")
         }
 
-        return ProposeServerStatus(
+        return ProposeServerCheckResult(
             exists: true,
             newServerSignatures: newServerSignatures,
             localOnlySignatures: localOnlySigs
