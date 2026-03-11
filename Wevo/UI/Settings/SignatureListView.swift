@@ -54,29 +54,17 @@ struct SignatureListView: View {
     }
 
     private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
-        // 全てのProposeSwiftDataを取得して、署名が含まれているものを探す
-        let descriptor = FetchDescriptor<ProposeSwiftData>()
+        let useCase = VerifySignatureInProposeUseCaseImpl(
+            signatureRepository: SignatureRepositoryImpl(modelContext: modelContext),
+            keychainRepository: KeychainRepositoryImpl()
+        )
 
         do {
-            let allProposes = try modelContext.fetch(descriptor)
-
-            // 署名が含まれているProposeを探す
-            guard let propose = allProposes.first(where: { propose in
-                (propose.signatures ?? []).contains(where: { $0.id == signature.id })
-            }) else {
-                print("⚠️ No propose found for signature: \(signature.id)")
-                return false
-            }
-
-            let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
-
-            let isValid = try verifySignatureUseCase.execute(
-                signature: signature.signatureData,
-                message: propose.payloadHash,
+            return try useCase.execute(
+                signatureID: signature.id,
+                signatureData: signature.signatureData,
                 publicKey: signature.publicKey
             )
-
-            return isValid
         } catch {
             print("❌ Error verifying signature \(signature.id): \(error)")
             return false
@@ -84,11 +72,12 @@ struct SignatureListView: View {
     }
 
     private func deleteSignature(_ signature: SignatureSwiftData) {
-        modelContext.delete(signature)
+        let useCase = DeleteSignatureUseCaseImpl(
+            signatureRepository: SignatureRepositoryImpl(modelContext: modelContext)
+        )
 
         do {
-            try modelContext.save()
-            print("✅ Signature deleted: \(signature.id)")
+            try useCase.execute(id: signature.id)
             onDelete()
         } catch {
             print("❌ Error deleting signature: \(error)")
