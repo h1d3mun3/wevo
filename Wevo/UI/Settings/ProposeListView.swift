@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ProposeListView: View {
-    let proposes: [ProposeSwiftData]
-    @Environment(\.modelContext) private var modelContext
+    let proposes: [Propose]
+    @Environment(\.dependencies) private var deps
 
-    @State private var proposeToDelete: ProposeSwiftData?
+    @State private var proposeToDelete: Propose?
     @State private var showDeleteAlert = false
 
     var onDelete: () -> Void = {}
@@ -24,7 +23,7 @@ struct ProposeListView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
-                ForEach(proposes, id: \.id) { propose in
+                ForEach(proposes) { propose in
                     NavigationLink {
                         ProposeSettingsDetailView(propose: propose)
                     } label: {
@@ -46,7 +45,7 @@ struct ProposeListView: View {
                                 Image(systemName: "signature")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text("\((propose.signatures ?? []).count) signature(s)")
+                                Text("\(propose.signatures.count) signature(s)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -77,8 +76,8 @@ struct ProposeListView: View {
         }
     }
 
-    private func deletePropose(_ propose: ProposeSwiftData) {
-        let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+    private func deletePropose(_ propose: Propose) {
+        let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try deleteProposeUseCase.execute(id: propose.id)
             print("✅ Propose deleted: \(propose.id)")
@@ -90,23 +89,21 @@ struct ProposeListView: View {
 }
 
 #Preview("Propose List") {
-    let signature = SignatureSwiftData(
+    let signature = Signature(
         id: UUID(),
         publicKey: "SamplePublicKey",
-        signatureData: "SampleSignature",
+        signature: "SampleSignature",
         createdAt: .now
     )
 
-    let propose = ProposeSwiftData(
+    let propose = Propose(
         id: UUID(),
-        message: "Preview propose",
-        payloadHash: "samplehash",
         spaceID: UUID(),
+        message: "Preview propose",
         signatures: [signature],
         createdAt: .now,
         updatedAt: .now
     )
 
     ProposeListView(proposes: [propose])
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

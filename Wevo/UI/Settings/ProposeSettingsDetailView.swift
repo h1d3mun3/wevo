@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ProposeSettingsDetailView: View {
-    let propose: ProposeSwiftData
+    let propose: Propose
 
-    @State private var selectedSignature: SignatureSwiftData?
+    @Environment(\.dependencies) private var deps
+
+    @State private var selectedSignature: Signature?
     @State private var signatureVerifications: [UUID: Bool] = [:]
     @State private var isHashValid: Bool?
 
@@ -77,12 +78,12 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            Section("Signatures (\((propose.signatures ?? []).count))") {
-                if (propose.signatures ?? []).isEmpty {
+            Section("Signatures (\(propose.signatures.count))") {
+                if propose.signatures.isEmpty {
                     Text("No signatures")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach((propose.signatures ?? []), id: \.id) { signature in
+                    ForEach(propose.signatures) { signature in
                         Button {
                             selectedSignature = signature
                         } label: {
@@ -138,22 +139,16 @@ struct ProposeSettingsDetailView: View {
     }
 
     private func verifyHash() async {
-        let messageHash = propose.message.sha256HashedString
-        let isValid = messageHash == propose.payloadHash
+        let useCase = VerifyProposeHashUseCaseImpl()
+        let isValid = useCase.execute(message: propose.message, payloadHash: propose.payloadHash)
 
         await MainActor.run {
             isHashValid = isValid
         }
-
-        if isValid {
-            print("✅ Hash valid: message hash matches payloadHash")
-        } else {
-            print("❌ Hash invalid: message hash (\(messageHash)) does not match payloadHash (\(propose.payloadHash))")
-        }
     }
 
     private func verifyAllSignatures() async {
-        for signature in (propose.signatures ?? []) {
+        for signature in propose.signatures {
             let isValid = await verifySignature(signature)
             await MainActor.run {
                 signatureVerifications[signature.id] = isValid
@@ -161,13 +156,12 @@ struct ProposeSettingsDetailView: View {
         }
     }
 
-    private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
-        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+    private func verifySignature(_ signature: Signature) async -> Bool {
+        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
-            // VerifySignatureUseCaseを使用して署名を検証
             let isValid = try verifySignatureUseCase.execute(
-                signature: signature.signatureData,
+                signature: signature.signature,
                 message: propose.payloadHash,
                 publicKey: signature.publicKey
             )
@@ -178,4 +172,24 @@ struct ProposeSettingsDetailView: View {
             return false
         }
     }
+}
+
+#Preview("Propose Settings Detail") {
+    let signature = Signature(
+        id: UUID(),
+        publicKey: "PreviewPublicKey",
+        signature: "PreviewSignature",
+        createdAt: .now
+    )
+
+    let propose = Propose(
+        id: UUID(),
+        spaceID: UUID(),
+        message: "Preview message",
+        signatures: [signature],
+        createdAt: .now,
+        updatedAt: .now
+    )
+
+    ProposeSettingsDetailView(propose: propose)
 }

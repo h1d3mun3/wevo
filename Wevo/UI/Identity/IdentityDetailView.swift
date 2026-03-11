@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
-import CryptoKit
 import UniformTypeIdentifiers
 
 struct IdentityDetailView: View {
     let identity: Identity
-    
+
+    @Environment(\.dependencies) private var deps
+
     @State private var errorMessage: String?
     @State private var exportError: String?
     @State private var showingEditSheet = false
@@ -118,20 +119,16 @@ struct IdentityDetailView: View {
     }
     
     private func preparePlainExport() {
-        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let useCase = ExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            // Fetch private key from Keychain (biometric auth may be required)
-            let privateKeyData = try getPrivateKeyUseCase.execute(id: identity.id)
-            let base64 = privateKeyData.base64EncodedString()
-            let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
-            shareURL = url
+            shareURL = try useCase.execute(identity: identity)
         } catch {
             exportError = "Failed to export identity: \(error.localizedDescription)"
         }
     }
 
     private func migrateKey() {
-        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             try migrateIdentityUseCase.execute(id: identity.id)
         } catch {

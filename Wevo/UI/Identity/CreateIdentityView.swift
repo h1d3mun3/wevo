@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CreateIdentityView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dependencies) private var deps
 
     @State private var nickname: String = ""
 
@@ -43,7 +44,7 @@ struct CreateIdentityView: View {
     private func create() {
         isSaving = true
         
-        let useCase = CreateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let useCase = CreateIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         
         Task {
             do {

@@ -8,8 +8,16 @@
 import Foundation
 import CryptoKit
 
+/// ProposeAPIClientのプロトコル
+protocol ProposeAPIClientProtocol {
+    func createPropose(input: ProposeAPIClient.ProposeInput) async throws
+    func updatePropose(proposeID: UUID, input: ProposeAPIClient.ProposeInput) async throws
+    func getPropose(proposeID: UUID) async throws -> HashedPropose
+    func listProposes(publicKey: String, page: Int, per: Int) async throws -> ProposeAPIClient.Page<HashedPropose>
+}
+
 /// ProposeController用のAPIクライアント
-actor ProposeAPIClient {
+actor ProposeAPIClient: ProposeAPIClientProtocol {
     private let baseURL: URL
     private let session: URLSession
 

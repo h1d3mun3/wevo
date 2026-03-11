@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct IdentityListView: View {
+    @Environment(\.dependencies) private var deps
+
     @State private var shouldShowCreateIdentity = false
     @State private var identities: [Identity] = []
 
@@ -49,7 +51,7 @@ struct IdentityListView: View {
     }
     
     private func loadIdentities() async {
-        let getAllIdentityUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getAllIdentityUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             let loadedIdentities = try getAllIdentityUseCase.execute()
             await MainActor.run {
@@ -64,7 +66,7 @@ struct IdentityListView: View {
     }
     
     private func deleteIdentities(offsets: IndexSet) {
-        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         Task {
             do {
                 for index in offsets {

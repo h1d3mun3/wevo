@@ -6,15 +6,14 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
     @State private var shouldShowAddSpace = false
     @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
-    @State private var orphanedProposeGroups: [(spaceID: UUID, proposes: [Propose])] = []
-    @Environment(\.modelContext) private var modelContext
+    @State private var orphanedProposeGroups: [OrphanedProposeGroup] = []
+    @Environment(\.dependencies) private var deps
 
     var body: some View {
         NavigationSplitView {
@@ -105,26 +104,17 @@ struct ContentView: View {
     }
 
     private func loadSpaces() async {
-        let getAllSpacesUseCase = GetAllSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
-        let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+        let getAllSpacesUseCase = GetAllSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+        let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
 
         do {
             let loadedSpaces = try getAllSpacesUseCase.execute()
             let spaceIDs = Set(loadedSpaces.map { $0.id })
-            let orphaned = try getOrphanedProposesUseCase.execute(validSpaceIDs: spaceIDs)
-
-            // spaceIDでグループ化
-            let grouped = Dictionary(grouping: orphaned, by: { $0.spaceID })
-            let sortedGroups = grouped.sorted { group1, group2 in
-                // 最後に更新されたProposeで比較
-                let date1 = group1.value.max { $0.createdAt < $1.createdAt }?.createdAt ?? .distantPast
-                let date2 = group2.value.max { $0.createdAt < $1.createdAt }?.createdAt ?? .distantPast
-                return date1 > date2
-            }
+            let groups = try getOrphanedProposesUseCase.execute(validSpaceIDs: spaceIDs)
 
             await MainActor.run {
                 spaces = loadedSpaces
-                orphanedProposeGroups = sortedGroups.map { (spaceID: $0.key, proposes: $0.value) }
+                orphanedProposeGroups = groups
             }
         } catch {
             print("❌ Error loading spaces: \(error)")
@@ -136,7 +126,7 @@ struct ContentView: View {
     }
     
     private func deleteSpace(offsets: IndexSet) {
-        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
         Task {
             do {
                 for index in offsets {
@@ -154,5 +144,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: SpaceSwiftData.self, inMemory: true)
 }

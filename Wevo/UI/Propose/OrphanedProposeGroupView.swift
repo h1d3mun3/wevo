@@ -6,13 +6,10 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct OrphanedProposeGroupView: View {
     let spaceID: UUID
     let proposes: [Propose]
-
-    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +77,5 @@ struct OrphanedProposeGroupView: View {
 
     NavigationStack {
         OrphanedProposeGroupView(spaceID: UUID(), proposes: proposes)
-            .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
     }
 }

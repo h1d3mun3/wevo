@@ -6,12 +6,11 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SpaceDetailView: View {
     let space: Space
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var proposes: [Propose] = []
     @State private var isLoading = false
@@ -113,7 +112,7 @@ struct SpaceDetailView: View {
         }
 
         do {
-            let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+            let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
             self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
             print("❌ Error loading default identity: \(error)")
@@ -128,7 +127,7 @@ struct SpaceDetailView: View {
         errorMessage = nil
 
         do {
-            let loadAllProposesUseCase = LoadAllProposesUseCaseIpml(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+            let loadAllProposesUseCase = LoadAllProposesUseCaseIpml(proposeRepository: deps.proposeRepository)
             let loadedProposes = try loadAllProposesUseCase.execute(id: currentSpace.id)
 
             proposes = loadedProposes
@@ -149,7 +148,7 @@ struct SpaceDetailView: View {
 
     private func reloadSpace() async {
         await MainActor.run {
-            let getSpaceUseCase = GetSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+            let getSpaceUseCase = GetSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
             do {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
@@ -173,5 +172,4 @@ struct SpaceDetailView: View {
     )
 
     SpaceDetailView(space: space)
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

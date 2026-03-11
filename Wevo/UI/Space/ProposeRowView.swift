@@ -6,14 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ProposeRowView: View {
     let propose: Propose
     let space: Space
     let onSigned: () -> Void
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var shareURL: URL?
     @State private var showShareSheet = false
@@ -345,7 +344,7 @@ struct ProposeRowView: View {
             await loadDefaultIdentity()
         }
         .sheet(isPresented: $showProposeDetail) {
-            ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
+            ProposeDetailView(propose: propose, space: space)
         }
 #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
@@ -363,13 +362,10 @@ struct ProposeRowView: View {
     }
 
     private func prepareShare() {
-        print("📤 Preparing share for propose ID: \(propose.id)")
+        let useCase = ExportProposeUseCaseImpl()
         do {
-            let url = try ProposeExporter.exportPropose(propose, space: space)
-            print("📤 Export successful, URL: \(url.path)")
-            shareURL = url
+            shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
-            print("📤 Set shareURL = \(url)")
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
@@ -377,14 +373,11 @@ struct ProposeRowView: View {
     }
 
     private func sharePropose() {
-        print("📤 Starting share propose for ID: \(propose.id)")
+        let useCase = ExportProposeUseCaseImpl()
         do {
-            let url = try ProposeExporter.exportPropose(propose, space: space)
-            print("📤 Export successful, URL: \(url.path)")
-            shareURL = url
+            shareURL = try useCase.execute(propose: propose, space: space)
             showShareSheet = true
             shareError = nil
-            print("📤 Set showShareSheet = true, shareURL = \(url)")
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
@@ -398,47 +391,15 @@ struct ProposeRowView: View {
             resendErrorMessage = nil
         }
 
+        let useCase = ResendProposeToServerUseCaseImpl()
+
         do {
-            // URLを確認
-            guard let baseURL = URL(string: space.url) else {
-                await MainActor.run {
-                    isResending = false
-                    resendSuccess = false
-                    resendErrorMessage = "Invalid server URL"
-                }
-                return
-            }
-
-            // 最初のSignatureを取得（Proposeを作成した人の署名）
-            guard let firstSignature = propose.signatures.first else {
-                await MainActor.run {
-                    isResending = false
-                    resendSuccess = false
-                    resendErrorMessage = "No signature found"
-                }
-                return
-            }
-
-            // ProposeInputを作成（ハッシュのみ送信）
-            let input = ProposeAPIClient.ProposeInput(
-                id: propose.id,
-                payloadHash: propose.payloadHash,
-                publicKey: firstSignature.publicKey,
-                signatures: propose.signatures.compactMap({
-                    return ProposeAPIClient.SignInput(publicKey: $0.publicKey, signature: $0.signature)
-                })
-            )
-
-            // APIクライアントで送信
-            let client = ProposeAPIClient(baseURL: baseURL)
-            try await client.createPropose(input: input)
-
-            print("✅ Propose resent to server successfully: \(propose.id)")
+            try await useCase.execute(propose: propose, serverURL: space.url)
 
             await MainActor.run {
                 isResending = false
                 resendSuccess = true
-                serverStatus = .exists // ステータスを更新
+                serverStatus = .exists
             }
 
             // 3秒後にメッセージを消す
@@ -472,80 +433,38 @@ struct ProposeRowView: View {
             serverStatus = .checking
         }
 
+        let useCase = CheckProposeServerStatusUseCaseImpl()
+
         do {
-            // URLを確認
-            guard let baseURL = URL(string: space.url) else {
-                await MainActor.run {
-                    serverStatus = .error("Invalid URL")
-                    isCheckingServer = false
-                }
-                return
-            }
-
-            // APIクライアントで確認
-            let client = ProposeAPIClient(baseURL: baseURL)
-            let hashedPropose = try await client.getPropose(proposeID: propose.id)
-
-            // 成功 = サーバーに存在する
-            print("✅ Propose exists on server: \(propose.id)")
-            print("📊 Server has \(hashedPropose.signatures.count) signatures, local has \(propose.signatures.count)")
-
-            // 署名の公開鍵で比較するためのセット
-            let localPublicKeys = Set(propose.signatures.map { $0.publicKey })
-            let serverPublicKeys = Set(hashedPropose.signatures.map { $0.publicKey })
-
-            // サーバーにのみある署名を抽出（ローカルにない新しい署名）
-            let newServerSignatures = hashedPropose.signatures.compactMap { signInput -> Signature? in
-                guard !localPublicKeys.contains(signInput.publicKey) else { return nil }
-                return Signature(
-                    id: signInput.id,
-                    publicKey: signInput.publicKey,
-                    signature: signInput.signature,
-                    createdAt: signInput.createdAt
-                )
-            }
-
-            // ローカルにのみある署名を抽出（サーバーにまだ送られていない署名）
-            let localOnlySigs = propose.signatures.filter { signature in
-                !serverPublicKeys.contains(signature.publicKey)
-            }
+            let status = try await useCase.execute(propose: propose, serverURL: space.url)
 
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
 
-                // サーバーから取得した新しい署名
-                self.serverSignatures = newServerSignatures
-                self.hasNewSignatures = !newServerSignatures.isEmpty
+                self.serverSignatures = status.newServerSignatures
+                self.hasNewSignatures = !status.newServerSignatures.isEmpty
 
-                // ローカルのみの署名
-                self.localOnlySignatures = localOnlySigs
-                self.hasLocalOnlySignatures = !localOnlySigs.isEmpty
+                self.localOnlySignatures = status.localOnlySignatures
+                self.hasLocalOnlySignatures = !status.localOnlySignatures.isEmpty
+            }
 
-                if !newServerSignatures.isEmpty {
-                    print("🔄 Found \(newServerSignatures.count) new signature(s) on server")
-                }
-
-                if !localOnlySigs.isEmpty {
-                    print("📤 Found \(localOnlySigs.count) local-only signature(s)")
-                }
+        } catch let error as CheckProposeServerStatusUseCaseError {
+            await MainActor.run {
+                serverStatus = .error(error.localizedDescription)
+                isCheckingServer = false
             }
 
         } catch let error as ProposeAPIClient.APIError {
-            // HTTPエラーをチェック
-            if case .httpError(let statusCode) = error {
-                if statusCode == 404 {
-                    // 404 = サーバーに存在しない
-                    print("ℹ️ Propose not found on server: \(propose.id)")
-                    await MainActor.run {
-                        serverStatus = .notFound
-                        isCheckingServer = false
-                    }
-                    return
+            if case .httpError(let statusCode) = error, statusCode == 404 {
+                print("ℹ️ Propose not found on server: \(propose.id)")
+                await MainActor.run {
+                    serverStatus = .notFound
+                    isCheckingServer = false
                 }
+                return
             }
 
-            // その他のエラー
             print("⚠️ Error checking propose on server: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
@@ -553,7 +472,6 @@ struct ProposeRowView: View {
             }
 
         } catch {
-            // 予期しないエラー
             print("⚠️ Unexpected error checking propose: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
@@ -570,7 +488,7 @@ struct ProposeRowView: View {
             return
         }
 
-        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
             let identities = try getAllIdentitiesUseCase.execute()
@@ -586,12 +504,12 @@ struct ProposeRowView: View {
     }
 
     private func hasMySignature(identity: Identity) -> Bool {
-        let myPublicKey = identity.publicKey
-        // ローカルの署名とサーバーから取得した署名の両方をチェック
-        let allSignatures = propose.signatures + serverSignatures
-        return allSignatures.contains { signature in
-            signature.publicKey == myPublicKey
-        }
+        let useCase = HasIdentitySignedProposeUseCaseImpl()
+        return useCase.execute(
+            identity: identity,
+            proposeSignatures: propose.signatures,
+            serverSignatures: serverSignatures
+        )
     }
 
     private func signPropose(with identity: Identity) async {
@@ -602,8 +520,8 @@ struct ProposeRowView: View {
         }
 
         let signProposeUseCase = SignProposeUseCaseImpl(
-            keychainRepository: KeychainRepositoryImpl(),
-            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+            keychainRepository: deps.keychainRepository,
+            proposeRepository: deps.proposeRepository
         )
 
         do {
@@ -639,7 +557,7 @@ struct ProposeRowView: View {
         }
 
         let appendServerSignaturesToLocalProposeUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
-            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+            proposeRepository: deps.proposeRepository
         )
 
         do {
@@ -660,46 +578,10 @@ struct ProposeRowView: View {
             isSendingSignatures = true
         }
 
+        let useCase = SendLocalSignaturesToServerUseCaseImpl()
+
         do {
-            // URLを確認
-            guard let baseURL = URL(string: space.url) else {
-                await MainActor.run {
-                    isSendingSignatures = false
-                }
-                print("❌ Invalid server URL")
-                return
-            }
-
-            // 最初のSignatureを取得（Proposeを作成した人の署名）
-            guard let firstSignature = propose.signatures.first else {
-                await MainActor.run {
-                    isSendingSignatures = false
-                }
-                print("❌ No signature found")
-                return
-            }
-
-            // 全ての署名（既存 + ローカルのみ）をSignInputに変換
-            let allSignInputs = propose.signatures.map { signature in
-                ProposeAPIClient.SignInput(
-                    publicKey: signature.publicKey,
-                    signature: signature.signature
-                )
-            }
-
-            // ProposeInputを作成（全ての署名を送信）
-            let input = ProposeAPIClient.ProposeInput(
-                id: propose.id,
-                payloadHash: propose.payloadHash,
-                publicKey: firstSignature.publicKey,
-                signatures: allSignInputs
-            )
-
-            // APIクライアントでcreateProposeを使用（サーバー側で既存の場合は更新される想定）
-            let client = ProposeAPIClient(baseURL: baseURL)
-            try await client.updatePropose(proposeID: input.id, input: input)
-
-            print("✅ Sent \(localOnlySignatures.count) local signature(s) to server (total: \(allSignInputs.count)): \(propose.id)")
+            try await useCase.execute(propose: propose, serverURL: space.url)
 
             await MainActor.run {
                 isSendingSignatures = false
@@ -749,5 +631,4 @@ struct ProposeRowView: View {
     )
 
     ProposeRowView(propose: propose, space: space, onSigned: {})
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

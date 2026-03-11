@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SignatureDetailView: View {
-    let signature: SignatureSwiftData
+    let signature: Signature
 
     var body: some View {
         List {
@@ -21,7 +20,7 @@ struct SignatureDetailView: View {
             }
 
             Section("Signature Data") {
-                Text(signature.signatureData)
+                Text(signature.signature)
                     .font(.caption)
                     .fontDesign(.monospaced)
                     .textSelection(.enabled)
@@ -50,13 +49,12 @@ struct SignatureDetailView: View {
 }
 
 #Preview("Signature Detail") {
-    let signature = SignatureSwiftData(
+    let signature = Signature(
         id: UUID(),
         publicKey: "PreviewPublicKey",
-        signatureData: "PreviewSignatureData",
+        signature: "PreviewSignatureData",
         createdAt: .now
     )
 
     SignatureDetailView(signature: signature)
-        .modelContainer(for: [SignatureSwiftData.self], inMemory: true)
 }

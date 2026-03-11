@@ -6,16 +6,14 @@
 //
 
 import SwiftUI
-import SwiftData
-import CryptoKit
 
 struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
     @Environment(\.dismiss) private var dismiss
 
-    @State private var proposes: [ProposeSwiftData] = []
-    @State private var spaces: [SpaceSwiftData] = []
-    @State private var signatures: [SignatureSwiftData] = []
+    @State private var proposes: [Propose] = []
+    @State private var spaces: [Space] = []
+    @State private var signatures: [Signature] = []
     @State private var selectedTab = 0
 
     var body: some View {
@@ -67,39 +65,21 @@ struct SettingsView: View {
     }
 
     private func loadData() {
-        // Proposesを取得
-        let proposeDescriptor = FetchDescriptor<ProposeSwiftData>(
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        let useCase = LoadSettingsDataUseCaseImpl(
+            proposeRepository: deps.proposeRepository,
+            spaceRepository: deps.spaceRepository,
+            signatureRepository: deps.signatureRepository
         )
 
         do {
-            proposes = try modelContext.fetch(proposeDescriptor)
+            let data = try useCase.execute()
+            proposes = data.proposes
+            spaces = data.spaces
+            signatures = data.signatures
         } catch {
-            print("❌ Error loading proposes: \(error)")
+            print("❌ Error loading settings data: \(error)")
             proposes = []
-        }
-
-        // Spacesを取得
-        let spaceDescriptor = FetchDescriptor<SpaceSwiftData>(
-            sortBy: [SortDescriptor(\.orderIndex)]
-        )
-
-        do {
-            spaces = try modelContext.fetch(spaceDescriptor)
-        } catch {
-            print("❌ Error loading spaces: \(error)")
             spaces = []
-        }
-
-        // Signaturesを取得
-        let signatureDescriptor = FetchDescriptor<SignatureSwiftData>(
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
-
-        do {
-            signatures = try modelContext.fetch(signatureDescriptor)
-        } catch {
-            print("❌ Error loading signatures: \(error)")
             signatures = []
         }
     }
@@ -107,5 +87,4 @@ struct SettingsView: View {
 
 #Preview("Settings") {
     SettingsView()
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }
