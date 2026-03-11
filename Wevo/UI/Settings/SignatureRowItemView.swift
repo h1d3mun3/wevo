@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SignatureRowItemView: View {
-    let signature: SignatureSwiftData
+    let signature: Signature
     let isValid: Bool?
 
     var body: some View {
@@ -45,13 +44,12 @@ struct SignatureRowItemView: View {
 }
 
 #Preview("Signature Row Item") {
-    let signature = SignatureSwiftData(
+    let signature = Signature(
         id: UUID(),
         publicKey: "PreviewPublicKey",
-        signatureData: "PreviewSignatureData",
+        signature: "PreviewSignatureData",
         createdAt: .now
     )
 
     SignatureRowItemView(signature: signature, isValid: true)
-        .modelContainer(for: [SignatureSwiftData.self], inMemory: true)
 }

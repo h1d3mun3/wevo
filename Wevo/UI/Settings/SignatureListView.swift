@@ -28,7 +28,7 @@ struct SignatureListView: View {
                         SignatureDetailView(signature: SignatureConverter.toEntity(from: signature))
                     } label: {
                         SignatureRowItemView(
-                            signature: signature,
+                            signature: SignatureConverter.toEntity(from: signature),
                             isValid: signatureVerifications[signature.id]
                         )
                     }
