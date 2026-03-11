@@ -80,8 +80,10 @@ final class SpaceRepositoryImpl: SpaceRepository {
             guard let model = models.first else {
                 throw SpaceRepositoryError.spaceNotFound(id)
             }
-            
+
             return SpaceConverter.toEntity(from: model)
+        } catch let error as SpaceRepositoryError {
+            throw error
         } catch {
             throw SpaceRepositoryError.fetchError(error)
         }
