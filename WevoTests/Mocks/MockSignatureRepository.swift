@@ -10,6 +10,11 @@ import Foundation
 
 @MainActor
 class MockSignatureRepository: SignatureRepository {
+    // MARK: - fetchAll
+    var fetchAllResult: [Signature] = []
+    var fetchAllError: Error?
+    var fetchAllCalled = false
+
     // MARK: - delete
     var deleteCalled = false
     var deleteError: Error?
@@ -21,6 +26,15 @@ class MockSignatureRepository: SignatureRepository {
     var fetchPayloadHashCalledWithID: UUID?
 
     // MARK: - Protocol Implementation
+
+    func fetchAll() throws -> [Signature] {
+        fetchAllCalled = true
+
+        if let error = fetchAllError {
+            throw error
+        }
+        return fetchAllResult
+    }
 
     func delete(by id: UUID) throws {
         deleteCalled = true

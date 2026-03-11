@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SpaceDetailView: View {
     let space: Space
@@ -173,5 +172,4 @@ struct SpaceDetailView: View {
     )
 
     SpaceDetailView(space: space)
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

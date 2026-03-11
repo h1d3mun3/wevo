@@ -17,6 +17,7 @@ enum SignatureRepositoryError: Error {
 
 @MainActor
 protocol SignatureRepository {
+    func fetchAll() throws -> [Signature]
     func delete(by id: UUID) throws
     func fetchPayloadHash(forSignatureID id: UUID) throws -> String
 }
@@ -27,6 +28,22 @@ final class SignatureRepositoryImpl: SignatureRepository {
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+
+    // MARK: - Fetch
+
+    /// すべてのSignatureを取得（作成日時の降順でソート）
+    func fetchAll() throws -> [Signature] {
+        let descriptor = FetchDescriptor<SignatureSwiftData>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
+        do {
+            let models = try modelContext.fetch(descriptor)
+            return models.map { SignatureConverter.toEntity(from: $0) }
+        } catch {
+            throw SignatureRepositoryError.fetchError(error)
+        }
     }
 
     // MARK: - Delete

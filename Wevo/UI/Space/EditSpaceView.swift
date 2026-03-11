@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct EditSpaceView: View {
     let space: Space

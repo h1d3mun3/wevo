@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SpaceListView: View {
-    let spaces: [SpaceSwiftData]
+    let spaces: [Space]
     @Environment(\.dependencies) private var deps
 
     var onDelete: () -> Void = {}
@@ -21,7 +20,7 @@ struct SpaceListView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
-                ForEach(spaces) { space in
+                ForEach(spaces, id: \.id) { space in
                     NavigationLink {
                         SpaceDetailSettingsView(space: space)
                     } label: {
@@ -41,7 +40,7 @@ struct SpaceListView: View {
                                 Text("URL:")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(space.urlString)
+                                Text(space.url)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -61,7 +60,7 @@ struct SpaceListView: View {
         .listStyle(.plain)
     }
 
-    private func deleteSpace(_ space: SpaceSwiftData) {
+    private func deleteSpace(_ space: Space) {
         let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
         do {
             try deleteSpaceUseCase.execute(id: space.id)
@@ -74,10 +73,10 @@ struct SpaceListView: View {
 }
 
 #Preview("Space List") {
-    let space = SpaceSwiftData(
+    let space = Space(
         id: UUID(),
         name: "Preview Space",
-        urlString: "https://example.com",
+        url: "https://example.com",
         defaultIdentityID: UUID(),
         orderIndex: 1,
         createdAt: .now,
@@ -85,5 +84,4 @@ struct SpaceListView: View {
     )
 
     SpaceListView(spaces: [space])
-        .modelContainer(for: [SpaceSwiftData.self], inMemory: true)
 }

@@ -46,7 +46,21 @@ class MockProposeRepository: ProposeRepository {
     var deleteAllError: Error?
     var deleteAllForSpaceID: UUID?
 
+    // MARK: - fetchAll (no filter)
+    var fetchAllNoFilterResult: [Propose] = []
+    var fetchAllNoFilterError: Error?
+    var fetchAllNoFilterCalled = false
+
     // MARK: - Protocol Implementation
+
+    func fetchAll() throws -> [Propose] {
+        fetchAllNoFilterCalled = true
+
+        if let error = fetchAllNoFilterError {
+            throw error
+        }
+        return fetchAllNoFilterResult
+    }
 
     func create(_ propose: Propose, spaceID: UUID) throws {
         createCalled = true

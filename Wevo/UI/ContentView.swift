@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
@@ -145,5 +144,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: SpaceSwiftData.self, inMemory: true)
 }

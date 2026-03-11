@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SignatureListView: View {
-    let signatures: [SignatureSwiftData]
+    let signatures: [Signature]
     @Environment(\.dependencies) private var deps
 
     @State private var signatureVerifications: [UUID: Bool] = [:]
@@ -23,12 +22,12 @@ struct SignatureListView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
-                ForEach(signatures, id: \.id) { signature in
+                ForEach(signatures) { signature in
                     NavigationLink {
-                        SignatureDetailView(signature: SignatureConverter.toEntity(from: signature))
+                        SignatureDetailView(signature: signature)
                     } label: {
                         SignatureRowItemView(
-                            signature: SignatureConverter.toEntity(from: signature),
+                            signature: signature,
                             isValid: signatureVerifications[signature.id]
                         )
                     }
@@ -53,7 +52,7 @@ struct SignatureListView: View {
         .listStyle(.plain)
     }
 
-    private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
+    private func verifySignature(_ signature: Signature) async -> Bool {
         let useCase = VerifySignatureInProposeUseCaseImpl(
             signatureRepository: deps.signatureRepository,
             keychainRepository: deps.keychainRepository
@@ -62,7 +61,7 @@ struct SignatureListView: View {
         do {
             return try useCase.execute(
                 signatureID: signature.id,
-                signatureData: signature.signatureData,
+                signatureData: signature.signature,
                 publicKey: signature.publicKey
             )
         } catch {
@@ -71,7 +70,7 @@ struct SignatureListView: View {
         }
     }
 
-    private func deleteSignature(_ signature: SignatureSwiftData) {
+    private func deleteSignature(_ signature: Signature) {
         let useCase = DeleteSignatureUseCaseImpl(
             signatureRepository: deps.signatureRepository
         )
@@ -86,13 +85,12 @@ struct SignatureListView: View {
 }
 
 #Preview("Signature List") {
-    let signature = SignatureSwiftData(
+    let signature = Signature(
         id: UUID(),
         publicKey: "PreviewPublicKey",
-        signatureData: "PreviewSignatureData",
+        signature: "PreviewSignatureData",
         createdAt: .now
     )
 
     SignatureListView(signatures: [signature])
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

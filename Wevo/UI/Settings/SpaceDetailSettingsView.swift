@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SpaceDetailSettingsView: View {
-    let space: SpaceSwiftData
+    let space: Space
 
     var body: some View {
         List {
@@ -20,7 +19,7 @@ struct SpaceDetailSettingsView: View {
                 }
 
                 LabeledContent("URL") {
-                    Text(space.urlString)
+                    Text(space.url)
                         .font(.caption)
                         .textSelection(.enabled)
                 }
@@ -71,10 +70,10 @@ struct SpaceDetailSettingsView: View {
 }
 
 #Preview("Space Detail Settings") {
-    let space = SpaceSwiftData(
+    let space = Space(
         id: UUID(),
         name: "Preview Space",
-        urlString: "https://example.com",
+        url: "https://example.com",
         defaultIdentityID: UUID(),
         orderIndex: 1,
         createdAt: .now,
