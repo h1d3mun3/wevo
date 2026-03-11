@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
     @State private var orphanedProposeGroups: [OrphanedProposeGroup] = []
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     var body: some View {
         NavigationSplitView {
@@ -105,8 +105,8 @@ struct ContentView: View {
     }
 
     private func loadSpaces() async {
-        let getAllSpacesUseCase = GetAllSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
-        let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+        let getAllSpacesUseCase = GetAllSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+        let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
 
         do {
             let loadedSpaces = try getAllSpacesUseCase.execute()
@@ -127,7 +127,7 @@ struct ContentView: View {
     }
     
     private func deleteSpace(offsets: IndexSet) {
-        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
         Task {
             do {
                 for index in offsets {

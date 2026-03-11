@@ -9,7 +9,7 @@ import SwiftUI
 
 struct AddSpaceView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var name: String = ""
     @State private var urlString: String = ""
@@ -81,7 +81,7 @@ struct AddSpaceView: View {
     }
 
     private func loadIdentities() async {
-        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             let loadedIdentities = try getAllIdentitiesUseCase.execute()
             await MainActor.run {
@@ -104,7 +104,7 @@ struct AddSpaceView: View {
         
         isSaving = true
 
-        let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+        let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
 
         do {
             try addSpaceUseCase.execute(name: name, urlString: urlString, defaultIdentityID: selectedIdentityID)

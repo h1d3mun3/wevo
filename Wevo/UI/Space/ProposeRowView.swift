@@ -6,14 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ProposeRowView: View {
     let propose: Propose
     let space: Space
     let onSigned: () -> Void
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var shareURL: URL?
     @State private var showShareSheet = false
@@ -495,7 +494,7 @@ struct ProposeRowView: View {
             return
         }
 
-        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
             let identities = try getAllIdentitiesUseCase.execute()
@@ -527,8 +526,8 @@ struct ProposeRowView: View {
         }
 
         let signProposeUseCase = SignProposeUseCaseImpl(
-            keychainRepository: KeychainRepositoryImpl(),
-            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+            keychainRepository: deps.keychainRepository,
+            proposeRepository: deps.proposeRepository
         )
 
         do {
@@ -564,7 +563,7 @@ struct ProposeRowView: View {
         }
 
         let appendServerSignaturesToLocalProposeUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
-            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+            proposeRepository: deps.proposeRepository
         )
 
         do {
@@ -638,5 +637,4 @@ struct ProposeRowView: View {
     )
 
     ProposeRowView(propose: propose, space: space, onSigned: {})
-        .modelContainer(for: [SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self], inMemory: true)
 }

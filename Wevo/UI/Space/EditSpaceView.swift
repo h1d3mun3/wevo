@@ -13,7 +13,7 @@ struct EditSpaceView: View {
     let onUpdate: () -> Void
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
     
     @State private var name: String
     @State private var url: String
@@ -113,9 +113,9 @@ struct EditSpaceView: View {
     
     private func saveChanges() async {
         let editSpaceUseCase = EditSpaceUseCaseImpl(
-            spaceRepository: SpaceRepositoryImpl(modelContext: modelContext),
+            spaceRepository: deps.spaceRepository,
             getSpaceUseCase: GetSpaceUseCaseImpl(
-                spaceRepository: SpaceRepositoryImpl(modelContext: modelContext)
+                spaceRepository: deps.spaceRepository
             )
         )
 
@@ -138,7 +138,7 @@ struct EditSpaceView: View {
     }
 
     private func getIdentityNickname(for id: UUID) -> String {
-        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             let identity = try getIdentityUseCase.execute(id: id)
             return identity.nickname

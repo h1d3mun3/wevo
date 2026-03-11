@@ -39,9 +39,15 @@ struct WevoApp: App {
     @State private var pendingIdentityPlain: IdentityPlainExport?
     @State private var showIdentityImportSheet = false
 
+    @MainActor
+    private var container: AppDependencyContainer {
+        AppDependencyContainer(modelContext: sharedModelContainer.mainContext)
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.dependencies, container)
                 .sheet(isPresented: $showSpaceSelector) {
                     if let proposeData = importedProposeData {
                         SpaceSelectorView(
@@ -118,10 +124,8 @@ struct WevoApp: App {
     private func prepareImport(from url: URL) {
         do {
             let exportData = try ProposeExporter.importPropose(from: url)
-            
-            let modelContext = sharedModelContainer.mainContext
-            let spaceRepository = SpaceRepositoryImpl(modelContext: modelContext)
-            let spaces = try spaceRepository.fetchAll()
+
+            let spaces = try container.spaceRepository.fetchAll()
             
             guard !spaces.isEmpty else {
                 print("❌ No spaces found. Cannot import propose.")
@@ -161,11 +165,8 @@ struct WevoApp: App {
     }
     
     private func importPropose(_ propose: Propose, to space: Space) {
-        let modelContext = sharedModelContainer.mainContext
-        let proposeRepository = ProposeRepositoryImpl(modelContext: modelContext)
-        
         do {
-            try proposeRepository.create(propose, spaceID: space.id)
+            try container.proposeRepository.create(propose, spaceID: space.id)
             print("✅ Propose imported successfully to space: \(space.name)")
         } catch {
             print("❌ Error importing propose: \(error)")

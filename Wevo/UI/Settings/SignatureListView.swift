@@ -10,7 +10,7 @@ import SwiftData
 
 struct SignatureListView: View {
     let signatures: [SignatureSwiftData]
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var signatureVerifications: [UUID: Bool] = [:]
 
@@ -55,8 +55,8 @@ struct SignatureListView: View {
 
     private func verifySignature(_ signature: SignatureSwiftData) async -> Bool {
         let useCase = VerifySignatureInProposeUseCaseImpl(
-            signatureRepository: SignatureRepositoryImpl(modelContext: modelContext),
-            keychainRepository: KeychainRepositoryImpl()
+            signatureRepository: deps.signatureRepository,
+            keychainRepository: deps.keychainRepository
         )
 
         do {
@@ -73,7 +73,7 @@ struct SignatureListView: View {
 
     private func deleteSignature(_ signature: SignatureSwiftData) {
         let useCase = DeleteSignatureUseCaseImpl(
-            signatureRepository: SignatureRepositoryImpl(modelContext: modelContext)
+            signatureRepository: deps.signatureRepository
         )
 
         do {

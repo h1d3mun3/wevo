@@ -8,6 +8,7 @@ struct IdentityImportView: View {
     @State private var loadError: String?
     @State private var isImporting = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dependencies) private var deps
 
     init(exportData: IdentityPlainExport, onComplete: @escaping () -> Void, onCancel: @escaping () -> Void) {
         self.exportData = exportData
@@ -56,9 +57,9 @@ struct IdentityImportView: View {
 
     private func importNow() async {
         isImporting = true
-        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
-        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
-        let importIdentityUseCase = ImportIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let importIdentityUseCase = ImportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             // Overwrite existing identity if present: delete then create
             do {

@@ -9,7 +9,8 @@ import SwiftUI
 
 struct EditIdentityView: View {
     @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dependencies) private var deps
+
     let identity: Identity
     @State private var nickname: String
     @State private var isSaving = false
@@ -69,7 +70,7 @@ struct EditIdentityView: View {
         isSaving = true
         errorMessage = nil
         
-        let useCase = EditIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let useCase = EditIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         
         do {
             try useCase.execute(id: identity.id, newNickname: nickname)

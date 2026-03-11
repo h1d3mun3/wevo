@@ -10,7 +10,7 @@ import SwiftData
 
 struct SpaceListView: View {
     let spaces: [SpaceSwiftData]
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     var onDelete: () -> Void = {}
 
@@ -62,7 +62,7 @@ struct SpaceListView: View {
     }
 
     private func deleteSpace(_ space: SpaceSwiftData) {
-        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: SpaceRepositoryImpl(modelContext: modelContext))
+        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
         do {
             try deleteSpaceUseCase.execute(id: space.id)
             print("✅ Space deleted: \(space.id)")

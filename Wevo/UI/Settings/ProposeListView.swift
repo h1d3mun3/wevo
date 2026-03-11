@@ -10,7 +10,7 @@ import SwiftData
 
 struct ProposeListView: View {
     let proposes: [ProposeSwiftData]
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
 
     @State private var proposeToDelete: ProposeSwiftData?
     @State private var showDeleteAlert = false
@@ -78,7 +78,7 @@ struct ProposeListView: View {
     }
 
     private func deletePropose(_ propose: ProposeSwiftData) {
-        let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: ProposeRepositoryImpl(modelContext: modelContext))
+        let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try deleteProposeUseCase.execute(id: propose.id)
             print("✅ Propose deleted: \(propose.id)")

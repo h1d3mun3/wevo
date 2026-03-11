@@ -10,6 +10,8 @@ import SwiftUI
 struct ProposeSettingsDetailView: View {
     let propose: Propose
 
+    @Environment(\.dependencies) private var deps
+
     @State private var selectedSignature: Signature?
     @State private var signatureVerifications: [UUID: Bool] = [:]
     @State private var isHashValid: Bool?
@@ -155,7 +157,7 @@ struct ProposeSettingsDetailView: View {
     }
 
     private func verifySignature(_ signature: Signature) async -> Bool {
-        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
             let isValid = try verifySignatureUseCase.execute(

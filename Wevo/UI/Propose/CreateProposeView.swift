@@ -14,7 +14,7 @@ struct CreateProposeView: View {
     let onSuccess: () -> Void
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var deps
     
     @State private var message: String = ""
     @State private var isSaving: Bool = false
@@ -105,9 +105,9 @@ struct CreateProposeView: View {
         }
 
         let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
-            keychainRepository: KeychainRepositoryImpl(),
-            spaceRepository: SpaceRepositoryImpl(modelContext: modelContext),
-            proposeRepository: ProposeRepositoryImpl(modelContext: modelContext)
+            keychainRepository: deps.keychainRepository,
+            spaceRepository: deps.spaceRepository,
+            proposeRepository: deps.proposeRepository
         )
 
         do {

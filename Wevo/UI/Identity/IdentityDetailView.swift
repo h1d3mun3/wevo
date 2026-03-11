@@ -11,7 +11,9 @@ import UniformTypeIdentifiers
 
 struct IdentityDetailView: View {
     let identity: Identity
-    
+
+    @Environment(\.dependencies) private var deps
+
     @State private var errorMessage: String?
     @State private var exportError: String?
     @State private var showingEditSheet = false
@@ -118,7 +120,7 @@ struct IdentityDetailView: View {
     }
     
     private func preparePlainExport() {
-        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             // Fetch private key from Keychain (biometric auth may be required)
             let privateKeyData = try getPrivateKeyUseCase.execute(id: identity.id)
@@ -131,7 +133,7 @@ struct IdentityDetailView: View {
     }
 
     private func migrateKey() {
-        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: KeychainRepositoryImpl())
+        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             try migrateIdentityUseCase.execute(id: identity.id)
         } catch {
