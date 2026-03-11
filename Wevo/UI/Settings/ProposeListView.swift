@@ -26,7 +26,7 @@ struct ProposeListView: View {
             } else {
                 ForEach(proposes, id: \.id) { propose in
                     NavigationLink {
-                        ProposeSettingsDetailView(propose: propose)
+                        ProposeSettingsDetailView(propose: ProposeConverter.toEntity(from: propose))
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(propose.message)

@@ -25,7 +25,7 @@ struct SignatureListView: View {
             } else {
                 ForEach(signatures, id: \.id) { signature in
                     NavigationLink {
-                        SignatureDetailView(signature: signature)
+                        SignatureDetailView(signature: SignatureConverter.toEntity(from: signature))
                     } label: {
                         SignatureRowItemView(
                             signature: signature,

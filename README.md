@@ -23,7 +23,7 @@ Wevo は、SwiftUI + SwiftData を使ったクロスプラットフォーム（i
 
 ## UI の構成
 - `ContentView` は `NavigationSplitView`（macOS/iPad）や `NavigationStack`（iOS）で `Space` 一覧、設定、アイデンティティ、スペース追加のシートを呼び出す。
-- `SpaceDetailView` では選択したスペース内の Propose 一覧を表示し、Signature のステータス、クラウドとの同期、署名実行、共有を行う。`ProposeRowView` の詳細画面（`ProposeDetailViewFromEntity` → `ProposeSettingsDetailView`）で署名の検証とメタ情報の把握が可能。
+- `SpaceDetailView` では選択したスペース内の Propose 一覧を表示し、Signature のステータス、クラウドとの同期、署名実行、共有を行う。`ProposeRowView` の詳細画面（`ProposeDetailView` → `ProposeSettingsDetailView`）で署名の検証とメタ情報の把握が可能。
 - `Identity` 周りは `IdentityListView` / `IdentityDetailView` を使ってコピー・編集・マイグレーション・共有・削除でき、`CreateIdentityView` で新しい鍵を作る。
 
 ## 実行と開発のヒント

@@ -345,7 +345,7 @@ struct ProposeRowView: View {
             await loadDefaultIdentity()
         }
         .sheet(isPresented: $showProposeDetail) {
-            ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
+            ProposeDetailView(propose: propose, space: space)
         }
 #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
