@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import LocalAuthentication
 
 struct IdentityDetailView: View {
     let identity: Identity
@@ -19,6 +20,7 @@ struct IdentityDetailView: View {
     @State private var shareURL: URL?
     @State private var showShareSheet = false
     @State private var migrationError: String?
+    @State private var isAuthenticating = false
 
     var body: some View {
         List {
@@ -78,10 +80,11 @@ struct IdentityDetailView: View {
             Section("Share") {
 #if os(iOS)
                 Button {
-                    preparePlainExport()
+                    Task { await authenticateAndExport() }
                 } label: {
                     Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
                 }
+                .disabled(isAuthenticating)
                 .alert("Export Error", isPresented: .constant(exportError != nil)) {
                     Button("OK", role: .cancel) { exportError = nil }
                 } message: {
@@ -94,11 +97,11 @@ struct IdentityDetailView: View {
                 }
 #else
                 Button {
-                    preparePlainExport()
-                    showShareSheet = true
+                    Task { await authenticateAndExport(); showShareSheet = true }
                 } label: {
                     Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
                 }
+                .disabled(isAuthenticating)
 #endif
             }
         }
@@ -115,15 +118,55 @@ struct IdentityDetailView: View {
                 ShareSheetView(items: [shareURL])
             }
         }
+        .onChange(of: showShareSheet) { _, isPresented in
+            if !isPresented {
+                cleanupExportFile()
+            }
+        }
 #endif
+        .onDisappear {
+            cleanupExportFile()
+        }
     }
     
-    private func preparePlainExport() {
-        let useCase = ExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+    private func authenticateAndExport() async {
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
+        let context = LAContext()
+        var error: NSError?
+
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+            await MainActor.run {
+                exportError = "Biometric authentication not available: \(error?.localizedDescription ?? "Unknown")"
+            }
+            return
+        }
+
         do {
-            shareURL = try useCase.execute(identity: identity)
+            let success = try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: "Authenticate to export private key"
+            )
+            guard success else {
+                await MainActor.run { exportError = "Authentication failed" }
+                return
+            }
+
+            let useCase = ExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+            let url = try useCase.execute(identity: identity)
+            await MainActor.run { shareURL = url }
         } catch {
-            exportError = "Failed to export identity: \(error.localizedDescription)"
+            await MainActor.run {
+                exportError = "Failed to export identity: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func cleanupExportFile() {
+        if let url = shareURL {
+            try? FileManager.default.removeItem(at: url)
+            shareURL = nil
         }
     }
 

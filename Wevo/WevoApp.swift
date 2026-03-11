@@ -48,6 +48,9 @@ struct WevoApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.dependencies, container)
+                .task {
+                    cleanupSensitiveTemporaryFiles()
+                }
                 .sheet(isPresented: $showSpaceSelector) {
                     if let proposeData = importedProposeData {
                         SpaceSelectorView(
@@ -181,96 +184,22 @@ struct WevoApp: App {
         importedProposeData = nil
         availableSpaces = []
     }
-}
-// MARK: - Space Selector View
 
-struct SpaceSelectorView: View {
-    let propose: Propose
-    let originalSpaceID: UUID
-    let spaces: [Space]
-    let onSelect: (Space) -> Void
-    let onCancel: () -> Void
-    
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Propose to Import")
-                            .font(.headline)
-                        
-                        Text(propose.message)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
-                        
-                        HStack {
-                            Image(systemName: "signature")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text("\(propose.signatures.count) signature(s)")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                            
-                            Spacer()
-                            
-                            Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                Section("Select Space") {
-                    ForEach(spaces) { space in
-                        Button {
-                            onSelect(space)
-                            dismiss()
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(space.name)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
-                                    
-                                    Text(space.url)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                if space.id == originalSpaceID {
-                                    Image(systemName: "arrow.down.circle.fill")
-                                        .foregroundStyle(.blue)
-                                        .font(.title3)
-                                    Text("Original")
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .navigationTitle("Import Propose")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        onCancel()
-                        dismiss()
-                    }
-                }
+    /// アプリ起動時に一時ディレクトリ内の秘密鍵・Proposeエクスポートファイルを削除
+    private func cleanupSensitiveTemporaryFiles() {
+        let tempDir = FileManager.default.temporaryDirectory
+        let sensitiveExtensions = ["wevo-identity", "wevo-propose"]
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: tempDir,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for file in files {
+            if sensitiveExtensions.contains(file.pathExtension) {
+                try? FileManager.default.removeItem(at: file)
+                print("🧹 Cleaned up temporary file: \(file.lastPathComponent)")
             }
         }
     }
 }
-

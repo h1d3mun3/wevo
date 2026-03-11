@@ -30,10 +30,10 @@ struct IdentityImportView: View {
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
                 }
-                Section("Private Key (Base64)") {
-                    Text(exportData.privateKey)
+                Section("Private Key") {
+                    Text(String(repeating: "•", count: 32))
                         .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
+                        .foregroundStyle(.secondary)
                 }
                 if let loadError = loadError {
                     Section {

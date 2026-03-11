@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import CryptoKit
 @testable import Wevo
 
 @MainActor
@@ -14,40 +15,51 @@ struct ImportIdentityFromExportUseCaseTests {
 
     let mockKeychainRepository = MockKeychainRepository()
 
-    let validExportData = IdentityPlainExport(
-        id: UUID(),
-        nickname: "Test Key",
-        publicKey: "TestPublicKey",
-        privateKey: Data("test-private-key".utf8).base64EncodedString(),
-        exportedAt: .now
-    )
+    /// 有効なP256秘密鍵のBase64文字列を生成
+    static func validPrivateKeyBase64() -> String {
+        let key = P256.Signing.PrivateKey()
+        return key.rawRepresentation.base64EncodedString()
+    }
 
     @Test("正常にインポートできる")
     func executeSuccess() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
+        let exportData = IdentityPlainExport(
+            id: UUID(),
+            nickname: "Test Key",
+            publicKey: "TestPublicKey",
+            privateKey: Self.validPrivateKeyBase64(),
+            exportedAt: .now
+        )
+
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-        try useCase.execute(exportData: validExportData)
+        try useCase.execute(exportData: exportData)
 
         #expect(mockKeychainRepository.createIdentityCalled)
-        #expect(mockKeychainRepository.createdIdentityID == validExportData.id)
-        #expect(mockKeychainRepository.createdNickname == validExportData.nickname)
+        #expect(mockKeychainRepository.createdIdentityID == exportData.id)
+        #expect(mockKeychainRepository.createdNickname == exportData.nickname)
     }
 
     @Test("既存のIdentityがある場合は削除してからインポートする")
     func executeOverwritesExisting() throws {
-        let existingIdentity = Identity(
-            id: validExportData.id,
-            nickname: "Old Key",
-            publicKey: "OldPublicKey"
-        )
+        let id = UUID()
+        let existingIdentity = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
         mockKeychainRepository.getIdentityResult = existingIdentity
 
+        let exportData = IdentityPlainExport(
+            id: id,
+            nickname: "New Key",
+            publicKey: "NewPublicKey",
+            privateKey: Self.validPrivateKeyBase64(),
+            exportedAt: .now
+        )
+
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-        try useCase.execute(exportData: validExportData)
+        try useCase.execute(exportData: exportData)
 
         #expect(mockKeychainRepository.deleteIdentityKeyCalled)
-        #expect(mockKeychainRepository.deletedIdentityID == validExportData.id)
+        #expect(mockKeychainRepository.deletedIdentityID == id)
         #expect(mockKeychainRepository.createIdentityCalled)
     }
 
@@ -55,7 +67,7 @@ struct ImportIdentityFromExportUseCaseTests {
     func executeFailsWithInvalidBase64() {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
-        let invalidExportData = IdentityPlainExport(
+        let exportData = IdentityPlainExport(
             id: UUID(),
             nickname: "Test",
             publicKey: "PK",
@@ -65,8 +77,27 @@ struct ImportIdentityFromExportUseCaseTests {
 
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
 
-        #expect(throws: ImportIdentityFromExportUseCaseError.self) {
-            try useCase.execute(exportData: invalidExportData)
+        #expect(throws: ImportIdentityFromExportUseCaseError.invalidPrivateKeyEncoding) {
+            try useCase.execute(exportData: exportData)
+        }
+    }
+
+    @Test("P256として無効なデータの場合エラーが返る")
+    func executeFailsWithInvalidP256Key() {
+        mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
+
+        let exportData = IdentityPlainExport(
+            id: UUID(),
+            nickname: "Test",
+            publicKey: "PK",
+            privateKey: Data("short".utf8).base64EncodedString(),
+            exportedAt: .now
+        )
+
+        let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
+
+        #expect(throws: ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat) {
+            try useCase.execute(exportData: exportData)
         }
     }
 
@@ -74,10 +105,19 @@ struct ImportIdentityFromExportUseCaseTests {
     func executeDecodesPrivateKeyCorrectly() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
-        let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-        try useCase.execute(exportData: validExportData)
+        let base64 = Self.validPrivateKeyBase64()
+        let exportData = IdentityPlainExport(
+            id: UUID(),
+            nickname: "Test Key",
+            publicKey: "PK",
+            privateKey: base64,
+            exportedAt: .now
+        )
 
-        let expectedData = Data(base64Encoded: validExportData.privateKey)
+        let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
+        try useCase.execute(exportData: exportData)
+
+        let expectedData = Data(base64Encoded: base64)
         #expect(mockKeychainRepository.createdPrivateKey == expectedData)
     }
 }
