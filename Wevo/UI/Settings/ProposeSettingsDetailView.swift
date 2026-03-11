@@ -137,17 +137,11 @@ struct ProposeSettingsDetailView: View {
     }
 
     private func verifyHash() async {
-        let messageHash = propose.message.sha256HashedString
-        let isValid = messageHash == propose.payloadHash
+        let useCase = VerifyProposeHashUseCaseImpl()
+        let isValid = useCase.execute(message: propose.message, payloadHash: propose.payloadHash)
 
         await MainActor.run {
             isHashValid = isValid
-        }
-
-        if isValid {
-            print("✅ Hash valid: message hash matches payloadHash")
-        } else {
-            print("❌ Hash invalid: message hash (\(messageHash)) does not match payloadHash (\(propose.payloadHash))")
         }
     }
 
