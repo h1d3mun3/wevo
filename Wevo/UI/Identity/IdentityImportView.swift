@@ -57,23 +57,9 @@ struct IdentityImportView: View {
 
     private func importNow() async {
         isImporting = true
-        let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-        let deleteIdentityUseCase = DeleteIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-        let importIdentityUseCase = ImportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            // Overwrite existing identity if present: delete then create
-            do {
-
-                _ = try getIdentityUseCase.execute(id: exportData.id)
-                try deleteIdentityUseCase.execute(id: exportData.id)
-            } catch {
-                // Not found or deletable; continue
-            }
-            // Convert base64 private key back to raw data
-            guard let privateKeyData = Data(base64Encoded: exportData.privateKey) else {
-                throw NSError(domain: "Wevo", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid private key encoding."])
-            }
-            try importIdentityUseCase.execute(id: exportData.id, nickname: exportData.nickname, privateKey: privateKeyData)
+            try useCase.execute(exportData: exportData)
             isImporting = false
             onComplete()
             dismiss()

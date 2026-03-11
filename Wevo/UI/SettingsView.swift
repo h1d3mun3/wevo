@@ -65,27 +65,21 @@ struct SettingsView: View {
     }
 
     private func loadData() {
-        // Proposesを取得
+        let useCase = LoadSettingsDataUseCaseImpl(
+            proposeRepository: deps.proposeRepository,
+            spaceRepository: deps.spaceRepository,
+            signatureRepository: deps.signatureRepository
+        )
+
         do {
-            proposes = try deps.proposeRepository.fetchAll()
+            let data = try useCase.execute()
+            proposes = data.proposes
+            spaces = data.spaces
+            signatures = data.signatures
         } catch {
-            print("❌ Error loading proposes: \(error)")
+            print("❌ Error loading settings data: \(error)")
             proposes = []
-        }
-
-        // Spacesを取得
-        do {
-            spaces = try deps.spaceRepository.fetchAll()
-        } catch {
-            print("❌ Error loading spaces: \(error)")
             spaces = []
-        }
-
-        // Signaturesを取得
-        do {
-            signatures = try deps.signatureRepository.fetchAll()
-        } catch {
-            print("❌ Error loading signatures: \(error)")
             signatures = []
         }
     }

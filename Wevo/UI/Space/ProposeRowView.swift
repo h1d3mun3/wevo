@@ -362,13 +362,10 @@ struct ProposeRowView: View {
     }
 
     private func prepareShare() {
-        print("📤 Preparing share for propose ID: \(propose.id)")
+        let useCase = ExportProposeUseCaseImpl()
         do {
-            let url = try ProposeExporter.exportPropose(propose, space: space)
-            print("📤 Export successful, URL: \(url.path)")
-            shareURL = url
+            shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
-            print("📤 Set shareURL = \(url)")
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
@@ -376,14 +373,11 @@ struct ProposeRowView: View {
     }
 
     private func sharePropose() {
-        print("📤 Starting share propose for ID: \(propose.id)")
+        let useCase = ExportProposeUseCaseImpl()
         do {
-            let url = try ProposeExporter.exportPropose(propose, space: space)
-            print("📤 Export successful, URL: \(url.path)")
-            shareURL = url
+            shareURL = try useCase.execute(propose: propose, space: space)
             showShareSheet = true
             shareError = nil
-            print("📤 Set showShareSheet = true, shareURL = \(url)")
         } catch {
             print("❌ Error exporting propose: \(error)")
             shareError = "Export failed"
@@ -510,12 +504,12 @@ struct ProposeRowView: View {
     }
 
     private func hasMySignature(identity: Identity) -> Bool {
-        let myPublicKey = identity.publicKey
-        // ローカルの署名とサーバーから取得した署名の両方をチェック
-        let allSignatures = propose.signatures + serverSignatures
-        return allSignatures.contains { signature in
-            signature.publicKey == myPublicKey
-        }
+        let useCase = HasIdentitySignedProposeUseCaseImpl()
+        return useCase.execute(
+            identity: identity,
+            proposeSignatures: propose.signatures,
+            serverSignatures: serverSignatures
+        )
     }
 
     private func signPropose(with identity: Identity) async {

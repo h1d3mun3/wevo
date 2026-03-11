@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 import UniformTypeIdentifiers
 
 struct IdentityDetailView: View {
@@ -120,13 +119,9 @@ struct IdentityDetailView: View {
     }
     
     private func preparePlainExport() {
-        let getPrivateKeyUseCase = GetPrivateKeyUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = ExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            // Fetch private key from Keychain (biometric auth may be required)
-            let privateKeyData = try getPrivateKeyUseCase.execute(id: identity.id)
-            let base64 = privateKeyData.base64EncodedString()
-            let url = try IdentityPlainTransfer.exportPlainToFile(identity: identity, privateKeyBase64: base64)
-            shareURL = url
+            shareURL = try useCase.execute(identity: identity)
         } catch {
             exportError = "Failed to export identity: \(error.localizedDescription)"
         }
