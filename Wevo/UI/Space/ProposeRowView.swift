@@ -20,7 +20,7 @@ struct ProposeRowView: View {
     @State private var isResending = false
     @State private var resendSuccess: Bool?
     @State private var resendErrorMessage: String?
-    @State private var serverStatus: ServerStatus = .unknown
+    @State private var serverStatus: ProposeServerStatus = .unknown
     @State private var isCheckingServer = false
     @State private var isSigning = false
     @State private var signSuccess: Bool?
@@ -34,51 +34,13 @@ struct ProposeRowView: View {
     @State private var isSendingSignatures = false
     @State private var showProposeDetail = false
 
-    enum ServerStatus: Equatable {
-        case unknown
-        case checking
-        case exists
-        case notFound
-        case error(String)
-
-        var icon: String {
-            switch self {
-            case .unknown: return "circle"
-            case .checking: return "circle.dotted"
-            case .exists: return "checkmark.circle.fill"
-            case .notFound: return "xmark.circle"
-            case .error: return "exclamationmark.triangle"
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .unknown: return .gray
-            case .checking: return .blue
-            case .exists: return .green
-            case .notFound: return .orange
-            case .error: return .red
-            }
-        }
-
-        var description: String {
-            switch self {
-            case .unknown: return "Unknown"
-            case .checking: return "Checking..."
-            case .exists: return "On server"
-            case .notFound: return "Not on server"
-            case .error(let message): return "Error: \(message)"
-            }
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // メッセージ部分
             Button {
                 showProposeDetail = true
             } label: {
                 VStack(alignment: .leading, spacing: 8) {
-                    // メッセージ
                     HStack {
                         Text(propose.message)
                             .font(.headline)
@@ -91,7 +53,6 @@ struct ProposeRowView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    // サーバーステータス
                     HStack(spacing: 4) {
                         Image(systemName: serverStatus.icon)
                             .font(.caption2)
@@ -108,239 +69,60 @@ struct ProposeRowView: View {
             }
             .buttonStyle(.plain)
 
-            // アクションボタン（Buttonの外）
-            HStack {
-                // 再送信ボタン
-                Button {
-                    Task {
-                        await resendToServer()
-                    }
-                } label: {
-                    if isResending {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    } else {
-                        Label("Resend", systemImage: "arrow.clockwise")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                }
-                .buttonStyle(.borderless)
-                .disabled(isResending || serverStatus == .exists)
-                .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
-
-                // AirDrop共有ボタン
-#if os(iOS)
-                if #available(iOS 16.0, *) {
-                    if let shareURL = shareURL {
-                        ShareLink(item: shareURL) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                                .labelStyle(.iconOnly)
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderless)
-                    } else {
-                        Button {
-                            prepareShare()
-                        } label: {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                                .labelStyle(.iconOnly)
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                } else {
-                    Button {
-                        sharePropose()
-                    } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                }
-#else
-                Button {
-                    sharePropose()
-                } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .labelStyle(.iconOnly)
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-#endif
-            }
+            // アクションボタン
+            actionBar
 
             // ステータスメッセージ
-            if let resendSuccess = resendSuccess {
-                HStack {
-                    Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(resendSuccess ? .green : .red)
-                    Text(resendSuccess ? "Sent to server successfully" : (resendErrorMessage ?? "Failed to send to server"))
-                        .font(.caption2)
-                        .foregroundStyle(resendSuccess ? .green : .red)
-                }
-            }
+            statusMessages
 
-            if let shareError = shareError {
-                Text(shareError)
-                    .font(.caption2)
-                    .foregroundStyle(.red)
-            }
-
-            // サーバーに新しい署名がある場合の通知
+            // サーバー同期バナー
             if hasNewSignatures {
-                HStack {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-
-                    Text("Server has \(serverSignatures.count) new signature(s)")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .fontWeight(.medium)
-
-                    Spacer()
-
-                    Button {
-                        Task {
-                            await syncSignaturesFromServer()
-                            onSigned()
-                        }
-                    } label: {
-                        if isSyncingSignatures {
-                            HStack(spacing: 4) {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                Text("Syncing...")
-                                    .font(.caption)
-                            }
-                        } else {
-                            Label("Sync from Server", systemImage: "arrow.down.circle.fill")
-                                .font(.caption)
-                        }
+                ProposeNewSignaturesBannerView(
+                    count: serverSignatures.count,
+                    isSyncing: isSyncingSignatures
+                ) {
+                    Task {
+                        await syncSignaturesFromServer()
+                        onSigned()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .disabled(isSyncingSignatures)
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
             }
 
-            // ローカルにのみある署名がある場合の通知
             if hasLocalOnlySignatures {
-                HStack {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-
-                    Text("You have \(localOnlySignatures.count) local signature(s)")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                        .fontWeight(.medium)
-
-                    Spacer()
-
-                    Button {
-                        Task {
-                            await sendLocalSignaturesToServer()
-                        }
-                    } label: {
-                        if isSendingSignatures {
-                            HStack(spacing: 4) {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                Text("Sending...")
-                                    .font(.caption)
-                            }
-                        } else {
-                            Label("Send to Server", systemImage: "arrow.up.circle.fill")
-                                .font(.caption)
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .disabled(isSendingSignatures)
+                ProposeLocalSignaturesBannerView(
+                    count: localOnlySignatures.count,
+                    isSending: isSendingSignatures
+                ) {
+                    Task { await sendLocalSignaturesToServer() }
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
             }
 
+            // 署名セクション
             if !propose.signatures.isEmpty {
-                Divider()
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Signatures:")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-
-                        Spacer()
-
-                        // 署名ボタン（自分の署名がない場合のみ表示）
-                        if let identity = defaultIdentity, !hasMySignature(identity: identity), signSuccess != true {
-                            Button {
-                                Task {
-                                    await signPropose(with: identity)
-                                    // 親ビューでProposeリストを再読み込み
-                                    onSigned()
-                                }
-                            } label: {
-                                if isSigning {
-                                    HStack(spacing: 4) {
-                                        ProgressView()
-                                            .scaleEffect(0.6)
-                                        Text("Signing...")
-                                            .font(.caption2)
-                                    }
-                                } else {
-                                    Label("Sign", systemImage: "signature")
-                                        .font(.caption2)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                            .disabled(isSigning)
-                        }
-                    }
-
-                    // 署名ステータスメッセージ
-                    if let signSuccess = signSuccess {
-                        HStack {
-                            Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(signSuccess ? .green : .red)
-                            Text(signSuccess ? "Signed successfully" : (signErrorMessage ?? "Failed to sign"))
-                                .font(.caption2)
-                                .foregroundStyle(signSuccess ? .green : .red)
-                        }
-                        .padding(.top, 2)
-                    }
-
-                    ForEach(propose.signatures) { signature in
-                        SignatureRowView(signature: signature, myPublicKey: defaultIdentity?.publicKey)
+                ProposeSignaturesSectionView(
+                    signatures: propose.signatures,
+                    defaultIdentity: defaultIdentity,
+                    showSignButton: shouldShowSignButton,
+                    isSigning: isSigning,
+                    signSuccess: signSuccess,
+                    signErrorMessage: signErrorMessage
+                ) {
+                    guard let identity = defaultIdentity else { return }
+                    Task {
+                        await signPropose(with: identity)
+                        onSigned()
                     }
                 }
             }
         }
         .padding(.vertical, 8)
         .task(id: propose.signatures.count) {
-            // 署名の数が変わったら再チェック
             await checkServerStatus()
         }
         .task {
-            // 初期化時にURLを準備
             prepareShare()
         }
         .task {
-            // デフォルトIdentityを読み込み
             await loadDefaultIdentity()
         }
         .sheet(isPresented: $showProposeDetail) {
@@ -360,6 +142,92 @@ struct ProposeRowView: View {
         }
 #endif
     }
+
+    // MARK: - Computed Properties
+
+    private var shouldShowSignButton: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return !hasMySignature(identity: identity) && signSuccess != true
+    }
+
+    // MARK: - Sub Views
+
+    @ViewBuilder
+    private var actionBar: some View {
+        HStack {
+            Button {
+                Task { await resendToServer() }
+            } label: {
+                if isResending {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                } else {
+                    Label("Resend", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
+                        .font(.caption)
+                }
+            }
+            .buttonStyle(.borderless)
+            .disabled(isResending || serverStatus == .exists)
+            .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
+
+#if os(iOS)
+            if #available(iOS 16.0, *) {
+                if let shareURL = shareURL {
+                    ShareLink(item: shareURL) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                } else {
+                    Button { prepareShare() } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            } else {
+                Button { sharePropose() } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+            }
+#else
+            Button { sharePropose() } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+                    .labelStyle(.iconOnly)
+                    .font(.caption)
+            }
+            .buttonStyle(.borderless)
+#endif
+        }
+    }
+
+    @ViewBuilder
+    private var statusMessages: some View {
+        if let resendSuccess = resendSuccess {
+            HStack {
+                Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(resendSuccess ? .green : .red)
+                Text(resendSuccess ? "Sent to server successfully" : (resendErrorMessage ?? "Failed to send to server"))
+                    .font(.caption2)
+                    .foregroundStyle(resendSuccess ? .green : .red)
+            }
+        }
+
+        if let shareError = shareError {
+            Text(shareError)
+                .font(.caption2)
+                .foregroundStyle(.red)
+        }
+    }
+
+    // MARK: - Actions
 
     private func prepareShare() {
         let useCase = ExportProposeUseCaseImpl()
@@ -402,11 +270,8 @@ struct ProposeRowView: View {
                 serverStatus = .exists
             }
 
-            // 3秒後にメッセージを消す
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await MainActor.run {
-                resendSuccess = nil
-            }
+            await MainActor.run { resendSuccess = nil }
 
         } catch {
             print("❌ Error resending propose: \(error)")
@@ -416,7 +281,6 @@ struct ProposeRowView: View {
                 resendErrorMessage = error.localizedDescription
             }
 
-            // 5秒後にエラーメッセージを消す
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run {
                 resendSuccess = nil
@@ -441,10 +305,8 @@ struct ProposeRowView: View {
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-
                 self.serverSignatures = status.newServerSignatures
                 self.hasNewSignatures = !status.newServerSignatures.isEmpty
-
                 self.localOnlySignatures = status.localOnlySignatures
                 self.hasLocalOnlySignatures = !status.localOnlySignatures.isEmpty
             }
@@ -482,9 +344,7 @@ struct ProposeRowView: View {
 
     private func loadDefaultIdentity() async {
         guard let defaultIdentityID = space.defaultIdentityID else {
-            await MainActor.run {
-                self.defaultIdentity = nil
-            }
+            await MainActor.run { self.defaultIdentity = nil }
             return
         }
 
@@ -497,9 +357,7 @@ struct ProposeRowView: View {
             }
         } catch {
             print("❌ Error loading default identity: \(error)")
-            await MainActor.run {
-                self.defaultIdentity = nil
-            }
+            await MainActor.run { self.defaultIdentity = nil }
         }
     }
 
@@ -529,11 +387,8 @@ struct ProposeRowView: View {
             signSuccess = true
             isSigning = false
 
-            // 3秒後に成功メッセージを消す
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await MainActor.run {
-                signSuccess = nil
-            }
+            await MainActor.run { signSuccess = nil }
         } catch {
             print("❌ Error signing propose: \(error)")
             await MainActor.run {
@@ -542,7 +397,6 @@ struct ProposeRowView: View {
                 signErrorMessage = error.localizedDescription
             }
 
-            // 5秒後にエラーメッセージを消す
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run {
                 signSuccess = nil
@@ -552,18 +406,14 @@ struct ProposeRowView: View {
     }
 
     private func syncSignaturesFromServer() async {
-        await MainActor.run {
-            isSyncingSignatures = true
-        }
+        await MainActor.run { isSyncingSignatures = true }
 
-        let appendServerSignaturesToLocalProposeUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
             proposeRepository: deps.proposeRepository
         )
 
         do {
-            try appendServerSignaturesToLocalProposeUseCase.execute(proposeID: propose.id, with: serverSignatures)
-
-            // 同期完了後、状態をリセット
+            try useCase.execute(proposeID: propose.id, with: serverSignatures)
             hasNewSignatures = false
             serverSignatures = []
             isSyncingSignatures = false
@@ -574,9 +424,7 @@ struct ProposeRowView: View {
     }
 
     private func sendLocalSignaturesToServer() async {
-        await MainActor.run {
-            isSendingSignatures = true
-        }
+        await MainActor.run { isSendingSignatures = true }
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl()
 
@@ -587,18 +435,12 @@ struct ProposeRowView: View {
                 isSendingSignatures = false
                 hasLocalOnlySignatures = false
                 localOnlySignatures = []
-
-                // サーバーステータスを再チェック
-                Task {
-                    await checkServerStatus()
-                }
+                Task { await checkServerStatus() }
             }
 
         } catch {
             print("❌ Error sending local signatures to server: \(error)")
-            await MainActor.run {
-                isSendingSignatures = false
-            }
+            await MainActor.run { isSendingSignatures = false }
         }
     }
 }
