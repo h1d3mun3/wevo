@@ -87,18 +87,14 @@ final class ProposeRepositoryImpl: ProposeRepository {
 
     /// SpaceIDが有効なセットに含まれないProposeを取得（作成日時の降順でソート）
     func fetchAllOrphaned(validSpaceIDs: Set<UUID>) throws -> [Propose] {
-        let predicate = #Predicate<ProposeSwiftData> { model in
-            !validSpaceIDs.contains(model.spaceID)
-        }
-
         let descriptor = FetchDescriptor<ProposeSwiftData>(
-            predicate: predicate,
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
 
         do {
             let models = try modelContext.fetch(descriptor)
-            return ProposeConverter.toEntities(from: models)
+            let orphaned = models.filter { !validSpaceIDs.contains($0.spaceID) }
+            return ProposeConverter.toEntities(from: orphaned)
         } catch {
             throw ProposeRepositoryError.fetchError(error)
         }
@@ -118,8 +114,10 @@ final class ProposeRepositoryImpl: ProposeRepository {
             guard let model = models.first else {
                 throw ProposeRepositoryError.proposeNotFound(id)
             }
-            
+
             return ProposeConverter.toEntity(from: model)
+        } catch let error as ProposeRepositoryError {
+            throw error
         } catch {
             throw ProposeRepositoryError.fetchError(error)
         }

@@ -11,7 +11,7 @@ protocol LoadAllProposesUseCase {
     func execute(id: UUID) throws -> [Propose]
 }
 
-struct LoadAllProposesUseCaseIpml {
+struct LoadAllProposesUseCaseImpl {
     let proposeRepository: ProposeRepository
 
     init(proposeRepository: ProposeRepository) {
@@ -19,7 +19,7 @@ struct LoadAllProposesUseCaseIpml {
     }
 }
 
-extension LoadAllProposesUseCaseIpml: LoadAllProposesUseCase {
+extension LoadAllProposesUseCaseImpl: LoadAllProposesUseCase {
     func execute(id: UUID) throws -> [Propose] {
         return try proposeRepository.fetchAll(for: id)
     }

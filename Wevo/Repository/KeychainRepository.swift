@@ -329,15 +329,17 @@ final class KeychainRepositoryImpl: KeychainRepository {
         // メタデータを削除
         let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceMetadata
+            kSecAttrService as String: serviceMetadata,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
-        
+
         let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
-        
+
         // 秘密鍵を削除
         let privateKeyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: servicePrivateKey
+            kSecAttrService as String: servicePrivateKey,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let privateKeyStatus = SecItemDelete(privateKeyQuery as CFDictionary)
