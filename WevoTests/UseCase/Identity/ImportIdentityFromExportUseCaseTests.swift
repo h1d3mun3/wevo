@@ -90,7 +90,7 @@ struct ImportIdentityFromExportUseCaseTests {
             id: UUID(),
             nickname: "Test",
             publicKey: "PK",
-            privateKey: Data("not-a-valid-p256-key-data-here!!".utf8).base64EncodedString(),
+            privateKey: Data("not-a-valid-p256-key".utf8).base64EncodedString(),
             exportedAt: .now
         )
 
