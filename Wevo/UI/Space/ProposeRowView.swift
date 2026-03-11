@@ -78,32 +78,19 @@ struct ProposeRowView: View {
             Button {
                 showProposeDetail = true
             } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                // メッセージ
-                HStack {
-                    Text(propose.message)
-                        .font(.headline)
-                        .lineLimit(2)
+                VStack(alignment: .leading, spacing: 8) {
+                    // メッセージ
+                    HStack {
+                        Text(propose.message)
+                            .font(.headline)
+                            .lineLimit(2)
 
-                    Spacer()
+                        Spacer()
 
-                    Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                // ハッシュ
-                HStack {
-                    Text("Hash:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(propose.payloadHash.prefix(16) + "...")
-                        .font(.caption)
-                        .fontDesign(.monospaced)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    Spacer()
+                        Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
                     // サーバーステータス
                     HStack(spacing: 4) {
@@ -114,43 +101,24 @@ struct ProposeRowView: View {
                             .font(.caption2)
                             .foregroundStyle(serverStatus.color)
                     }
-                }
 
-                HStack {
-                    Text("ID:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(propose.id.uuidString)
-                        .font(.caption)
-                        .fontDesign(.monospaced)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-
-                HStack {
-                    Image(systemName: "signature")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     Text("\(propose.signatures.count) signature(s)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-        }
-        .buttonStyle(.plain)
+            .buttonStyle(.plain)
 
-        // アクションボタン（Buttonの外）
-        HStack {
-
-                    // 再送信ボタン
-                    Button {
-                        Task {
-                            await resendToServer()
-                        }
-                    } label: {
-                        if isResending {
-                            ProgressView()
+            // アクションボタン（Buttonの外）
+            HStack {
+                // 再送信ボタン
+                Button {
+                    Task {
+                        await resendToServer()
+                    }
+                } label: {
+                    if isResending {
+                        ProgressView()
                             .scaleEffect(0.7)
                     } else {
                         Label("Resend", systemImage: "arrow.clockwise")
@@ -163,7 +131,7 @@ struct ProposeRowView: View {
                 .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
 
                 // AirDrop共有ボタン
-                #if os(iOS)
+#if os(iOS)
                 if #available(iOS 16.0, *) {
                     if let shareURL = shareURL {
                         ShareLink(item: shareURL) {
@@ -192,7 +160,7 @@ struct ProposeRowView: View {
                     }
                     .buttonStyle(.borderless)
                 }
-                #else
+#else
                 Button {
                     sharePropose()
                 } label: {
@@ -201,7 +169,7 @@ struct ProposeRowView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                #endif
+#endif
             }
 
             // ステータスメッセージ
@@ -379,19 +347,19 @@ struct ProposeRowView: View {
         .sheet(isPresented: $showProposeDetail) {
             ProposeDetailViewFromEntity(propose: propose, space: space, modelContext: modelContext)
         }
-        #if os(iOS)
+#if os(iOS)
         .sheet(isPresented: $showShareSheet) {
             if let shareURL = shareURL {
                 ShareSheetView(items: [shareURL])
             }
         }
-        #elseif os(macOS)
+#elseif os(macOS)
         .sheet(isPresented: $showShareSheet) {
             if let shareURL = shareURL {
                 ShareSheetView(items: [shareURL])
             }
         }
-        #endif
+#endif
     }
 
     private func prepareShare() {

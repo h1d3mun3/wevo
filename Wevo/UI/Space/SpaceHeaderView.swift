@@ -39,7 +39,7 @@ struct SpaceHeaderView: View {
                     Text("Edit Space")
                         .font(.caption)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
