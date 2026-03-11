@@ -118,7 +118,15 @@ struct IdentityDetailView: View {
                 ShareSheetView(items: [shareURL])
             }
         }
+        .onChange(of: showShareSheet) { _, isPresented in
+            if !isPresented {
+                cleanupExportFile()
+            }
+        }
 #endif
+        .onDisappear {
+            cleanupExportFile()
+        }
     }
     
     private func authenticateAndExport() async {
@@ -152,6 +160,13 @@ struct IdentityDetailView: View {
             await MainActor.run {
                 exportError = "Failed to export identity: \(error.localizedDescription)"
             }
+        }
+    }
+
+    private func cleanupExportFile() {
+        if let url = shareURL {
+            try? FileManager.default.removeItem(at: url)
+            shareURL = nil
         }
     }
 
