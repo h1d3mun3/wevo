@@ -48,6 +48,9 @@ struct WevoApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.dependencies, container)
+                .task {
+                    cleanupSensitiveTemporaryFiles()
+                }
                 .sheet(isPresented: $showSpaceSelector) {
                     if let proposeData = importedProposeData {
                         SpaceSelectorView(
@@ -180,6 +183,24 @@ struct WevoApp: App {
         importedProposeURL = nil
         importedProposeData = nil
         availableSpaces = []
+    }
+
+    /// アプリ起動時に一時ディレクトリ内の秘密鍵・Proposeエクスポートファイルを削除
+    private func cleanupSensitiveTemporaryFiles() {
+        let tempDir = FileManager.default.temporaryDirectory
+        let sensitiveExtensions = ["wevo-identity", "wevo-propose"]
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: tempDir,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for file in files {
+            if sensitiveExtensions.contains(file.pathExtension) {
+                try? FileManager.default.removeItem(at: file)
+                print("🧹 Cleaned up temporary file: \(file.lastPathComponent)")
+            }
+        }
     }
 }
 // MARK: - Space Selector View
