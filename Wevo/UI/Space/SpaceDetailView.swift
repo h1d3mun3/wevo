@@ -127,7 +127,7 @@ struct SpaceDetailView: View {
         errorMessage = nil
 
         do {
-            let loadAllProposesUseCase = LoadAllProposesUseCaseIpml(proposeRepository: deps.proposeRepository)
+            let loadAllProposesUseCase = LoadAllProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
             let loadedProposes = try loadAllProposesUseCase.execute(id: currentSpace.id)
 
             proposes = loadedProposes

@@ -22,7 +22,7 @@ struct LoadAllProposesUseCaseTests {
         ]
         mockRepository.fetchAllResult = testProposes
 
-        let useCase = LoadAllProposesUseCaseIpml(proposeRepository: mockRepository)
+        let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         let result = try await useCase.execute(id: spaceID)
@@ -39,7 +39,7 @@ struct LoadAllProposesUseCaseTests {
         let mockRepository = MockProposeRepository()
         mockRepository.fetchAllResult = []
 
-        let useCase = LoadAllProposesUseCaseIpml(proposeRepository: mockRepository)
+        let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         let result = try await useCase.execute(id: UUID())
@@ -54,7 +54,7 @@ struct LoadAllProposesUseCaseTests {
         let spaceID = UUID()
         mockRepository.fetchAllResult = []
 
-        let useCase = LoadAllProposesUseCaseIpml(proposeRepository: mockRepository)
+        let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         _ = try await useCase.execute(id: spaceID)
@@ -68,7 +68,7 @@ struct LoadAllProposesUseCaseTests {
         let mockRepository = MockProposeRepository()
         mockRepository.fetchAllError = NSError(domain: "Test", code: -1)
 
-        let useCase = LoadAllProposesUseCaseIpml(proposeRepository: mockRepository)
+        let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
         await #expect(throws: NSError.self) {

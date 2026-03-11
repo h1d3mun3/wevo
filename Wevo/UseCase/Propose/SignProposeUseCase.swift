@@ -55,7 +55,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             message: propose.message,
             signatures: updatedSignatures,
             createdAt: propose.createdAt,
-            updatedAt: propose.updatedAt
+            updatedAt: Date()
         )
 
         // ローカルに保存
