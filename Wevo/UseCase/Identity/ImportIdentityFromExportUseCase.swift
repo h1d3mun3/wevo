@@ -6,14 +6,18 @@
 //
 
 import Foundation
+import CryptoKit
 
 enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
     case invalidPrivateKeyEncoding
+    case invalidPrivateKeyFormat
 
     var errorDescription: String? {
         switch self {
         case .invalidPrivateKeyEncoding:
             return "Invalid private key encoding."
+        case .invalidPrivateKeyFormat:
+            return "Invalid private key format. Not a valid P256 key."
         }
     }
 }
@@ -37,6 +41,13 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
         // Base64デコード
         guard let privateKeyData = Data(base64Encoded: exportData.privateKey) else {
             throw ImportIdentityFromExportUseCaseError.invalidPrivateKeyEncoding
+        }
+
+        // P256秘密鍵として有効か検証
+        do {
+            _ = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
+        } catch {
+            throw ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat
         }
 
         // インポート
