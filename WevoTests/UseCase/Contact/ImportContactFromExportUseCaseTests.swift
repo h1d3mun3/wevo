@@ -33,7 +33,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testTrimsNickname() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(nickname: "Alice", publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -46,7 +46,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testAssignsNewUUIDToImportedContact() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(nickname: "Alice", publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -59,7 +59,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testTwoImportsOfSameExportGetDifferentIDs() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(nickname: "Alice", publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -77,7 +77,7 @@ struct ImportContactFromExportUseCaseTests {
         // Arrange
         let mockRepository = MockContactRepository()
         mockRepository.createError = NSError(domain: "Test", code: -1)
-        let exportData = ContactExportData(nickname: "Alice", publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act & Assert
