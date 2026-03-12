@@ -33,41 +33,37 @@ struct ProposeRowView: View {
     @State private var hasLocalOnlySignatures = false
     @State private var isSendingSignatures = false
     @State private var showProposeDetail = false
+    @State private var contactNicknames: [String: String] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // メッセージ部分
-            Button {
-                showProposeDetail = true
-            } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(propose.message)
-                            .font(.headline)
-                            .lineLimit(2)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(propose.message)
+                        .font(.headline)
+                        .lineLimit(2)
 
-                        Spacer()
+                    Spacer()
 
-                        Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 4) {
-                        Image(systemName: serverStatus.icon)
-                            .font(.caption2)
-                            .foregroundStyle(serverStatus.color)
-                        Text(serverStatus.description)
-                            .font(.caption2)
-                            .foregroundStyle(serverStatus.color)
-                    }
-
-                    Text("\(propose.signatures.count) signature(s)")
+                    Text(propose.createdAt, format: .dateTime.month().day().hour().minute())
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                HStack(spacing: 4) {
+                    Image(systemName: serverStatus.icon)
+                        .font(.caption2)
+                        .foregroundStyle(serverStatus.color)
+                    Text(serverStatus.description)
+                        .font(.caption2)
+                        .foregroundStyle(serverStatus.color)
+                }
+
+                Text("\(propose.signatures.count) signature(s)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
 
             // アクションボタン
             actionBar
@@ -102,6 +98,7 @@ struct ProposeRowView: View {
                 ProposeSignaturesSectionView(
                     signatures: propose.signatures,
                     defaultIdentity: defaultIdentity,
+                    contactNicknames: contactNicknames,
                     showSignButton: shouldShowSignButton,
                     isSigning: isSigning,
                     signSuccess: signSuccess,
@@ -116,6 +113,10 @@ struct ProposeRowView: View {
             }
         }
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showProposeDetail = true
+        }
         .task(id: propose.signatures.count) {
             await checkServerStatus()
         }
@@ -124,6 +125,9 @@ struct ProposeRowView: View {
         }
         .task {
             await loadDefaultIdentity()
+        }
+        .task {
+            loadContactNicknames()
         }
         .sheet(isPresented: $showProposeDetail) {
             ProposeDetailView(propose: propose, space: space)
@@ -358,6 +362,16 @@ struct ProposeRowView: View {
         } catch {
             print("❌ Error loading default identity: \(error)")
             await MainActor.run { self.defaultIdentity = nil }
+        }
+    }
+
+    private func loadContactNicknames() {
+        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
+        do {
+            let contacts = try useCase.execute()
+            contactNicknames = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
+        } catch {
+            print("❌ Error loading contacts: \(error)")
         }
     }
 
