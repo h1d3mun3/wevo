@@ -14,4 +14,5 @@ class MockDependencyContainer: DependencyContainer {
     var spaceRepository: SpaceRepository = MockSpaceRepository()
     var proposeRepository: ProposeRepository = MockProposeRepository()
     var signatureRepository: SignatureRepository = MockSignatureRepository()
+    var contactRepository: ContactRepository = MockContactRepository()
 }
