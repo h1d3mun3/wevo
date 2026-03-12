@@ -21,6 +21,8 @@ struct IdentityDetailView: View {
     @State private var showShareSheet = false
     @State private var migrationError: String?
     @State private var isAuthenticating = false
+    @State private var contactShareURL: URL?
+    @State private var contactExportError: String?
 
     var body: some View {
         List {
@@ -95,6 +97,23 @@ struct IdentityDetailView: View {
                         Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
                 }
+
+                if let contactShareURL {
+                    ShareLink(item: contactShareURL) {
+                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
+                    }
+                } else {
+                    Button {
+                        prepareContactExport()
+                    } label: {
+                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
+                    }
+                    .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
+                        Button("OK", role: .cancel) { contactExportError = nil }
+                    } message: {
+                        Text(contactExportError ?? "")
+                    }
+                }
 #else
                 Button {
                     Task { await authenticateAndExport(); showShareSheet = true }
@@ -102,6 +121,13 @@ struct IdentityDetailView: View {
                     Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
                 }
                 .disabled(isAuthenticating)
+
+                Button {
+                    prepareContactExport()
+                    showShareSheet = true
+                } label: {
+                    Label("Share Public Key as Contact", systemImage: "person.badge.plus")
+                }
 #endif
             }
         }
@@ -163,10 +189,27 @@ struct IdentityDetailView: View {
         }
     }
 
+    private func prepareContactExport() {
+        if let existing = contactShareURL {
+            try? FileManager.default.removeItem(at: existing)
+            contactShareURL = nil
+        }
+        let useCase = ExportIdentityAsContactUseCaseImpl()
+        do {
+            contactShareURL = try useCase.execute(identity: identity)
+        } catch {
+            contactExportError = "Failed to export: \(error.localizedDescription)"
+        }
+    }
+
     private func cleanupExportFile() {
         if let url = shareURL {
             try? FileManager.default.removeItem(at: url)
             shareURL = nil
+        }
+        if let url = contactShareURL {
+            try? FileManager.default.removeItem(at: url)
+            contactShareURL = nil
         }
     }
 
