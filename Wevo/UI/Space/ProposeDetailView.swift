@@ -13,6 +13,9 @@ struct ProposeDetailView: View {
 
     var body: some View {
         ProposeSettingsDetailView(propose: propose)
+#if os(macOS)
+            .frame(minWidth: 400, minHeight: 500)
+#endif
     }
 }
 
