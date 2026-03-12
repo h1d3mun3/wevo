@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct ProposeSignaturesSectionView: View {
-    let signatures: [Signature]
+    let signaturesWithNicknames: [(signature: Signature, nickname: String?)]
     let defaultIdentity: Identity?
-    let contactNicknames: [String: String]
     let showSignButton: Bool
     let isSigning: Bool
     let signSuccess: Bool?
@@ -61,11 +60,11 @@ struct ProposeSignaturesSectionView: View {
                 .padding(.top, 2)
             }
 
-            ForEach(signatures) { signature in
+            ForEach(signaturesWithNicknames, id: \.signature.id) { item in
                 SignatureRowView(
-                    signature: signature,
+                    signature: item.signature,
                     myPublicKey: defaultIdentity?.publicKey,
-                    contactNickname: contactNicknames[signature.publicKey]
+                    contactNickname: item.nickname
                 )
             }
         }

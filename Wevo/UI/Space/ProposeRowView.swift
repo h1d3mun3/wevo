@@ -96,9 +96,8 @@ struct ProposeRowView: View {
             // 署名セクション
             if !propose.signatures.isEmpty {
                 ProposeSignaturesSectionView(
-                    signatures: propose.signatures,
+                    signaturesWithNicknames: propose.signatures.map { (signature: $0, nickname: contactNicknames[$0.publicKey]) },
                     defaultIdentity: defaultIdentity,
-                    contactNicknames: contactNicknames,
                     showSignButton: shouldShowSignButton,
                     isSigning: isSigning,
                     signSuccess: signSuccess,
