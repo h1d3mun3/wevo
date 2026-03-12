@@ -50,7 +50,7 @@ struct WevoApp: App {
             ContentView()
                 .environment(\.dependencies, container)
                 .task {
-                    cleanupSensitiveTemporaryFiles()
+                    cleanupTemporaryFiles()
                 }
                 .sheet(isPresented: $showSpaceSelector) {
                     if let proposeData = importedProposeData {
@@ -187,9 +187,9 @@ struct WevoApp: App {
     }
 
     /// アプリ起動時に一時ディレクトリ内の秘密鍵・Proposeエクスポートファイルを削除
-    private func cleanupSensitiveTemporaryFiles() {
+    private func cleanupTemporaryFiles() {
         let tempDir = FileManager.default.temporaryDirectory
-        let sensitiveExtensions = ["wevo-identity", "wevo-propose"]
+        let sensitiveExtensions = ["wevo-identity", "wevo-propose", "wevo-contact"]
 
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: tempDir,
