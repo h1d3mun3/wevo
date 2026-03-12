@@ -10,10 +10,17 @@ import SwiftUI
 struct SignatureRowView: View {
     let signature: Signature
     let myPublicKey: String?
+    let contactNickname: String?
 
     private var isMySignature: Bool {
-        guard let myPublicKey = myPublicKey else { return false }
+        guard let myPublicKey else { return false }
         return signature.publicKey == myPublicKey
+    }
+
+    private var displayName: String {
+        if isMySignature { return String(signature.publicKey.prefix(16)) + "..." }
+        if let contactNickname { return contactNickname }
+        return String(signature.publicKey.prefix(16)) + "..."
     }
 
     var body: some View {
@@ -23,9 +30,9 @@ struct SignatureRowView: View {
                     .font(.caption2)
                     .foregroundStyle(isMySignature ? .blue : .green)
 
-                Text(signature.publicKey.prefix(16) + "...")
+                Text(displayName)
                     .font(.caption2)
-                    .fontDesign(.monospaced)
+                    .fontDesign(contactNickname != nil && !isMySignature ? .default : .monospaced)
                     .foregroundStyle(isMySignature ? .blue : .secondary)
                     .fontWeight(isMySignature ? .semibold : .regular)
 
@@ -58,5 +65,5 @@ struct SignatureRowView: View {
         createdAt: .now
     )
 
-    SignatureRowView(signature: signature, myPublicKey: signature.publicKey)
+    SignatureRowView(signature: signature, myPublicKey: signature.publicKey, contactNickname: nil)
 }
