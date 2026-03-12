@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
+    @State private var shouldShowContactList = false
     @State private var shouldShowAddSpace = false
     @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
@@ -71,12 +72,18 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem {
+                    Button(action: { shouldShowContactList = true }) {
+                        Label("Contacts", systemImage: "person.2.fill")
+                    }
+                }
+
+                ToolbarItem {
                     Button(action: { shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
                     }
                 }
 
-                ToolbarItem{
+                ToolbarItem {
                     Button(action: { shouldShowAddSpace = true }) {
                         Label("Add Space", systemImage: "globe")
                     }
@@ -93,6 +100,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $shouldShowIdentityList) {
             IdentityListView()
+        }
+        .sheet(isPresented: $shouldShowContactList) {
+            ContactListView()
         }
         .sheet(isPresented: $shouldShowAddSpace, onDismiss: {
             Task {
