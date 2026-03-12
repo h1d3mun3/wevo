@@ -26,7 +26,7 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
     ///   - baseURL: サーバーのベースURL（例: "https://api.example.com"）
     ///   - session: カスタムURLSession（デフォルトは.shared）
     init(baseURL: URL, session: URLSession = .shared) {
-        self.baseURL = baseURL
+        self.baseURL = baseURL.appendingPathComponent("v1")
         self.session = session
     }
 
