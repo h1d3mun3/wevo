@@ -51,6 +51,9 @@ struct ContactListView: View {
         .sheet(isPresented: $shouldShowCreateContact, onDismiss: loadContacts) {
             CreateContactView()
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 500)
+#endif
     }
 
     private func loadContacts() {

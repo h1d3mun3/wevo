@@ -48,6 +48,9 @@ struct IdentityListView: View {
         }) {
             CreateIdentityView()
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 500)
+#endif
     }
     
     private func loadIdentities() async {
