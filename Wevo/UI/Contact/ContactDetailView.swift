@@ -10,27 +10,35 @@ import SwiftUI
 struct ContactDetailView: View {
     let contact: Contact
 
+    @Environment(\.dependencies) private var deps
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentContact: Contact
     @State private var showingEditSheet = false
+
+    init(contact: Contact) {
+        self.contact = contact
+        _currentContact = State(initialValue: contact)
+    }
 
     var body: some View {
         List {
             Section("Information") {
-                LabeledContent("Nickname", value: contact.nickname)
-                LabeledContent("Added", value: contact.createdAt, format: .dateTime.year().month().day())
+                LabeledContent("Nickname", value: currentContact.nickname)
+                LabeledContent("Added", value: currentContact.createdAt, format: .dateTime.year().month().day())
             }
 
             Section("Public Key") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(contact.publicKey)
+                    Text(currentContact.publicKey)
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
 
                     Button {
                         #if os(iOS)
-                        UIPasteboard.general.string = contact.publicKey
+                        UIPasteboard.general.string = currentContact.publicKey
                         #elseif os(macOS)
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(contact.publicKey, forType: .string)
+                        NSPasteboard.general.setString(currentContact.publicKey, forType: .string)
                         #endif
                     } label: {
                         Label("Copy to Clipboard", systemImage: "doc.on.doc")
@@ -51,8 +59,21 @@ struct ContactDetailView: View {
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
+        .onCloudKitImport {
+            reloadContact()
+        }
         .sheet(isPresented: $showingEditSheet) {
-            EditContactView(contact: contact)
+            EditContactView(contact: currentContact)
+        }
+    }
+    private func reloadContact() {
+        let useCase = GetContactUseCaseImpl(contactRepository: deps.contactRepository)
+        do {
+            currentContact = try useCase.execute(id: contact.id)
+        } catch ContactRepositoryError.contactNotFound {
+            dismiss()
+        } catch {
+            print("Failed to reload contact: \(error)")
         }
     }
 }

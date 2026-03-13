@@ -92,6 +92,9 @@ struct ContentView: View {
             .task {
                 await loadSpaces()
             }
+            .onCloudKitImport {
+                Task { await loadSpaces() }
+            }
         } detail: {
             Text("Select an item")
         }

@@ -47,6 +47,9 @@ struct ContactListView: View {
             .task {
                 loadContacts()
             }
+            .onCloudKitImport {
+                loadContacts()
+            }
         }
         .sheet(isPresented: $shouldShowCreateContact, onDismiss: loadContacts) {
             CreateContactView()

@@ -49,6 +49,9 @@ struct DataBrowserView: View {
         .task {
             loadData()
         }
+        .onCloudKitImport {
+            loadData()
+        }
     }
 
     private func loadData() {

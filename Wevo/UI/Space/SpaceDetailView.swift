@@ -11,6 +11,7 @@ struct SpaceDetailView: View {
     let space: Space
 
     @Environment(\.dependencies) private var deps
+    @Environment(\.dismiss) private var dismiss
 
     @State private var proposes: [Propose] = []
     @State private var isLoading = false
@@ -85,6 +86,10 @@ struct SpaceDetailView: View {
         .refreshable {
             loadProposesFromLocal()
         }
+        .onCloudKitImport {
+            loadProposesFromLocal()
+            Task { await reloadSpace() }
+        }
         .sheet(isPresented: $shouldShowCreatePropose) {
             if let identity = defaultIdentity {
                 CreateProposeView(space: currentSpace, identity: identity) {
@@ -153,6 +158,8 @@ struct SpaceDetailView: View {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
                 print("✅ Space reloaded: \(updatedSpace.name)")
+            } catch SpaceRepositoryError.spaceNotFound {
+                dismiss()
             } catch {
                 print("Failed to Reload Space: \(error)")
             }
