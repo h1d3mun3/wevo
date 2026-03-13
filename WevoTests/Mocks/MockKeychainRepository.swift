@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import LocalAuthentication
 @testable import Wevo
 
 class MockKeychainRepository: KeychainRepository {
@@ -93,7 +92,7 @@ class MockKeychainRepository: KeychainRepository {
         return result
     }
 
-    func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
+    func getPrivateKey(id: UUID) throws -> Data {
         if let error = getPrivateKeyError {
             throw error
         }
@@ -139,7 +138,7 @@ class MockKeychainRepository: KeychainRepository {
         }
     }
 
-    func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext? = nil) throws -> String {
+    func signMessage(_ message: String, withIdentityId identityId: UUID) throws -> String {
         signMessageCalledWithMessage = message
         signMessageCalledWithIdentityID = identityId
 

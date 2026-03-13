@@ -6,10 +6,9 @@
 //
 
 import Foundation
-import LocalAuthentication
 
 protocol GetPrivateKeyUseCase {
-    func execute(id: UUID, context: LAContext?) throws -> Data
+    func execute(id: UUID) throws -> Data
 }
 
 struct GetPrivateKeyUseCaseImpl {
@@ -21,7 +20,7 @@ struct GetPrivateKeyUseCaseImpl {
 }
 
 extension GetPrivateKeyUseCaseImpl: GetPrivateKeyUseCase {
-    func execute(id: UUID, context: LAContext? = nil) throws -> Data {
-        try keychainRepository.getPrivateKey(id: id, context: context)
+    func execute(id: UUID) throws -> Data {
+        try keychainRepository.getPrivateKey(id: id)
     }
 }

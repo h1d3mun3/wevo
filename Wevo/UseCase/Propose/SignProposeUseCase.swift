@@ -33,8 +33,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         // ペイロードハッシュに署名
         let signatureData = try keychainRepository.signMessage(
             propose.payloadHash,
-            withIdentityId: identity.id,
-            context: nil
+            withIdentityId: identity.id
         )
 
         // 新しいSignatureを作成

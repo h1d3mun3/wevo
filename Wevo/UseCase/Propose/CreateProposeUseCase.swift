@@ -47,8 +47,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         // 署名を作成（ハッシュ化されたメッセージに対して署名）
         let signature = try keychainRepository.signMessage(
             propose.payloadHash,
-            withIdentityId: identity.id,
-            context: nil
+            withIdentityId: identity.id
         )
 
         // Signatureエンティティを作成

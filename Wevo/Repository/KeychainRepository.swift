@@ -8,7 +8,6 @@
 import Foundation
 import Security
 import CryptoKit
-import LocalAuthentication
 
 /// Keychainに保存するIdentityKeyの情報
 private struct IdentityKeyChainItem {
@@ -38,12 +37,12 @@ protocol KeychainRepository {
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws
     func getAllIdentities() throws -> [Identity]
     func getIdentity(id: UUID) throws -> Identity
-    func getPrivateKey(id: UUID, context: LAContext?) throws -> Data
+    func getPrivateKey(id: UUID) throws -> Data
     func updateNickname(id: UUID, newNickname: String) throws
     func deleteIdentityKey(id: UUID) throws
     func deleteAllIdentityKeys() throws
     func migrateKey(id: UUID) throws
-    func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext?) throws -> String
+    func signMessage(_ message: String, withIdentityId identityId: UUID) throws -> String
     func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool
 }
 
@@ -208,17 +207,13 @@ final class KeychainRepositoryImpl: KeychainRepository {
     }
 
     /// 秘密鍵を取得
-    func getPrivateKey(id: UUID, context: LAContext? = nil) throws -> Data {
-        let authContext = context ?? LAContext()
-        authContext.localizedReason = "Authentication is required to access the private key"
-        
+    func getPrivateKey(id: UUID) throws -> Data {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: servicePrivateKey,
             kSecAttrAccount as String: id.uuidString,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationContext as String: authContext,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
@@ -245,9 +240,9 @@ final class KeychainRepositoryImpl: KeychainRepository {
     }
     
     /// 特定のIDのIdentityKeyを取得
-    private func getIdentityKey(id: UUID, context: LAContext? = nil) throws -> IdentityKeyChainItem {
+    private func getIdentityKey(id: UUID) throws -> IdentityKeyChainItem {
         let metadata = try getIdentityMetadata(id: id)
-        let privateKey = try getPrivateKey(id: id, context: context)
+        let privateKey = try getPrivateKey(id: id)
         
         return IdentityKeyChainItem(
             id: metadata.id,
@@ -364,11 +359,10 @@ extension KeychainRepositoryImpl {
     /// - Parameters:
     ///   - message: 署名対象の文字列
     ///   - identityId: 使用するIdentityのID
-    ///   - context: オプションのLAContext（複数回の署名操作で認証を再利用する場合）
     /// - Returns: Base64エンコードされた署名文字列
-    func signMessage(_ message: String, withIdentityId identityId: UUID, context: LAContext? = nil) throws -> String {
+    func signMessage(_ message: String, withIdentityId identityId: UUID) throws -> String {
         // 秘密鍵を取得
-        let privateKeyData = try getPrivateKey(id: identityId, context: context)
+        let privateKeyData = try getPrivateKey(id: identityId)
         
         // 秘密鍵をP256.Signing.PrivateKeyに変換
         let privateKey = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
