@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CloudKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +18,17 @@ struct SettingsView: View {
                     DataBrowserView()
                 } label: {
                     Label("Data Browser", systemImage: "cylinder.split.1x2")
+                }
+
+                Section("CloudKit") {
+                    LabeledContent("Container Identifier") {
+                        if let identifier = CKContainer.default().containerIdentifier {
+                            Text(identifier)
+                        } else {
+                            Text("Unknown")
+                                .foregroundStyle(.orange)
+                        }
+                    }
                 }
             }
             .navigationTitle("Settings")
