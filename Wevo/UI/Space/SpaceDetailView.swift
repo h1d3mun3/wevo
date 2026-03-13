@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/6/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct SpaceDetailView: View {
@@ -87,18 +86,7 @@ struct SpaceDetailView: View {
         .refreshable {
             loadProposesFromLocal()
         }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: NSPersistentCloudKitContainer.eventChangedNotification
-            )
-        ) { notification in
-            guard
-                let event = notification.userInfo?[
-                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                ] as? NSPersistentCloudKitContainer.Event,
-                event.type == .import,
-                event.succeeded
-            else { return }
+        .onCloudKitImport {
             loadProposesFromLocal()
             Task { await reloadSpace() }
         }

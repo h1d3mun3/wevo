@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/10/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct SpaceDetailSettingsView: View {
@@ -76,18 +75,7 @@ struct SpaceDetailSettingsView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: NSPersistentCloudKitContainer.eventChangedNotification
-            )
-        ) { notification in
-            guard
-                let event = notification.userInfo?[
-                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                ] as? NSPersistentCloudKitContainer.Event,
-                event.type == .import,
-                event.succeeded
-            else { return }
+        .onCloudKitImport {
             reloadSpace()
         }
     }

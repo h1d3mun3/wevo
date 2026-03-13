@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/10/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct ProposeDetailView: View {
@@ -27,18 +26,7 @@ struct ProposeDetailView: View {
 #if os(macOS)
             .frame(minWidth: 400, minHeight: 500)
 #endif
-            .onReceive(
-                NotificationCenter.default.publisher(
-                    for: NSPersistentCloudKitContainer.eventChangedNotification
-                )
-            ) { notification in
-                guard
-                    let event = notification.userInfo?[
-                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                    ] as? NSPersistentCloudKitContainer.Event,
-                    event.type == .import,
-                    event.succeeded
-                else { return }
+            .onCloudKitImport {
                 reloadPropose()
             }
     }

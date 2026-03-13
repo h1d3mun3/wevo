@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/12/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct ContactDetailView: View {
@@ -60,18 +59,7 @@ struct ContactDetailView: View {
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: NSPersistentCloudKitContainer.eventChangedNotification
-            )
-        ) { notification in
-            guard
-                let event = notification.userInfo?[
-                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                ] as? NSPersistentCloudKitContainer.Event,
-                event.type == .import,
-                event.succeeded
-            else { return }
+        .onCloudKitImport {
             reloadContact()
         }
         .sheet(isPresented: $showingEditSheet) {

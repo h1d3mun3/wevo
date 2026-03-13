@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/12/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct ContactListView: View {
@@ -48,18 +47,7 @@ struct ContactListView: View {
             .task {
                 loadContacts()
             }
-            .onReceive(
-                NotificationCenter.default.publisher(
-                    for: NSPersistentCloudKitContainer.eventChangedNotification
-                )
-            ) { notification in
-                guard
-                    let event = notification.userInfo?[
-                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                    ] as? NSPersistentCloudKitContainer.Event,
-                    event.type == .import,
-                    event.succeeded
-                else { return }
+            .onCloudKitImport {
                 loadContacts()
             }
         }

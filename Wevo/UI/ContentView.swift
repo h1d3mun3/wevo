@@ -5,7 +5,6 @@
 //  Created by hidemune on 3/5/26.
 //
 
-import CoreData
 import SwiftUI
 
 struct ContentView: View {
@@ -93,18 +92,7 @@ struct ContentView: View {
             .task {
                 await loadSpaces()
             }
-            .onReceive(
-                NotificationCenter.default.publisher(
-                    for: NSPersistentCloudKitContainer.eventChangedNotification
-                )
-            ) { notification in
-                guard
-                    let event = notification.userInfo?[
-                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                    ] as? NSPersistentCloudKitContainer.Event,
-                    event.type == .import,
-                    event.succeeded
-                else { return }
+            .onCloudKitImport {
                 Task { await loadSpaces() }
             }
         } detail: {
