@@ -99,7 +99,7 @@ struct KeychainRepositoryTests {
 
         try repo.createIdentity(id: id, nickname: "Alice", privateKey: key.rawRepresentation)
 
-        let retrievedKey = try repo.getPrivateKey(id: id, context: nil)
+        let retrievedKey = try repo.getPrivateKey(id: id)
         #expect(retrievedKey == key.rawRepresentation)
     }
 
@@ -107,7 +107,7 @@ struct KeychainRepositoryTests {
         let repo = makeRepository()
 
         #expect(throws: KeychainError.self) {
-            try repo.getPrivateKey(id: UUID(), context: nil)
+            try repo.getPrivateKey(id: UUID())
         }
     }
 
@@ -159,7 +159,7 @@ struct KeychainRepositoryTests {
         try repo.deleteIdentityKey(id: id)
 
         #expect(throws: KeychainError.self) {
-            try repo.getPrivateKey(id: UUID(), context: nil)
+            try repo.getPrivateKey(id: UUID())
         }
     }
 
@@ -198,7 +198,7 @@ struct KeychainRepositoryTests {
         try repo.createIdentity(id: id, nickname: "Alice", privateKey: key.rawRepresentation)
 
         let message = "Hello, World!"
-        let signature = try repo.signMessage(message, withIdentityId: id, context: nil)
+        let signature = try repo.signMessage(message, withIdentityId: id)
 
         // 公開鍵文字列で検証
         let publicKeyString = key.publicKey.x963Representation.base64EncodedString()
@@ -216,7 +216,7 @@ struct KeychainRepositoryTests {
 
         try repo.createIdentity(id: id, nickname: "Alice", privateKey: key.rawRepresentation)
 
-        let signature = try repo.signMessage("original", withIdentityId: id, context: nil)
+        let signature = try repo.signMessage("original", withIdentityId: id)
 
         let publicKeyString = key.publicKey.x963Representation.base64EncodedString()
         let isValid = try repo.verifySignature(signature, for: "tampered", withPublicKeyString: publicKeyString)
@@ -235,7 +235,7 @@ struct KeychainRepositoryTests {
         try repo.createIdentity(id: id, nickname: "Alice", privateKey: key.rawRepresentation)
 
         let message = "Hello"
-        let signature = try repo.signMessage(message, withIdentityId: id, context: nil)
+        let signature = try repo.signMessage(message, withIdentityId: id)
 
         let wrongPublicKeyString = wrongKey.publicKey.x963Representation.base64EncodedString()
         let isValid = try repo.verifySignature(signature, for: message, withPublicKeyString: wrongPublicKeyString)
@@ -267,7 +267,7 @@ struct KeychainRepositoryTests {
         #expect(identity.id == id)
         #expect(identity.nickname == "Alice")
 
-        let retrievedKey = try repo.getPrivateKey(id: id, context: nil)
+        let retrievedKey = try repo.getPrivateKey(id: id)
         #expect(retrievedKey == key.rawRepresentation)
     }
 }
