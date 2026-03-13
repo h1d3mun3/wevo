@@ -5,12 +5,14 @@
 //  Created by hidemune on 3/6/26.
 //
 
+import CoreData
 import SwiftUI
 
 struct SpaceDetailView: View {
     let space: Space
 
     @Environment(\.dependencies) private var deps
+    @Environment(\.dismiss) private var dismiss
 
     @State private var proposes: [Propose] = []
     @State private var isLoading = false
@@ -85,6 +87,21 @@ struct SpaceDetailView: View {
         .refreshable {
             loadProposesFromLocal()
         }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSPersistentCloudKitContainer.eventChangedNotification
+            )
+        ) { notification in
+            guard
+                let event = notification.userInfo?[
+                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                ] as? NSPersistentCloudKitContainer.Event,
+                event.type == .import,
+                event.succeeded
+            else { return }
+            loadProposesFromLocal()
+            Task { await reloadSpace() }
+        }
         .sheet(isPresented: $shouldShowCreatePropose) {
             if let identity = defaultIdentity {
                 CreateProposeView(space: currentSpace, identity: identity) {
@@ -153,6 +170,8 @@ struct SpaceDetailView: View {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
                 print("✅ Space reloaded: \(updatedSpace.name)")
+            } catch SpaceRepositoryError.spaceNotFound {
+                dismiss()
             } catch {
                 print("Failed to Reload Space: \(error)")
             }
