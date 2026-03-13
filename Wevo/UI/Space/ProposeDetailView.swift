@@ -5,17 +5,53 @@
 //  Created by hidemune on 3/10/26.
 //
 
+import CoreData
 import SwiftUI
 
 struct ProposeDetailView: View {
     let propose: Propose
     let space: Space
 
+    @Environment(\.dependencies) private var deps
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentPropose: Propose
+
+    init(propose: Propose, space: Space) {
+        self.propose = propose
+        self.space = space
+        _currentPropose = State(initialValue: propose)
+    }
+
     var body: some View {
-        ProposeSettingsDetailView(propose: propose)
+        ProposeSettingsDetailView(propose: currentPropose)
 #if os(macOS)
             .frame(minWidth: 400, minHeight: 500)
 #endif
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: NSPersistentCloudKitContainer.eventChangedNotification
+                )
+            ) { notification in
+                guard
+                    let event = notification.userInfo?[
+                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                    ] as? NSPersistentCloudKitContainer.Event,
+                    event.type == .import,
+                    event.succeeded
+                else { return }
+                reloadPropose()
+            }
+    }
+
+    private func reloadPropose() {
+        let useCase = GetProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
+        do {
+            currentPropose = try useCase.execute(id: propose.id)
+        } catch ProposeRepositoryError.proposeNotFound {
+            dismiss()
+        } catch {
+            print("Failed to reload propose: \(error)")
+        }
     }
 }
 
