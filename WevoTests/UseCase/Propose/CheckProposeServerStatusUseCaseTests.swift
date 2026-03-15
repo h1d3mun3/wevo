@@ -12,145 +12,133 @@ import Foundation
 @MainActor
 struct CheckProposeServerStatusUseCaseTests {
 
-    private func makePropose(signatures: [Signature] = []) -> Propose {
+    private let creatorPublicKey = "creatorKey"
+    private let counterpartyPublicKey = "counterpartyKey"
+
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(
+        id: UUID = UUID(),
+        counterpartySignSignature: String? = nil
+    ) -> Propose {
         Propose(
-            id: UUID(),
+            id: id,
             spaceID: UUID(),
             message: "test message",
-            signatures: signatures,
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
             createdAt: .now,
             updatedAt: .now
         )
     }
 
-    private func makeSignature(publicKey: String = "pubkey1", signature: String = "sig1") -> Signature {
-        Signature(id: UUID(), publicKey: publicKey, signature: signature, createdAt: .now)
-    }
-
-    private func makeHashedPropose(proposeID: UUID, signatures: [Signature]) -> HashedPropose {
-        HashedPropose(
+    /// テスト用HashedProposeを生成するヘルパー
+    private func makeHashedPropose(
+        proposeID: UUID,
+        counterpartySignSignature: String? = nil,
+        status: ProposeStatus = .proposed
+    ) -> HashedPropose {
+        let counterparty = ProposeCounterparty(
+            publicKey: counterpartyPublicKey,
+            signSignature: counterpartySignSignature,
+            honorSignature: nil,
+            partSignature: nil
+        )
+        return HashedPropose(
             id: proposeID,
-            payloadHash: "hash",
-            signatures: signatures,
-            createdAt: .now
+            contentHash: "hash",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterparties: [counterparty],
+            status: status,
+            createdAt: .now,
+            updatedAt: .now
         )
     }
 
-    @Test func testReturnsExistsWhenProposeFoundOnServer() async throws {
+    @Test func testReturnsServerStatusWhenProposeFound() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let sig = makeSignature()
-        let propose = makePropose(signatures: [sig])
-        mockAPI.getProposeResult = makeHashedPropose(proposeID: propose.id, signatures: [sig])
+        let propose = makePropose()
+        mockAPI.getProposeResult = makeHashedPropose(proposeID: propose.id, status: .proposed)
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        let status = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
         // Assert
-        #expect(status.exists == true)
+        #expect(result.serverStatus == .proposed)
         #expect(mockAPI.getProposeCalledWithID == propose.id)
     }
 
-    @Test func testDetectsNewServerSignatures() async throws {
+    @Test func testDetectsPendingCounterpartySignSignature() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let localSig = makeSignature(publicKey: "local-key")
-        let serverOnlySig = makeSignature(publicKey: "server-key")
-        let propose = makePropose(signatures: [localSig])
-
+        // ローカルは未署名、サーバーでは署名済み
+        let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
-            signatures: [localSig, serverOnlySig]
+            counterpartySignSignature: "serverCounterpartySig",
+            status: .signed
         )
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        let status = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert
-        #expect(status.newServerSignatures.count == 1)
-        #expect(status.newServerSignatures[0].publicKey == "server-key")
+        // Assert: pendingCounterpartySignSignatureが返ってくる
+        #expect(result.pendingCounterpartySignSignature == "serverCounterpartySig")
+        #expect(result.serverStatus == .signed)
     }
 
-    @Test func testDetectsLocalOnlySignatures() async throws {
+    @Test func testNoPendingSignatureWhenAlreadyLocallySet() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let sharedSig = makeSignature(publicKey: "shared-key")
-        let localOnlySig = makeSignature(publicKey: "local-only-key")
-        let propose = makePropose(signatures: [sharedSig, localOnlySig])
-
+        // ローカルでも署名済み
+        let propose = makePropose(counterpartySignSignature: "localSig")
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
-            signatures: [sharedSig]
+            counterpartySignSignature: "serverCounterpartySig",
+            status: .signed
         )
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        let status = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert
-        #expect(status.localOnlySignatures.count == 1)
-        #expect(status.localOnlySignatures[0].publicKey == "local-only-key")
+        // Assert: ローカルに既に署名があるのでpendingはnil
+        #expect(result.pendingCounterpartySignSignature == nil)
     }
 
-    @Test func testReturnsEmptyWhenSignaturesMatch() async throws {
+    @Test func testNoPendingSignatureWhenCounterpartyNotSignedOnServer() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let sig1 = makeSignature(publicKey: "key1")
-        let sig2 = makeSignature(publicKey: "key2")
-        let propose = makePropose(signatures: [sig1, sig2])
-
+        let propose = makePropose(counterpartySignSignature: nil)
+        // サーバーでも未署名
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
-            signatures: [
-                makeSignature(publicKey: "key1"),
-                makeSignature(publicKey: "key2")
-            ]
+            counterpartySignSignature: nil,
+            status: .proposed
         )
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        let status = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
         // Assert
-        #expect(status.newServerSignatures.isEmpty)
-        #expect(status.localOnlySignatures.isEmpty)
-    }
-
-    @Test func testDetectsBothNewAndLocalOnlySignatures() async throws {
-        // Arrange
-        let mockAPI = MockProposeAPIClient()
-        let sharedSig = makeSignature(publicKey: "shared")
-        let localOnlySig = makeSignature(publicKey: "local-only")
-        let serverOnlySig = makeSignature(publicKey: "server-only")
-        let propose = makePropose(signatures: [sharedSig, localOnlySig])
-
-        mockAPI.getProposeResult = makeHashedPropose(
-            proposeID: propose.id,
-            signatures: [sharedSig, serverOnlySig]
-        )
-
-        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
-
-        // Act
-        let status = try await useCase.execute(propose: propose, serverURL: "https://example.com")
-
-        // Assert
-        #expect(status.newServerSignatures.count == 1)
-        #expect(status.newServerSignatures[0].publicKey == "server-only")
-        #expect(status.localOnlySignatures.count == 1)
-        #expect(status.localOnlySignatures[0].publicKey == "local-only")
+        #expect(result.pendingCounterpartySignSignature == nil)
+        #expect(result.serverStatus == .proposed)
     }
 
     @Test func testThrowsWhenServerURLIsInvalid() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let propose = makePropose(signatures: [makeSignature()])
+        let propose = makePropose()
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
@@ -164,7 +152,7 @@ struct CheckProposeServerStatusUseCaseTests {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         mockAPI.getProposeError = ProposeAPIClient.APIError.httpError(statusCode: 404)
-        let propose = makePropose(signatures: [makeSignature()])
+        let propose = makePropose()
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 

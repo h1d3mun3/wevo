@@ -25,7 +25,10 @@ struct ExportProposeUseCaseTests {
         id: UUID(),
         spaceID: UUID(),
         message: "Test message",
-        signatures: [],
+        creatorPublicKey: "creatorKey",
+        creatorSignature: "creatorSig",
+        counterpartyPublicKey: "counterpartyKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )

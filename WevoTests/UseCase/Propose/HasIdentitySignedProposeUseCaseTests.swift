@@ -11,52 +11,70 @@ import Foundation
 
 struct HasIdentitySignedProposeUseCaseTests {
 
-    let identity = Identity(
-        id: UUID(),
-        nickname: "My Key",
-        publicKey: "MyPublicKey123"
-    )
-
+    let creatorPublicKey = "CreatorPublicKey"
+    let counterpartyPublicKey = "CounterpartyPublicKey"
     let useCase = HasIdentitySignedProposeUseCaseImpl()
 
-    @Test("ローカル署名に自分の署名がある場合trueを返す")
-    func returnsTrueWhenLocalSignatureExists() {
-        let signatures = [
-            Signature(id: UUID(), publicKey: "OtherKey", signature: "sig1", createdAt: .now),
-            Signature(id: UUID(), publicKey: "MyPublicKey123", signature: "sig2", createdAt: .now),
-        ]
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(counterpartySignSignature: String?) -> Propose {
+        Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
 
-        let result = useCase.execute(identity: identity, proposeSignatures: signatures, serverSignatures: [])
+    @Test("Creatorは常にtrueを返す")
+    func returnsTrueForCreator() {
+        let identity = Identity(id: UUID(), nickname: "Alice", publicKey: creatorPublicKey)
+        let propose = makePropose(counterpartySignSignature: nil)
+
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert: Creatorは常に署名済み
         #expect(result == true)
     }
 
-    @Test("サーバー署名に自分の署名がある場合trueを返す")
-    func returnsTrueWhenServerSignatureExists() {
-        let localSignatures = [
-            Signature(id: UUID(), publicKey: "OtherKey", signature: "sig1", createdAt: .now),
-        ]
-        let serverSignatures = [
-            Signature(id: UUID(), publicKey: "MyPublicKey123", signature: "sig2", createdAt: .now),
-        ]
+    @Test("CounterpartyはcounterpartySignSignatureがある場合trueを返す")
+    func returnsTrueForCounterpartyWhenSigned() {
+        let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
+        let propose = makePropose(counterpartySignSignature: "someSig")
 
-        let result = useCase.execute(identity: identity, proposeSignatures: localSignatures, serverSignatures: serverSignatures)
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == true)
     }
 
-    @Test("どこにも自分の署名がない場合falseを返す")
-    func returnsFalseWhenNoSignatureExists() {
-        let signatures = [
-            Signature(id: UUID(), publicKey: "OtherKey1", signature: "sig1", createdAt: .now),
-            Signature(id: UUID(), publicKey: "OtherKey2", signature: "sig2", createdAt: .now),
-        ]
+    @Test("CounterpartyはcounterpartySignSignatureがnilの場合falseを返す")
+    func returnsFalseForCounterpartyWhenNotSigned() {
+        let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
+        let propose = makePropose(counterpartySignSignature: nil)
 
-        let result = useCase.execute(identity: identity, proposeSignatures: signatures, serverSignatures: [])
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == false)
     }
 
-    @Test("署名が空の場合falseを返す")
-    func returnsFalseWhenNoSignatures() {
-        let result = useCase.execute(identity: identity, proposeSignatures: [], serverSignatures: [])
+    @Test("参加者でないIdentityはfalseを返す")
+    func returnsFalseForNonParticipant() {
+        let identity = Identity(id: UUID(), nickname: "Eve", publicKey: "unrelatedKey")
+        let propose = makePropose(counterpartySignSignature: "someSig")
+
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == false)
     }
 }

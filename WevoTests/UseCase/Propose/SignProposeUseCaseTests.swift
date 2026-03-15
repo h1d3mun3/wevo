@@ -12,64 +12,39 @@ import Foundation
 @MainActor
 struct SignProposeUseCaseTests {
 
-    @Test func testAddsSignatureToPropose() async throws {
-        // Arrange
-        let mockKeychain = MockKeychainRepository()
-        let mockPropose = MockProposeRepository()
-
-        let proposeID = UUID()
-        let identityID = UUID()
-        let existingSignature = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
-        let testPropose = Propose(
-            id: proposeID,
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(
+        id: UUID = UUID(),
+        creatorPublicKey: String = "creatorKey",
+        counterpartyPublicKey: String = "counterpartyKey",
+        counterpartySignSignature: String? = nil
+    ) -> Propose {
+        Propose(
+            id: id,
             spaceID: UUID(),
             message: "test",
-            signatures: [existingSignature],
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
             createdAt: .now,
             updatedAt: .now
         )
-
-        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
-        mockKeychain.getIdentityResult = testIdentity
-        mockKeychain.signMessageResult = "newsignature"
-        mockPropose.fetchByIDResult = testPropose
-
-        let useCase = SignProposeUseCaseImpl(
-            keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
-        )
-
-        // Act
-        try await useCase.execute(to: proposeID, signIdentityID: identityID)
-
-        // Assert
-        #expect(mockPropose.updateCalled == true)
-        let updatedPropose = mockPropose.updatedPropose
-        #expect(updatedPropose?.signatures.count == 2)
-        #expect(updatedPropose?.signatures[1].publicKey == "pubkey123")
     }
 
-    @Test func testPreservesExistingSignatures() async throws {
+    @Test func testCounterpartySetsSignSignature() async throws {
         // Arrange
         let mockKeychain = MockKeychainRepository()
         let mockPropose = MockProposeRepository()
 
         let proposeID = UUID()
         let identityID = UUID()
-        let sig1 = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
-        let sig2 = Signature(id: UUID(), publicKey: "key2", signature: "sig2", createdAt: .now)
-        let testPropose = Propose(
-            id: proposeID,
-            spaceID: UUID(),
-            message: "test",
-            signatures: [sig1, sig2],
-            createdAt: .now,
-            updatedAt: .now
-        )
+        let counterpartyKey = "counterpartyPubKey"
+        let testPropose = makePropose(id: proposeID, counterpartyPublicKey: counterpartyKey)
 
-        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "newkey")
+        let testIdentity = Identity(id: identityID, nickname: "Bob", publicKey: counterpartyKey)
         mockKeychain.getIdentityResult = testIdentity
-        mockKeychain.signMessageResult = "newsignature"
+        mockKeychain.signMessageResult = "newCounterpartySig"
         mockPropose.fetchByIDResult = testPropose
 
         let useCase = SignProposeUseCaseImpl(
@@ -80,11 +55,88 @@ struct SignProposeUseCaseTests {
         // Act
         try await useCase.execute(to: proposeID, signIdentityID: identityID)
 
-        // Assert
-        let updatedPropose = mockPropose.updatedPropose
-        #expect(updatedPropose?.signatures[0].publicKey == "key1")
-        #expect(updatedPropose?.signatures[1].publicKey == "key2")
-        #expect(updatedPropose?.signatures[2].publicKey == "newkey")
+        // Assert: counterpartySignSignatureがセットされた
+        #expect(mockPropose.updateCalled == true)
+        #expect(mockPropose.updatedPropose?.counterpartySignSignature == "newCounterpartySig")
+        #expect(mockPropose.updatedPropose?.counterpartyPublicKey == counterpartyKey)
+    }
+
+    @Test func testLocalStatusBecomesSignedAfterSign() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockPropose = MockProposeRepository()
+
+        let proposeID = UUID()
+        let identityID = UUID()
+        let counterpartyKey = "counterpartyPubKey"
+        let testPropose = makePropose(id: proposeID, counterpartyPublicKey: counterpartyKey)
+
+        let testIdentity = Identity(id: identityID, nickname: "Bob", publicKey: counterpartyKey)
+        mockKeychain.getIdentityResult = testIdentity
+        mockKeychain.signMessageResult = "newCounterpartySig"
+        mockPropose.fetchByIDResult = testPropose
+
+        let useCase = SignProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            proposeRepository: mockPropose
+        )
+
+        // Act
+        try await useCase.execute(to: proposeID, signIdentityID: identityID)
+
+        // Assert: 署名後はsigned状態
+        #expect(mockPropose.updatedPropose?.localStatus == .signed)
+    }
+
+    @Test func testThrowsNotCounterpartyWhenCreatorTriesToSign() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockPropose = MockProposeRepository()
+
+        let proposeID = UUID()
+        let identityID = UUID()
+        let creatorKey = "creatorPubKey"
+        // CreatorがSignしようとする（counterpartyPublicKeyは別のキー）
+        let testPropose = makePropose(id: proposeID, creatorPublicKey: creatorKey, counterpartyPublicKey: "differentKey")
+
+        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: creatorKey)
+        mockKeychain.getIdentityResult = testIdentity
+        mockPropose.fetchByIDResult = testPropose
+
+        let useCase = SignProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            proposeRepository: mockPropose
+        )
+
+        // Act & Assert: notCounterpartyエラーが発生する
+        await #expect(throws: SignProposeUseCaseError.notCounterparty) {
+            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+        }
+    }
+
+    @Test func testThrowsNotCounterpartyWhenUnrelatedKeyTriesToSign() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockPropose = MockProposeRepository()
+
+        let proposeID = UUID()
+        let identityID = UUID()
+        let testPropose = makePropose(id: proposeID, creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+
+        // 無関係なキーでSign試行
+        let unrelatedIdentity = Identity(id: identityID, nickname: "Eve", publicKey: "unrelatedKey")
+        mockKeychain.getIdentityResult = unrelatedIdentity
+        mockPropose.fetchByIDResult = testPropose
+
+        let useCase = SignProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            proposeRepository: mockPropose
+        )
+
+        // Act & Assert
+        await #expect(throws: SignProposeUseCaseError.notCounterparty) {
+            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+        }
     }
 
     @Test func testThrowsFailedToSaveProposeWhenUpdateFails() async throws {
@@ -94,16 +146,10 @@ struct SignProposeUseCaseTests {
 
         let proposeID = UUID()
         let identityID = UUID()
-        let testPropose = Propose(
-            id: proposeID,
-            spaceID: UUID(),
-            message: "test",
-            signatures: [],
-            createdAt: .now,
-            updatedAt: .now
-        )
+        let counterpartyKey = "counterpartyKey"
+        let testPropose = makePropose(id: proposeID, counterpartyPublicKey: counterpartyKey)
 
-        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
+        let testIdentity = Identity(id: identityID, nickname: "Bob", publicKey: counterpartyKey)
         mockKeychain.getIdentityResult = testIdentity
         mockKeychain.signMessageResult = "newsignature"
         mockPropose.fetchByIDResult = testPropose
@@ -143,7 +189,7 @@ struct SignProposeUseCaseTests {
         let mockKeychain = MockKeychainRepository()
         let mockPropose = MockProposeRepository()
 
-        let testIdentity = Identity(id: UUID(), nickname: "Alice", publicKey: "pubkey123")
+        let testIdentity = Identity(id: UUID(), nickname: "Bob", publicKey: "counterpartyKey")
         mockKeychain.getIdentityResult = testIdentity
         mockPropose.fetchByIDError = NSError(domain: "Test", code: -1)
 
@@ -165,16 +211,10 @@ struct SignProposeUseCaseTests {
 
         let proposeID = UUID()
         let identityID = UUID()
-        let testPropose = Propose(
-            id: proposeID,
-            spaceID: UUID(),
-            message: "test",
-            signatures: [],
-            createdAt: .now,
-            updatedAt: .now
-        )
+        let counterpartyKey = "counterpartyKey"
+        let testPropose = makePropose(id: proposeID, counterpartyPublicKey: counterpartyKey)
 
-        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
+        let testIdentity = Identity(id: identityID, nickname: "Bob", publicKey: counterpartyKey)
         mockKeychain.getIdentityResult = testIdentity
         mockKeychain.signMessageError = KeychainError.biometricAuthFailed
         mockPropose.fetchByIDResult = testPropose

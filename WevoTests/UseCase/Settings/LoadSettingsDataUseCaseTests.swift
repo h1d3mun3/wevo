@@ -18,7 +18,17 @@ struct LoadSettingsDataUseCaseTests {
 
     @Test("全データを一括で取得できる")
     func executeSuccess() throws {
-        let propose = Propose(id: UUID(), spaceID: UUID(), message: "Test", signatures: [], createdAt: .now, updatedAt: .now)
+        let propose = Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "Test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: .now,
+            updatedAt: .now
+        )
         let space = Space(id: UUID(), name: "Space", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
         let signature = Signature(id: UUID(), publicKey: "PK", signature: "Sig", createdAt: .now)
 

@@ -12,101 +12,102 @@ import Foundation
 @MainActor
 struct AppendServerSignaturesToLocalProposeUseCaseTests {
 
-    @Test func testAppendsServerSignaturesToExistingPropose() async throws {
-        // Arrange
-        let mockRepository = MockProposeRepository()
-        let proposeID = UUID()
-        let spaceID = UUID()
-        let existingSignature1 = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
-        let existingSignature2 = Signature(id: UUID(), publicKey: "key2", signature: "sig2", createdAt: .now)
-        let serverSignature1 = Signature(id: UUID(), publicKey: "key3", signature: "sig3", createdAt: .now)
-        let serverSignature2 = Signature(id: UUID(), publicKey: "key4", signature: "sig4", createdAt: .now)
-        let serverSignature3 = Signature(id: UUID(), publicKey: "key5", signature: "sig5", createdAt: .now)
-
-        let existingPropose = Propose(
-            id: proposeID,
-            spaceID: spaceID,
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(
+        id: UUID = UUID(),
+        counterpartyPublicKey: String = "counterpartyKey",
+        counterpartySignSignature: String? = nil
+    ) -> Propose {
+        Propose(
+            id: id,
+            spaceID: UUID(),
             message: "test",
-            signatures: [existingSignature1, existingSignature2],
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
             createdAt: .now,
             updatedAt: .now
         )
+    }
+
+    @Test func testSetsCounterpartySignSignature() throws {
+        // Arrange
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        try await useCase.execute(proposeID: proposeID, with: [serverSignature1, serverSignature2, serverSignature3])
+        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
 
-        // Assert
+        // Assert: counterpartySignSignatureがセットされた
         #expect(mockRepository.fetchByIDCalledWithID == proposeID)
         #expect(mockRepository.updateCalled == true)
-        let updatedPropose = mockRepository.updatedPropose
-        #expect(updatedPropose?.signatures.count == 5)
-        #expect(updatedPropose?.signatures[0].publicKey == "key1")
-        #expect(updatedPropose?.signatures[4].publicKey == "key5")
+        #expect(mockRepository.updatedPropose?.counterpartySignSignature == "serverSig123")
     }
 
-    @Test func testWithEmptyServerSignatures() async throws {
+    @Test func testLocalStatusBecomesSignedAfterAppend() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
-        let spaceID = UUID()
-        let existingSignature = Signature(id: UUID(), publicKey: "key1", signature: "sig1", createdAt: .now)
-        let existingPropose = Propose(
-            id: proposeID,
-            spaceID: spaceID,
-            message: "test",
-            signatures: [existingSignature],
-            createdAt: .now,
-            updatedAt: .now
-        )
+        let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        try await useCase.execute(proposeID: proposeID, with: [])
+        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
 
-        // Assert
-        #expect(mockRepository.updateCalled == true)
-        let updatedPropose = mockRepository.updatedPropose
-        #expect(updatedPropose?.signatures.count == 1)
+        // Assert: 署名後はsigned状態
+        #expect(mockRepository.updatedPropose?.localStatus == .signed)
     }
 
-    @Test func testThrowsWhenFetchFails() async throws {
+    @Test func testPreservesOtherProposeFields() throws {
+        // Arrange
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = makePropose(id: proposeID, counterpartyPublicKey: "cpartyKey", counterpartySignSignature: nil)
+        mockRepository.fetchByIDResult = existingPropose
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+
+        // Act
+        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "newSig")
+
+        // Assert: 他のフィールドが保持されている
+        #expect(mockRepository.updatedPropose?.id == proposeID)
+        #expect(mockRepository.updatedPropose?.counterpartyPublicKey == "cpartyKey")
+        #expect(mockRepository.updatedPropose?.message == "test")
+    }
+
+    @Test func testThrowsWhenFetchFails() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchByIDError = NSError(domain: "Test", code: -1)
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(proposeID: UUID(), with: [])
+        #expect(throws: NSError.self) {
+            try useCase.execute(proposeID: UUID(), counterpartySignSignature: "sig")
         }
     }
 
-    @Test func testThrowsWhenUpdateFails() async throws {
+    @Test func testThrowsWhenUpdateFails() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
-        let spaceID = UUID()
-        let existingPropose = Propose(
-            id: proposeID,
-            spaceID: spaceID,
-            message: "test",
-            signatures: [],
-            createdAt: .now,
-            updatedAt: .now
-        )
+        let existingPropose = makePropose(id: proposeID)
         mockRepository.fetchByIDResult = existingPropose
         mockRepository.updateError = NSError(domain: "Test", code: -1)
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(proposeID: proposeID, with: [])
+        #expect(throws: NSError.self) {
+            try useCase.execute(proposeID: proposeID, counterpartySignSignature: "sig")
         }
     }
 }

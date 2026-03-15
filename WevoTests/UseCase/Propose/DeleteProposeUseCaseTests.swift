@@ -19,7 +19,7 @@ struct DeleteProposeUseCaseTests {
         let testID = UUID()
 
         // Act
-        try await useCase.execute(id: testID)
+        try useCase.execute(id: testID)
 
         // Assert
         #expect(mockRepository.deleteCalled == true)
@@ -33,8 +33,8 @@ struct DeleteProposeUseCaseTests {
         let useCase = DeleteProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }

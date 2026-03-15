@@ -12,20 +12,35 @@ import Foundation
 @MainActor
 struct LoadAllProposesUseCaseTests {
 
-    @Test func testReturnsProposeListFromRepository() async throws {
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(spaceID: UUID, message: String) -> Propose {
+        Propose(
+            id: UUID(),
+            spaceID: spaceID,
+            message: message,
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
+
+    @Test func testReturnsProposeListFromRepository() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let spaceID = UUID()
         let testProposes = [
-            Propose(id: UUID(), spaceID: spaceID, message: "Propose 1", signatures: [], createdAt: .now, updatedAt: .now),
-            Propose(id: UUID(), spaceID: spaceID, message: "Propose 2", signatures: [], createdAt: .now, updatedAt: .now)
+            makePropose(spaceID: spaceID, message: "Propose 1"),
+            makePropose(spaceID: spaceID, message: "Propose 2")
         ]
         mockRepository.fetchAllResult = testProposes
 
         let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        let result = try await useCase.execute(id: spaceID)
+        let result = try useCase.execute(id: spaceID)
 
         // Assert
         #expect(result.count == 2)
@@ -34,7 +49,7 @@ struct LoadAllProposesUseCaseTests {
         #expect(mockRepository.fetchAllForSpaceID == spaceID)
     }
 
-    @Test func testReturnsEmptyArrayWhenNoProposes() async throws {
+    @Test func testReturnsEmptyArrayWhenNoProposes() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchAllResult = []
@@ -42,13 +57,13 @@ struct LoadAllProposesUseCaseTests {
         let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        let result = try await useCase.execute(id: UUID())
+        let result = try useCase.execute(id: UUID())
 
         // Assert
         #expect(result.count == 0)
     }
 
-    @Test func testPassesCorrectSpaceID() async throws {
+    @Test func testPassesCorrectSpaceID() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let spaceID = UUID()
@@ -57,13 +72,13 @@ struct LoadAllProposesUseCaseTests {
         let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        _ = try await useCase.execute(id: spaceID)
+        _ = try useCase.execute(id: spaceID)
 
         // Assert
         #expect(mockRepository.fetchAllForSpaceID == spaceID)
     }
 
-    @Test func testThrowsWhenRepositoryThrows() async throws {
+    @Test func testThrowsWhenRepositoryThrows() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchAllError = NSError(domain: "Test", code: -1)
@@ -71,8 +86,8 @@ struct LoadAllProposesUseCaseTests {
         let useCase = LoadAllProposesUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }

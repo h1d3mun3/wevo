@@ -12,61 +12,74 @@ import Foundation
 @MainActor
 struct ResendProposeToServerUseCaseTests {
 
-    private func makePropose(signatures: [Signature] = []) -> Propose {
+    /// テスト用Proposeを生成するヘルパー
+    private func makePropose(
+        id: UUID = UUID(),
+        creatorPublicKey: String = "creatorKey",
+        creatorSignature: String = "creatorSig",
+        counterpartyPublicKey: String = "counterpartyKey"
+    ) -> Propose {
         Propose(
-            id: UUID(),
+            id: id,
             spaceID: UUID(),
             message: "test message",
-            signatures: signatures,
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: creatorSignature,
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: nil,
             createdAt: .now,
             updatedAt: .now
         )
     }
 
-    private func makeSignature(publicKey: String = "pubkey1", signature: String = "sig1") -> Signature {
-        Signature(id: UUID(), publicKey: publicKey, signature: signature, createdAt: .now)
-    }
-
     @Test func testSendsProposeToServer() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let sig = makeSignature()
-        let propose = makePropose(signatures: [sig])
+        let propose = makePropose()
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert
+        // Assert: createProposeが呼ばれた
         #expect(mockAPI.createProposeCalled == true)
-        #expect(mockAPI.createProposeInput?.id == propose.id)
-        #expect(mockAPI.createProposeInput?.payloadHash == propose.payloadHash)
-        #expect(mockAPI.createProposeInput?.publicKey == sig.publicKey)
+        #expect(mockAPI.createProposeInput?.proposeId == propose.id.uuidString)
+        #expect(mockAPI.createProposeInput?.contentHash == propose.payloadHash)
     }
 
-    @Test func testSendsAllSignatures() async throws {
+    @Test func testSendsCreatorPublicKey() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let sig1 = makeSignature(publicKey: "key1", signature: "sig1")
-        let sig2 = makeSignature(publicKey: "key2", signature: "sig2")
-        let propose = makePropose(signatures: [sig1, sig2])
+        let propose = makePropose(creatorPublicKey: "my-creator-key")
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert
-        #expect(mockAPI.createProposeInput?.signatures.count == 2)
-        #expect(mockAPI.createProposeInput?.signatures[0].publicKey == "key1")
-        #expect(mockAPI.createProposeInput?.signatures[1].publicKey == "key2")
+        // Assert: Creatorの公開鍵が正しく送信されている
+        #expect(mockAPI.createProposeInput?.creatorPublicKey == "my-creator-key")
+    }
+
+    @Test func testSendsCounterpartyPublicKey() async throws {
+        // Arrange
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartyPublicKey: "my-counterparty-key")
+
+        let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
+
+        // Act
+        try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        // Assert: CounterpartyPublicKeysが正しく送信されている
+        #expect(mockAPI.createProposeInput?.counterpartyPublicKeys == ["my-counterparty-key"])
     }
 
     @Test func testThrowsWhenServerURLIsInvalid() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let propose = makePropose(signatures: [makeSignature()])
+        let propose = makePropose()
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -80,7 +93,8 @@ struct ResendProposeToServerUseCaseTests {
     @Test func testThrowsWhenNoSignatureFound() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        let propose = makePropose(signatures: [])
+        // creatorSignatureが空の場合
+        let propose = makePropose(creatorSignature: "")
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -95,7 +109,7 @@ struct ResendProposeToServerUseCaseTests {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         mockAPI.createProposeError = ProposeAPIClient.APIError.httpError(statusCode: 500)
-        let propose = makePropose(signatures: [makeSignature()])
+        let propose = makePropose()
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -103,21 +117,5 @@ struct ResendProposeToServerUseCaseTests {
         await #expect(throws: ProposeAPIClient.APIError.self) {
             try await useCase.execute(propose: propose, serverURL: "https://example.com")
         }
-    }
-
-    @Test func testUsesFirstSignaturePublicKeyAsProposePK() async throws {
-        // Arrange
-        let mockAPI = MockProposeAPIClient()
-        let firstSig = makeSignature(publicKey: "creator-key")
-        let secondSig = makeSignature(publicKey: "signer-key")
-        let propose = makePropose(signatures: [firstSig, secondSig])
-
-        let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
-
-        // Act
-        try await useCase.execute(propose: propose, serverURL: "https://example.com")
-
-        // Assert
-        #expect(mockAPI.createProposeInput?.publicKey == "creator-key")
     }
 }

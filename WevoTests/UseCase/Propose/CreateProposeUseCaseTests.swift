@@ -12,6 +12,8 @@ import Foundation
 @MainActor
 struct CreateProposeUseCaseTests {
 
+    private let counterpartyPublicKey = "counterpartyPubKey123"
+
     @Test func testCreatesAndSavesPropose() async throws {
         // Arrange
         let mockKeychain = MockKeychainRepository()
@@ -34,7 +36,7 @@ struct CreateProposeUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message")
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
         // Assert
         #expect(mockKeychain.getIdentityCalledWithID == identityID)
@@ -44,7 +46,7 @@ struct CreateProposeUseCaseTests {
         #expect(mockPropose.createdPropose?.message == "Test message")
     }
 
-    @Test func testSignsPayloadHash() async throws {
+    @Test func testCreatorPublicKeyIsSetCorrectly() async throws {
         // Arrange
         let mockKeychain = MockKeychainRepository()
         let mockSpace = MockSpaceRepository()
@@ -66,11 +68,68 @@ struct CreateProposeUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message")
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
-        // Assert
+        // Assert: creatorPublicKeyとcounterpartyPublicKeyが正しくセットされている
+        #expect(mockPropose.createdPropose?.creatorPublicKey == "pubkey123")
+        #expect(mockPropose.createdPropose?.counterpartyPublicKey == counterpartyPublicKey)
+        #expect(mockPropose.createdPropose?.counterpartySignSignature == nil)
+    }
+
+    @Test func testLocalStatusIsProposedAfterCreate() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockSpace = MockSpaceRepository()
+        let mockPropose = MockProposeRepository()
+
+        let identityID = UUID()
+        let spaceID = UUID()
+        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
+        let testSpace = Space(id: spaceID, name: "Test", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+
+        mockKeychain.getIdentityResult = testIdentity
+        mockKeychain.signMessageResult = "signature123"
+        mockSpace.fetchByIDResult = testSpace
+
+        let useCase = CreateProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            spaceRepository: mockSpace,
+            proposeRepository: mockPropose
+        )
+
+        // Act
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
+
+        // Assert: 作成直後はcounterpartySignSignatureがnilなのでproposed状態
+        #expect(mockPropose.createdPropose?.localStatus == .proposed)
+    }
+
+    @Test func testSignsCreatorMessage() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockSpace = MockSpaceRepository()
+        let mockPropose = MockProposeRepository()
+
+        let identityID = UUID()
+        let spaceID = UUID()
+        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
+        let testSpace = Space(id: spaceID, name: "Test", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+
+        mockKeychain.getIdentityResult = testIdentity
+        mockKeychain.signMessageResult = "signature123"
+        mockSpace.fetchByIDResult = testSpace
+
+        let useCase = CreateProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            spaceRepository: mockSpace,
+            proposeRepository: mockPropose
+        )
+
+        // Act
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
+
+        // Assert: signMessageが呼ばれた
         #expect(mockKeychain.signMessageCalledWithIdentityID == identityID)
-        // payloadHash is computed from message, so we verify the signed message was the payloadHash
         #expect(mockKeychain.signMessageCalledWithMessage != nil)
     }
 
@@ -90,7 +149,7 @@ struct CreateProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: KeychainError.itemNotFound) {
-            try await useCase.execute(identityID: UUID(), spaceID: UUID(), message: "test")
+            try await useCase.execute(identityID: UUID(), spaceID: UUID(), message: "test", counterpartyPublicKey: counterpartyPublicKey)
         }
     }
 
@@ -113,7 +172,7 @@ struct CreateProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(identityID: identityID, spaceID: UUID(), message: "test")
+            try await useCase.execute(identityID: identityID, spaceID: UUID(), message: "test", counterpartyPublicKey: counterpartyPublicKey)
         }
     }
 
@@ -140,7 +199,7 @@ struct CreateProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: KeychainError.biometricAuthFailed) {
-            try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test")
+            try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test", counterpartyPublicKey: counterpartyPublicKey)
         }
     }
 
@@ -168,7 +227,7 @@ struct CreateProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test")
+            try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test", counterpartyPublicKey: counterpartyPublicKey)
         }
     }
 
@@ -193,8 +252,8 @@ struct CreateProposeUseCaseTests {
             proposeRepository: mockPropose
         )
 
-        // Act & Assert - should not throw
-        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test")
+        // Act & Assert: 無効なURLでも例外を投げない（警告のみ）
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test", counterpartyPublicKey: counterpartyPublicKey)
         #expect(mockPropose.createCalled == true)
     }
 }
