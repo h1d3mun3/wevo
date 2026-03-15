@@ -12,21 +12,26 @@ struct CreateProposeView: View {
     let space: Space
     let identity: Identity
     let onSuccess: () -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
-    
+
     @State private var message: String = ""
     @State private var isSaving: Bool = false
     @State private var errorMessage: String?
-    
+    @State private var selectedContact: Contact?
+    @State private var showContactPicker = false
+
     private var canSave: Bool {
-        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSaving
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isSaving
+            && selectedContact != nil
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - 基本情報セクション
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Space")
@@ -35,7 +40,7 @@ struct CreateProposeView: View {
                         Text(space.name)
                             .font(.body)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Identity")
                             .font(.caption)
@@ -50,7 +55,48 @@ struct CreateProposeView: View {
                 } header: {
                     Text("Information")
                 }
-                
+
+                // MARK: - To（Counterparty）セクション
+                Section {
+                    if let contact = selectedContact {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(contact.nickname)
+                                    .font(.body)
+                                Text(contact.publicKey.prefix(16) + "...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fontDesign(.monospaced)
+                            }
+
+                            Spacer()
+
+                            Button("変更") {
+                                showContactPicker = true
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.blue)
+                        }
+                    } else {
+                        Button {
+                            showContactPicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .foregroundStyle(.blue)
+                                Text("Contactを選択...")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("To（Counterparty）")
+                } footer: {
+                    Text("Proposeに署名してもらう相手を選択してください。")
+                }
+
+                // MARK: - メッセージセクション
                 Section {
                     TextField("Message", text: $message, axis: .vertical)
                         .autocorrectionDisabled()
@@ -58,9 +104,10 @@ struct CreateProposeView: View {
                 } header: {
                     Text("Propose Message")
                 } footer: {
-                    Text("Enter the message you want to propose. This will be hashed and signed with your identity.")
+                    Text("提案するメッセージを入力してください。SHA256ハッシュ化された後、あなたのIDで署名されます。")
                 }
-                
+
+                // MARK: - エラーメッセージ
                 if let errorMessage = errorMessage {
                     Section {
                         HStack {
@@ -84,7 +131,7 @@ struct CreateProposeView: View {
                     }
                     .disabled(isSaving)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         Task {
@@ -95,16 +142,27 @@ struct CreateProposeView: View {
                 }
             }
             .disabled(isSaving)
+            .sheet(isPresented: $showContactPicker) {
+                ContactPickerSheet(selectedContact: $selectedContact)
+            }
         }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
     }
-    
+
     private func createPropose() async {
         await MainActor.run {
             isSaving = true
             errorMessage = nil
+        }
+
+        guard let contact = selectedContact else {
+            await MainActor.run {
+                errorMessage = "Counterpartyが選択されていません"
+                isSaving = false
+            }
+            return
         }
 
         let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
@@ -114,7 +172,12 @@ struct CreateProposeView: View {
         )
 
         do {
-            try await createProposeUseCaseImpl.execute(identityID: identity.id, spaceID: space.id, message: message)
+            try await createProposeUseCaseImpl.execute(
+                identityID: identity.id,
+                spaceID: space.id,
+                message: message,
+                counterpartyPublicKey: contact.publicKey
+            )
 
             // 結果に関わらず画面を閉じる
             await MainActor.run {
@@ -122,13 +185,86 @@ struct CreateProposeView: View {
                 onSuccess()
                 dismiss()
             }
-            
+
         } catch {
-            print("❌ Error creating propose: \(error)")
+            print("❌ Propose作成エラー: \(error)")
             await MainActor.run {
                 errorMessage = "Failed to create propose: \(error.localizedDescription)"
                 isSaving = false
             }
+        }
+    }
+}
+
+// MARK: - ContactPickerSheet
+
+/// Contactを選択するシート
+struct ContactPickerSheet: View {
+    @Binding var selectedContact: Contact?
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dependencies) private var deps
+
+    @State private var contacts: [Contact] = []
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if contacts.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.crop.circle.badge.xmark")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("Contactが見つかりません")
+                            .foregroundStyle(.secondary)
+                        Text("先にContactを追加してください。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                } else {
+                    List(contacts) { contact in
+                        Button {
+                            selectedContact = contact
+                            dismiss()
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(contact.nickname)
+                                    .font(.body)
+                                Text(contact.publicKey.prefix(24) + "...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fontDesign(.monospaced)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Counterpartyを選択")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                loadContacts()
+            }
+        }
+    }
+
+    private func loadContacts() {
+        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
+        do {
+            contacts = try useCase.execute()
+        } catch {
+            print("❌ Contact読み込みエラー: \(error)")
+            errorMessage = "Contactの読み込みに失敗しました"
         }
     }
 }

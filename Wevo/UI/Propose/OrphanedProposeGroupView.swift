@@ -62,17 +62,30 @@ struct OrphanedProposeGroupView: View {
 }
 
 #Preview("Orphaned Propose Group") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "PreviewPk",
-        signature: "PreviewSig",
-        createdAt: .now
-    )
-
     let spaceID = UUID()
     let proposes = [
-        Propose(id: UUID(), spaceID: spaceID, message: "Preview orphaned message 1", signatures: [signature], createdAt: .now, updatedAt: .now),
-        Propose(id: UUID(), spaceID: spaceID, message: "Preview orphaned message 2", signatures: [signature], createdAt: .now, updatedAt: .now)
+        Propose(
+            id: UUID(),
+            spaceID: spaceID,
+            message: "Preview orphaned message 1",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: .now,
+            updatedAt: .now
+        ),
+        Propose(
+            id: UUID(),
+            spaceID: spaceID,
+            message: "Preview orphaned message 2",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: .now,
+            updatedAt: .now
+        )
     ]
 
     NavigationStack {

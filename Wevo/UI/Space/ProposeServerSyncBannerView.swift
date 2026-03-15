@@ -7,88 +7,65 @@
 
 import SwiftUI
 
-/// サーバーに新しい署名がある場合の同期バナー
-struct ProposeNewSignaturesBannerView: View {
-    let count: Int
-    let isSyncing: Bool
-    let onSync: () -> Void
+/// Counterpartyのサーバー署名が承認待ちの場合に表示するバナー
+/// ユーザーが明示的に「承認する」を選んだ場合のみローカルに反映する
+struct PendingSignatureBannerView: View {
+    /// CounterpartyのニックネームまたはPublicKeyのプレフィックス
+    let counterpartyNickname: String
+    /// 承認処理中かどうか
+    let isAccepting: Bool
+    /// 「承認する」ボタンが押されたときのコールバック
+    let onAccept: () -> Void
+    /// 「無視する」ボタンが押されたときのコールバック
+    let onIgnore: () -> Void
 
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.circle.fill")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "signature")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+
+                Text("\(counterpartyNickname)がサーバーで署名しました")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fontWeight(.medium)
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Spacer()
+
+                Button("無視する") {
+                    onIgnore()
+                }
+                .buttonStyle(.borderless)
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.secondary)
+                .disabled(isAccepting)
 
-            Text("Server has \(count) new signature(s)")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Button(action: onSync) {
-                if isSyncing {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                        Text("Syncing...")
+                Button(action: onAccept) {
+                    if isAccepting {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("承認中...")
+                                .font(.caption)
+                        }
+                    } else {
+                        Label("承認する", systemImage: "checkmark.circle.fill")
                             .font(.caption)
                     }
-                } else {
-                    Label("Sync from Server", systemImage: "arrow.down.circle.fill")
-                        .font(.caption)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .disabled(isAccepting)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            .disabled(isSyncing)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
         .padding(.horizontal, 8)
         .background(Color.orange.opacity(0.1))
-        .cornerRadius(8)
-    }
-}
-
-/// ローカルにのみある署名がある場合の送信バナー
-struct ProposeLocalSignaturesBannerView: View {
-    let count: Int
-    let isSending: Bool
-    let onSend: () -> Void
-
-    var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.blue)
-
-            Text("You have \(count) local signature(s)")
-                .font(.caption)
-                .foregroundStyle(.blue)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Button(action: onSend) {
-                if isSending {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                        Text("Sending...")
-                            .font(.caption)
-                    }
-                } else {
-                    Label("Send to Server", systemImage: "arrow.up.circle.fill")
-                        .font(.caption)
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            .disabled(isSending)
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(Color.blue.opacity(0.1))
         .cornerRadius(8)
     }
 }

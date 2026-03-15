@@ -12,9 +12,8 @@ struct ProposeSettingsDetailView: View {
 
     @Environment(\.dependencies) private var deps
 
-    @State private var selectedSignature: Signature?
-    @State private var signatureVerifications: [UUID: Bool] = [:]
     @State private var isHashValid: Bool?
+    @State private var contactNicknames: [String: String] = [:]
 
     var body: some View {
         List {
@@ -78,64 +77,72 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            Section("Signatures (\(propose.signatures.count))") {
-                if propose.signatures.isEmpty {
-                    Text("No signatures")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(propose.signatures) { signature in
-                        Button {
-                            selectedSignature = signature
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(signature.publicKey.prefix(32) + "...")
-                                        .font(.caption)
-                                        .fontDesign(.monospaced)
+            // MARK: - Participantsセクション（旧Signaturesセクションを置き換え）
+            Section("Participants") {
+                // Creator行（常に署名済み）
+                participantRow(
+                    publicKey: propose.creatorPublicKey,
+                    role: "Creator",
+                    isSigned: true
+                )
 
-                                    Text(signature.createdAt, format: .dateTime.month().day().hour().minute())
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
+                // Counterparty行（localStatusに応じたアイコン）
+                participantRow(
+                    publicKey: propose.counterpartyPublicKey,
+                    role: "Counterparty",
+                    isSigned: propose.counterpartySignSignature != nil
+                )
+            }
 
-                                Spacer()
-
-                                // 検証状態を表示
-                                if let isValid = signatureVerifications[signature.id] {
-                                    Image(systemName: isValid ? "checkmark.seal.fill" : "xmark.seal.fill")
-                                        .foregroundStyle(isValid ? .green : .red)
-                                        .font(.title3)
-                                } else {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
+            // MARK: - Statusセクション
+            Section("Status") {
+                LabeledContent("Local Status") {
+                    HStack(spacing: 4) {
+                        // localStatusのアイコン（proposed=⏳, signed=✅）
+                        Image(systemName: propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
+                            .foregroundStyle(propose.localStatus == .proposed ? .orange : .green)
+                        Text(propose.localStatus.rawValue.capitalized)
+                            .font(.caption)
                     }
                 }
             }
         }
         .task {
             await verifyHash()
-            await verifyAllSignatures()
+            await loadContactNicknames()
         }
         .navigationTitle("Propose Details")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .sheet(item: $selectedSignature) { signature in
-            NavigationStack {
-                SignatureDetailView(signature: signature)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") {
-                                selectedSignature = nil
-                            }
-                        }
-                    }
+    }
+
+    /// 参加者行（Creator / Counterparty）
+    @ViewBuilder
+    private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
+        HStack(spacing: 8) {
+            // 署名状態アイコン（proposed=⏳, signed=✅）
+            Image(systemName: isSigned ? "checkmark.circle.fill" : "clock")
+                .foregroundStyle(isSigned ? .green : .orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                // ニックネームまたはPublicKeyのプレフィックス
+                let nickname = contactNicknames[publicKey] ?? String(publicKey.prefix(16)) + "..."
+                Text(nickname)
+                    .font(.body)
+
+                Text(role)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(publicKey.prefix(24) + "...")
+                    .font(.caption2)
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(.tertiary)
+                    .textSelection(.enabled)
             }
         }
+        .padding(.vertical, 4)
     }
 
     private func verifyHash() async {
@@ -147,49 +154,34 @@ struct ProposeSettingsDetailView: View {
         }
     }
 
-    private func verifyAllSignatures() async {
-        for signature in propose.signatures {
-            let isValid = await verifySignature(signature)
-            await MainActor.run {
-                signatureVerifications[signature.id] = isValid
-            }
-        }
-    }
-
-    private func verifySignature(_ signature: Signature) async -> Bool {
-        let verifySignatureUseCase = VerifySignatureUseCaseImpl(keychainRepository: deps.keychainRepository)
-
+    private func loadContactNicknames() async {
+        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
         do {
-            let isValid = try verifySignatureUseCase.execute(
-                signature: signature.signature,
-                message: propose.payloadHash,
-                publicKey: signature.publicKey
-            )
-
-            return isValid
+            let contacts = try useCase.execute()
+            let dict = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
+            await MainActor.run {
+                contactNicknames = dict
+            }
         } catch {
-            print("❌ Error verifying signature \(signature.id): \(error)")
-            return false
+            print("❌ Contactニックネームの読み込みエラー: \(error)")
         }
     }
 }
 
 #Preview("Propose Settings Detail") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "PreviewPublicKey",
-        signature: "PreviewSignature",
-        createdAt: .now
-    )
-
     let propose = Propose(
         id: UUID(),
         spaceID: UUID(),
         message: "Preview message",
-        signatures: [signature],
+        creatorPublicKey: "creatorPublicKey",
+        creatorSignature: "creatorSignature",
+        counterpartyPublicKey: "counterpartyPublicKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )
 
-    ProposeSettingsDetailView(propose: propose)
+    NavigationStack {
+        ProposeSettingsDetailView(propose: propose)
+    }
 }

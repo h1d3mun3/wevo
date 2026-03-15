@@ -26,19 +26,18 @@ struct ProposeRowView: View {
     @State private var signSuccess: Bool?
     @State private var signErrorMessage: String?
     @State private var defaultIdentity: Identity?
-    @State private var serverSignatures: [Signature] = []
-    @State private var hasNewSignatures = false
-    @State private var isSyncingSignatures = false
-    @State private var localOnlySignatures: [Signature] = []
-    @State private var hasLocalOnlySignatures = false
-    @State private var isSendingSignatures = false
     @State private var showProposeDetail = false
     @State private var contactNicknames: [String: String] = [:]
 
+    /// サーバーで取得したCounterpartyの署名（ローカル未反映）
+    @State private var pendingCounterpartySignSignature: String? = nil
+    /// 署名承認処理中かどうか
+    @State private var isAcceptingSignature = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // メッセージ部分
-            VStack(alignment: .leading, spacing: 8) {
+            // ヘッダー部分（メッセージ・日時・Counterpartyニックネーム）
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(propose.message)
                         .font(.headline)
@@ -51,18 +50,20 @@ struct ProposeRowView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                // CounterpartyのニックネームをHeaderに表示
+                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
+                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
                 HStack(spacing: 4) {
-                    Image(systemName: serverStatus.icon)
+                    Image(systemName: "person.fill")
                         .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
-                    Text(serverStatus.description)
+                        .foregroundStyle(.secondary)
+                    Text("To: \(counterpartyName)")
                         .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
+                        .foregroundStyle(.secondary)
                 }
 
-                Text("\(propose.signatures.count) signature(s)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // ローカルステータスバッジ
+                statusBadge
             }
 
             // アクションボタン
@@ -71,44 +72,34 @@ struct ProposeRowView: View {
             // ステータスメッセージ
             statusMessages
 
-            // サーバー同期バナー
-            if hasNewSignatures {
-                ProposeNewSignaturesBannerView(
-                    count: serverSignatures.count,
-                    isSyncing: isSyncingSignatures
+            // Counterpartyの承認待ち署名バナー
+            if let pendingSig = pendingCounterpartySignSignature {
+                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
+                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
+                PendingSignatureBannerView(
+                    counterpartyNickname: counterpartyName,
+                    isAccepting: isAcceptingSignature
                 ) {
                     Task {
-                        await syncSignaturesFromServer()
+                        await acceptCounterpartySignature(signature: pendingSig)
                         onSigned()
                     }
+                } onIgnore: {
+                    // 無視: バナーを非表示にするだけ（ローカルには反映しない）
+                    pendingCounterpartySignSignature = nil
                 }
             }
 
-            if hasLocalOnlySignatures {
-                ProposeLocalSignaturesBannerView(
-                    count: localOnlySignatures.count,
-                    isSending: isSendingSignatures
-                ) {
-                    Task { await sendLocalSignaturesToServer() }
-                }
+            // Counterpartyがまだ署名していない場合の署名ボタン
+            if shouldShowSignButton {
+                signButton
             }
 
-            // 署名セクション
-            if !propose.signatures.isEmpty {
-                ProposeSignaturesSectionView(
-                    signaturesWithNicknames: propose.signatures.map { (signature: $0, nickname: contactNicknames[$0.publicKey]) },
-                    defaultIdentity: defaultIdentity,
-                    showSignButton: shouldShowSignButton,
-                    isSigning: isSigning,
-                    signSuccess: signSuccess,
-                    signErrorMessage: signErrorMessage
-                ) {
-                    guard let identity = defaultIdentity else { return }
-                    Task {
-                        await signPropose(with: identity)
-                        onSigned()
-                    }
-                }
+            // Honor / Part ボタン（signed状態のとき）
+            // TODO: PoC段階のため、Honor/Partは将来実装
+            // signed状態のUI表示のみ（ボタンはスタブ）
+            if propose.localStatus == .signed {
+                honorPartStubButtons
             }
         }
         .padding(.vertical, 8)
@@ -116,7 +107,8 @@ struct ProposeRowView: View {
         .onTapGesture {
             showProposeDetail = true
         }
-        .task(id: propose.signatures.count) {
+        .task(id: propose.localStatus) {
+            // ローカルステータスが変化したときにサーバーステータスを確認
             await checkServerStatus()
         }
         .task {
@@ -148,12 +140,38 @@ struct ProposeRowView: View {
 
     // MARK: - Computed Properties
 
+    /// Signボタンを表示するかどうか
+    /// Counterpartyかつproposed状態のときのみ表示
     private var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
-        return !hasMySignature(identity: identity) && signSuccess != true
+        // 自分がCounterpartyで、かつまだ署名していない（proposed状態）
+        return identity.publicKey == propose.counterpartyPublicKey
+            && propose.localStatus == .proposed
+            && signSuccess != true
     }
 
     // MARK: - Sub Views
+
+    /// ローカルステータスバッジ
+    @ViewBuilder
+    private var statusBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: propose.localStatus.statusIcon)
+                .font(.caption2)
+                .foregroundStyle(propose.localStatus.statusColor)
+            Text(propose.localStatus.statusLabel)
+                .font(.caption2)
+                .foregroundStyle(propose.localStatus.statusColor)
+
+            // サーバーステータスを追加で表示
+            Image(systemName: serverStatus.icon)
+                .font(.caption2)
+                .foregroundStyle(serverStatus.color)
+            Text(serverStatus.description)
+                .font(.caption2)
+                .foregroundStyle(serverStatus.color)
+        }
+    }
 
     @ViewBuilder
     private var actionBar: some View {
@@ -217,7 +235,7 @@ struct ProposeRowView: View {
                 Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
-                Text(resendSuccess ? "Sent to server successfully" : (resendErrorMessage ?? "Failed to send to server"))
+                Text(resendSuccess ? "サーバーに送信しました" : (resendErrorMessage ?? "送信に失敗しました"))
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
             }
@@ -227,6 +245,77 @@ struct ProposeRowView: View {
             Text(shareError)
                 .font(.caption2)
                 .foregroundStyle(.red)
+        }
+
+        if let signSuccess = signSuccess {
+            HStack {
+                Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(signSuccess ? .green : .red)
+                Text(signSuccess ? "署名しました" : (signErrorMessage ?? "署名に失敗しました"))
+                    .font(.caption2)
+                    .foregroundStyle(signSuccess ? .green : .red)
+            }
+        }
+    }
+
+    /// Signボタン（Counterpartyかつproposed状態のとき表示）
+    @ViewBuilder
+    private var signButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task {
+                    await signPropose(with: identity)
+                    onSigned()
+                }
+            } label: {
+                if isSigning {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                        Text("署名中...")
+                            .font(.caption)
+                    }
+                } else {
+                    Label("Sign", systemImage: "signature")
+                        .font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(isSigning)
+        }
+    }
+
+    /// Honor / Part スタブボタン（PoCのため将来実装）
+    @ViewBuilder
+    private var honorPartStubButtons: some View {
+        HStack(spacing: 8) {
+            Spacer()
+
+            // TODO: PoC後にHonor機能を実装する
+            Button {
+                print("TODO: Honor機能は将来実装予定")
+            } label: {
+                Label("Honor", systemImage: "checkmark.seal")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.green)
+
+            // TODO: PoC後にPart機能を実装する
+            Button {
+                print("TODO: Part機能は将来実装予定")
+            } label: {
+                Label("Part", systemImage: "xmark.seal")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.orange)
         }
     }
 
@@ -238,7 +327,7 @@ struct ProposeRowView: View {
             shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
         } catch {
-            print("❌ Error exporting propose: \(error)")
+            print("❌ Proposeエクスポートエラー: \(error)")
             shareError = "Export failed"
         }
     }
@@ -250,7 +339,7 @@ struct ProposeRowView: View {
             showShareSheet = true
             shareError = nil
         } catch {
-            print("❌ Error exporting propose: \(error)")
+            print("❌ Proposeエクスポートエラー: \(error)")
             shareError = "Export failed"
         }
     }
@@ -277,7 +366,7 @@ struct ProposeRowView: View {
             await MainActor.run { resendSuccess = nil }
 
         } catch {
-            print("❌ Error resending propose: \(error)")
+            print("❌ Propose再送信エラー: \(error)")
             await MainActor.run {
                 isResending = false
                 resendSuccess = false
@@ -303,15 +392,13 @@ struct ProposeRowView: View {
         let useCase = CheckProposeServerStatusUseCaseImpl()
 
         do {
-            let status = try await useCase.execute(propose: propose, serverURL: space.url)
+            let result = try await useCase.execute(propose: propose, serverURL: space.url)
 
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                self.serverSignatures = status.newServerSignatures
-                self.hasNewSignatures = !status.newServerSignatures.isEmpty
-                self.localOnlySignatures = status.localOnlySignatures
-                self.hasLocalOnlySignatures = !status.localOnlySignatures.isEmpty
+                // Counterpartyの承認待ち署名を設定
+                pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
             }
 
         } catch let error as CheckProposeServerStatusUseCaseError {
@@ -322,7 +409,7 @@ struct ProposeRowView: View {
 
         } catch let error as ProposeAPIClient.APIError {
             if case .httpError(let statusCode) = error, statusCode == 404 {
-                print("ℹ️ Propose not found on server: \(propose.id)")
+                print("ℹ️ Proposeがサーバーに見つかりません: \(propose.id)")
                 await MainActor.run {
                     serverStatus = .notFound
                     isCheckingServer = false
@@ -330,14 +417,14 @@ struct ProposeRowView: View {
                 return
             }
 
-            print("⚠️ Error checking propose on server: \(error)")
+            print("⚠️ サーバーステータス確認エラー: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ Unexpected error checking propose: \(error)")
+            print("⚠️ 予期しないエラー: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
@@ -359,7 +446,7 @@ struct ProposeRowView: View {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
         } catch {
-            print("❌ Error loading default identity: \(error)")
+            print("❌ デフォルトIdentityの読み込みエラー: \(error)")
             await MainActor.run { self.defaultIdentity = nil }
         }
     }
@@ -370,17 +457,8 @@ struct ProposeRowView: View {
             let contacts = try useCase.execute()
             contactNicknames = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
         } catch {
-            print("❌ Error loading contacts: \(error)")
+            print("❌ Contactニックネームの読み込みエラー: \(error)")
         }
-    }
-
-    private func hasMySignature(identity: Identity) -> Bool {
-        let useCase = HasIdentitySignedProposeUseCaseImpl()
-        return useCase.execute(
-            identity: identity,
-            proposeSignatures: propose.signatures,
-            serverSignatures: serverSignatures
-        )
     }
 
     private func signPropose(with identity: Identity) async {
@@ -397,13 +475,31 @@ struct ProposeRowView: View {
 
         do {
             try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
-            signSuccess = true
-            isSigning = false
+
+            await MainActor.run {
+                signSuccess = true
+                isSigning = false
+            }
 
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
+
+        } catch SignProposeUseCaseError.notCounterparty {
+            print("⚠️ このIdentityはCounterpartyではないため署名できません")
+            await MainActor.run {
+                isSigning = false
+                signSuccess = false
+                signErrorMessage = "このIdentityはCounterpartyではありません"
+            }
+
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run {
+                signSuccess = nil
+                signErrorMessage = nil
+            }
+
         } catch {
-            print("❌ Error signing propose: \(error)")
+            print("❌ 署名エラー: \(error)")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
@@ -418,54 +514,64 @@ struct ProposeRowView: View {
         }
     }
 
-    private func syncSignaturesFromServer() async {
-        await MainActor.run { isSyncingSignatures = true }
+    /// Counterpartyのサーバー署名を承認してローカルに反映する
+    private func acceptCounterpartySignature(signature: String) async {
+        await MainActor.run { isAcceptingSignature = true }
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
             proposeRepository: deps.proposeRepository
         )
 
         do {
-            try useCase.execute(proposeID: propose.id, with: serverSignatures)
-            hasNewSignatures = false
-            serverSignatures = []
-            isSyncingSignatures = false
+            try useCase.execute(proposeID: propose.id, counterpartySignSignature: signature)
+
+            await MainActor.run {
+                isAcceptingSignature = false
+                pendingCounterpartySignSignature = nil
+            }
+            print("✅ Counterparty署名を承認してローカルに反映しました")
         } catch {
-            print("❌ Failed to sync signatures locally: \(error)")
-            isSyncingSignatures = false
+            print("❌ Counterparty署名の反映に失敗しました: \(error)")
+            await MainActor.run { isAcceptingSignature = false }
+        }
+    }
+}
+
+// MARK: - ProposeStatus Extensions for UI
+
+private extension ProposeStatus {
+    var statusIcon: String {
+        switch self {
+        case .proposed: return "clock"
+        case .signed:   return "checkmark.circle"
+        case .honored:  return "checkmark.seal.fill"
+        case .parted:   return "xmark.seal"
+        case .dissolved: return "trash.circle"
         }
     }
 
-    private func sendLocalSignaturesToServer() async {
-        await MainActor.run { isSendingSignatures = true }
+    var statusColor: Color {
+        switch self {
+        case .proposed:  return .orange
+        case .signed:    return .blue
+        case .honored:   return .green
+        case .parted:    return .gray
+        case .dissolved: return .red
+        }
+    }
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl()
-
-        do {
-            try await useCase.execute(propose: propose, serverURL: space.url)
-
-            await MainActor.run {
-                isSendingSignatures = false
-                hasLocalOnlySignatures = false
-                localOnlySignatures = []
-                Task { await checkServerStatus() }
-            }
-
-        } catch {
-            print("❌ Error sending local signatures to server: \(error)")
-            await MainActor.run { isSendingSignatures = false }
+    var statusLabel: String {
+        switch self {
+        case .proposed:  return "Proposed"
+        case .signed:    return "Signed"
+        case .honored:   return "Honored"
+        case .parted:    return "Parted"
+        case .dissolved: return "Dissolved"
         }
     }
 }
 
 #Preview("Propose Row") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "PreviewPk",
-        signature: "PreviewSig",
-        createdAt: .now
-    )
-
     let space = Space(
         id: UUID(),
         name: "Preview Space",
@@ -480,7 +586,10 @@ struct ProposeRowView: View {
         id: UUID(),
         spaceID: space.id,
         message: "Preview message",
-        signatures: [signature],
+        creatorPublicKey: "creatorPubKey",
+        creatorSignature: "creatorSig",
+        counterpartyPublicKey: "counterpartyPubKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )

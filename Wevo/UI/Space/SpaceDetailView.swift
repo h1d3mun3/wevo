@@ -21,6 +21,24 @@ struct SpaceDetailView: View {
     @State private var shouldShowEditSpace = false
     @State private var currentSpace: Space
 
+    /// 進行中 / 完了済み の切り替えタブ
+    @State private var selectedTab: ProposeTab = .active
+
+    private enum ProposeTab: String, CaseIterable {
+        case active = "進行中"
+        case completed = "完了済み"
+    }
+
+    /// アクティブ（proposed / signed）なProposeのリスト
+    private var activeProposes: [Propose] {
+        proposes.filter { $0.localStatus.isActive }
+    }
+
+    /// 完了済み（honored / parted / dissolved）なProposeのリスト
+    private var completedProposes: [Propose] {
+        proposes.filter { !$0.localStatus.isActive }
+    }
+
     init(space: Space) {
         self.space = space
         _currentSpace = State(initialValue: space)
@@ -37,6 +55,18 @@ struct SpaceDetailView: View {
 
             Divider()
 
+            // SegmentedControl（進行中 / 完了済み）
+            Picker("", selection: $selectedTab) {
+                ForEach(ProposeTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Divider()
+
             // Content
             if isLoading {
                 Spacer()
@@ -50,19 +80,23 @@ struct SpaceDetailView: View {
                     onRetry: loadProposesFromLocal
                 )
                 Spacer()
-            } else if proposes.isEmpty {
-                Spacer()
-                EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
-                Spacer()
             } else {
-                List {
-                    ForEach(proposes) { propose in
-                        ProposeRowView(propose: propose, space: space) {
-                            loadProposesFromLocal()
+                let displayProposes = selectedTab == .active ? activeProposes : completedProposes
+
+                if displayProposes.isEmpty {
+                    Spacer()
+                    EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(displayProposes) { propose in
+                            ProposeRowView(propose: propose, space: space) {
+                                loadProposesFromLocal()
+                            }
                         }
                     }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle(currentSpace.name)
@@ -120,7 +154,7 @@ struct SpaceDetailView: View {
             let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
             self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
-            print("❌ Error loading default identity: \(error)")
+            print("❌ デフォルトIdentityの読み込みエラー: \(error)")
             await MainActor.run {
                 self.defaultIdentity = nil
             }
@@ -139,12 +173,12 @@ struct SpaceDetailView: View {
             isLoading = false
 
             if loadedProposes.isEmpty {
-                print("ℹ️ No proposes found locally for space: \(currentSpace.name)")
+                print("ℹ️ ローカルにProposeが見つかりません: \(currentSpace.name)")
             } else {
-                print("✅ Loaded \(loadedProposes.count) proposes from local storage")
+                print("✅ ローカルから\(loadedProposes.count)件のProposeを読み込みました")
             }
         } catch {
-            print("❌ Error loading proposes from local storage: \(error)")
+            print("❌ ローカルからのPropose読み込みエラー: \(error)")
             isLoading = false
             errorMessage = "Failed to load proposes: \(error.localizedDescription)"
             proposes = []
@@ -157,11 +191,11 @@ struct SpaceDetailView: View {
             do {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
-                print("✅ Space reloaded: \(updatedSpace.name)")
+                print("✅ Space再読み込み完了: \(updatedSpace.name)")
             } catch SpaceRepositoryError.spaceNotFound {
                 dismiss()
             } catch {
-                print("Failed to Reload Space: \(error)")
+                print("Space再読み込みに失敗: \(error)")
             }
         }
     }

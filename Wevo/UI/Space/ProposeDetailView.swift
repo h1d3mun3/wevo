@@ -44,13 +44,6 @@ struct ProposeDetailView: View {
 }
 
 #Preview("Propose Detail") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "PreviewPublicKey",
-        signature: "PreviewSignature",
-        createdAt: .now
-    )
-
     let space = Space(
         id: UUID(),
         name: "Preview Space",
@@ -65,7 +58,10 @@ struct ProposeDetailView: View {
         id: UUID(),
         spaceID: space.id,
         message: "Preview message",
-        signatures: [signature],
+        creatorPublicKey: "creatorPublicKey",
+        creatorSignature: "creatorSignature",
+        counterpartyPublicKey: "counterpartyPublicKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )
