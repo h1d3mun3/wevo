@@ -40,7 +40,15 @@ final class SignatureRepositoryImpl: SignatureRepository {
 
         do {
             let models = try modelContext.fetch(descriptor)
-            return models.map { SignatureConverter.toEntity(from: $0) }
+            // SignatureSwiftDataをSignatureエンティティに変換
+            return models.map { model in
+                Signature(
+                    id: model.id,
+                    publicKey: model.publicKey,
+                    signature: model.signatureData,
+                    createdAt: model.createdAt
+                )
+            }
         } catch {
             throw SignatureRepositoryError.fetchError(error)
         }
@@ -74,23 +82,10 @@ final class SignatureRepositoryImpl: SignatureRepository {
     // MARK: - Fetch
 
     /// 署名IDに紐づくProposeのpayloadHashを取得
+    /// 新APIではSignatureSwiftDataとProposeSwiftDataのリレーションがないため、
+    /// 常にSignatureRepositoryError.proposeNotFoundForSignatureをスローする
+    /// （この機能は新APIでは使用されない）
     func fetchPayloadHash(forSignatureID id: UUID) throws -> String {
-        let descriptor = FetchDescriptor<ProposeSwiftData>()
-
-        do {
-            let allProposes = try modelContext.fetch(descriptor)
-
-            guard let propose = allProposes.first(where: { propose in
-                (propose.signatures ?? []).contains(where: { $0.id == id })
-            }) else {
-                throw SignatureRepositoryError.proposeNotFoundForSignature(id)
-            }
-
-            return propose.payloadHash
-        } catch let error as SignatureRepositoryError {
-            throw error
-        } catch {
-            throw SignatureRepositoryError.fetchError(error)
-        }
+        throw SignatureRepositoryError.proposeNotFoundForSignature(id)
     }
 }
