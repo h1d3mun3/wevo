@@ -29,7 +29,8 @@ struct DissolveProposeUseCaseImpl {
 
 extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL) else {
+        guard let baseURL = URL(string: serverURL),
+              baseURL.scheme == "https" || baseURL.scheme == "http" else {
             throw DissolveProposeUseCaseError.invalidServerURL
         }
 

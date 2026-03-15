@@ -27,7 +27,8 @@ struct PartProposeUseCaseImpl {
 
 extension PartProposeUseCaseImpl: PartProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL) else {
+        guard let baseURL = URL(string: serverURL),
+              baseURL.scheme == "https" || baseURL.scheme == "http" else {
             throw PartProposeUseCaseError.invalidServerURL
         }
 
