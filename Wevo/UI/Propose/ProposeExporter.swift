@@ -36,7 +36,10 @@ struct ProposeExporter {
         )
         
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(ProposeAPIClient.iso8601Formatter.string(from: date))
+        }
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         
         let jsonData = try encoder.encode(exportData)
@@ -58,7 +61,15 @@ struct ProposeExporter {
         let jsonData = try Data(contentsOf: url)
         
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+            if let date = ProposeAPIClient.iso8601Formatter.date(from: string)
+                ?? ProposeAPIClient.iso8601FormatterBasic.date(from: string) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot parse date: \(string)")
+        }
         
         let exportData = try decoder.decode(ProposeExportData.self, from: jsonData)
         
