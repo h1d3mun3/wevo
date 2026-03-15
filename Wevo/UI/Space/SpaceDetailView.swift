@@ -20,6 +20,7 @@ struct SpaceDetailView: View {
     @State private var shouldShowCreatePropose = false
     @State private var shouldShowEditSpace = false
     @State private var currentSpace: Space
+    @State private var serverCheckTrigger = UUID()
 
     /// Tab for switching between active / completed
     @State private var selectedTab: ProposeTab = .active
@@ -90,7 +91,7 @@ struct SpaceDetailView: View {
                 } else {
                     List {
                         ForEach(displayProposes) { propose in
-                            ProposeRowView(propose: propose, space: space) {
+                            ProposeRowView(propose: propose, space: space, serverCheckTrigger: serverCheckTrigger) {
                                 loadProposesFromLocal()
                             }
                         }
@@ -119,6 +120,7 @@ struct SpaceDetailView: View {
         }
         .refreshable {
             loadProposesFromLocal()
+            serverCheckTrigger = UUID()
         }
         .onCloudKitImport {
             loadProposesFromLocal()

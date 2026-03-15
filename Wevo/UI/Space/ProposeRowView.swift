@@ -11,6 +11,7 @@ struct ProposeRowView: View {
     let propose: Propose
     let space: Space
     let onSigned: () -> Void
+    var serverCheckTrigger: UUID = UUID()
 
     @Environment(\.dependencies) private var deps
 
@@ -33,6 +34,18 @@ struct ProposeRowView: View {
     @State private var pendingCounterpartySignSignature: String? = nil
     /// Whether signature acceptance is in progress
     @State private var isAcceptingSignature = false
+
+    @State private var isHonoring = false
+    @State private var honorSuccess: Bool?
+    @State private var honorErrorMessage: String?
+
+    @State private var isParting = false
+    @State private var partSuccess: Bool?
+    @State private var partErrorMessage: String?
+
+    @State private var isDissolving = false
+    @State private var dissolveSuccess: Bool?
+    @State private var dissolveErrorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -95,9 +108,12 @@ struct ProposeRowView: View {
                 signButton
             }
 
+            // Dissolve button (only available in proposed state, for any participant)
+            if propose.localStatus == .proposed {
+                dissolveButton
+            }
+
             // Honor / Part buttons (when in signed state)
-            // TODO: Honor/Part to be implemented in a future iteration after PoC
-            // Only UI display for signed state (buttons are stubs)
             if propose.localStatus == .signed {
                 honorPartStubButtons
             }
@@ -109,6 +125,10 @@ struct ProposeRowView: View {
         }
         .task(id: propose.localStatus) {
             // Check server status when local status changes
+            await checkServerStatus()
+        }
+        .task(id: serverCheckTrigger) {
+            // Check server status when pull-to-refresh is triggered
             await checkServerStatus()
         }
         .task {
@@ -289,33 +309,69 @@ struct ProposeRowView: View {
         }
     }
 
-    /// Honor / Part stub buttons (to be implemented after PoC)
+    /// Dissolve button (shown when in proposed state)
+    @ViewBuilder
+    private var dissolveButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task { await dissolvePropose(with: identity) }
+            } label: {
+                if isDissolving {
+                    ProgressView().scaleEffect(0.7)
+                } else if dissolveSuccess == true {
+                    Label("Dissolved", systemImage: "trash.circle.fill").font(.caption)
+                } else {
+                    Label("Dissolve", systemImage: "trash.circle").font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.red)
+            .disabled(isDissolving || defaultIdentity == nil)
+        }
+    }
+
+    /// Honor / Part buttons (shown when in signed state)
     @ViewBuilder
     private var honorPartStubButtons: some View {
         HStack(spacing: 8) {
             Spacer()
 
-            // TODO: Implement Honor functionality after PoC
             Button {
-                print("TODO: Honor functionality to be implemented in the future")
+                guard let identity = defaultIdentity else { return }
+                Task { await honorPropose(with: identity) }
             } label: {
-                Label("Honor", systemImage: "checkmark.seal")
-                    .font(.caption)
+                if isHonoring {
+                    ProgressView().scaleEffect(0.7)
+                } else if honorSuccess == true {
+                    Label("Honored", systemImage: "checkmark.seal.fill").font(.caption)
+                } else {
+                    Label("Honor", systemImage: "checkmark.seal").font(.caption)
+                }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(.green)
+            .disabled(isHonoring || defaultIdentity == nil)
 
-            // TODO: Implement Part functionality after PoC
             Button {
-                print("TODO: Part functionality to be implemented in the future")
+                guard let identity = defaultIdentity else { return }
+                Task { await partPropose(with: identity) }
             } label: {
-                Label("Part", systemImage: "xmark.seal")
-                    .font(.caption)
+                if isParting {
+                    ProgressView().scaleEffect(0.7)
+                } else if partSuccess == true {
+                    Label("Parted", systemImage: "xmark.seal.fill").font(.caption)
+                } else {
+                    Label("Part", systemImage: "xmark.seal").font(.caption)
+                }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(.orange)
+            .disabled(isParting || defaultIdentity == nil)
         }
     }
 
@@ -476,6 +532,16 @@ struct ProposeRowView: View {
         do {
             try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
 
+            // Send signature to server (fetch updated propose to get counterpartySignSignature)
+            if let updatedPropose = try? deps.proposeRepository.fetch(by: propose.id) {
+                let sendUseCase = SendLocalSignaturesToServerUseCaseImpl()
+                try? await sendUseCase.execute(
+                    propose: updatedPropose,
+                    identityPublicKey: identity.publicKey,
+                    serverURL: space.url
+                )
+            }
+
             await MainActor.run {
                 signSuccess = true
                 isSigning = false
@@ -511,6 +577,57 @@ struct ProposeRowView: View {
                 signSuccess = nil
                 signErrorMessage = nil
             }
+        }
+    }
+
+    private func dissolvePropose(with identity: Identity) async {
+        await MainActor.run { isDissolving = true; dissolveSuccess = nil; dissolveErrorMessage = nil }
+
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isDissolving = false; dissolveSuccess = true }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { dissolveSuccess = nil }
+        } catch {
+            print("❌ Dissolve error: \(error)")
+            await MainActor.run { isDissolving = false; dissolveSuccess = false; dissolveErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { dissolveSuccess = nil; dissolveErrorMessage = nil }
+        }
+    }
+
+    private func honorPropose(with identity: Identity) async {
+        await MainActor.run { isHonoring = true; honorSuccess = nil; honorErrorMessage = nil }
+
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isHonoring = false; honorSuccess = true }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { honorSuccess = nil }
+        } catch {
+            print("❌ Honor error: \(error)")
+            await MainActor.run { isHonoring = false; honorSuccess = false; honorErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { honorSuccess = nil; honorErrorMessage = nil }
+        }
+    }
+
+    private func partPropose(with identity: Identity) async {
+        await MainActor.run { isParting = true; partSuccess = nil; partErrorMessage = nil }
+
+        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isParting = false; partSuccess = true }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { partSuccess = nil }
+        } catch {
+            print("❌ Part error: \(error)")
+            await MainActor.run { isParting = false; partSuccess = false; partErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { partSuccess = nil; partErrorMessage = nil }
         }
     }
 
