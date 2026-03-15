@@ -9,7 +9,7 @@ import Foundation
 import CryptoKit
 
 protocol CreateProposeUseCase {
-    func execute(identityID: UUID, spaceID: UUID, message: String) async throws
+    func execute(identityID: UUID, spaceID: UUID, message: String, counterpartyPublicKey: String) async throws
 }
 
 struct CreateProposeUseCaseImpl {
@@ -25,80 +25,71 @@ struct CreateProposeUseCaseImpl {
 }
 
 extension CreateProposeUseCaseImpl: CreateProposeUseCase {
-    func execute(identityID: UUID, spaceID: UUID, message: String) async throws {
+    func execute(identityID: UUID, spaceID: UUID, message: String, counterpartyPublicKey: String) async throws {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let identity = try keychainRepository.getIdentity(id: identityID)
         let space = try spaceRepository.fetch(by: spaceID)
 
-        // ProposeIDを生成
+        // ProposeIDと作成日時を生成
         let proposeID = UUID()
+        let createdAt = Date()
 
-        // メッセージからPropose作成（自動的にハッシュ化される）
-        let propose = Propose(
-            id: proposeID,
-            spaceID: spaceID,
-            message: message,
-            signatures: [],
-            createdAt: Date(),
-            updatedAt: Date()
-        )
+        // contentHash（SHA256）を計算
+        let contentHash = trimmedMessage.sha256HashedString
 
-        // 署名を作成（ハッシュ化されたメッセージに対して署名）
-        let signature = try keychainRepository.signMessage(
-            propose.payloadHash,
+        // 署名メッセージを構築（create: proposeId + contentHash + counterpartyPublicKeys(sorted & joined) + createdAt）
+        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: createdAt)
+        let sortedCounterpartyKeys = [counterpartyPublicKey].sorted().joined()
+        let signatureMessage = proposeID.uuidString + contentHash + sortedCounterpartyKeys + iso8601String
+
+        // Creatorが署名
+        let creatorSignature = try keychainRepository.signMessage(
+            signatureMessage,
             withIdentityId: identity.id
         )
 
-        // Signatureエンティティを作成
-        let signatureEntity = Signature(
-            id: UUID(),
-            publicKey: identity.publicKey,
-            signature: signature,
-            createdAt: Date()
-        )
-
-        // Proposeに署名を追加
-        let signedPropose = Propose(
-            id: propose.id,
+        // Proposeエンティティを作成（counterpartySignSignatureはnilで初期化）
+        let propose = Propose(
+            id: proposeID,
             spaceID: spaceID,
-            message: propose.message,
-            signatures: [signatureEntity],
-            createdAt: Date(),
-            updatedAt: Date()
+            message: trimmedMessage,
+            creatorPublicKey: identity.publicKey,
+            creatorSignature: creatorSignature,
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: nil,
+            createdAt: createdAt,
+            updatedAt: createdAt
         )
 
-        try proposeRepository.create(signedPropose, spaceID: space.id)
-        print("✅ Propose saved to SwiftData: \(proposeID)")
-        print("   Message: \(trimmedMessage)")
-        print("   Hash: \(propose.payloadHash)")
+        // ローカルに保存
+        try proposeRepository.create(propose, spaceID: space.id)
+        print("✅ Proposeをローカルに保存しました: \(proposeID)")
+        print("   メッセージ: \(trimmedMessage)")
+        print("   contentHash: \(contentHash)")
 
-        // 2. その後、APIに送信（ハッシュのみ、失敗しても画面は閉じる）
+        // APIに送信（失敗してもローカルには保存済みなので警告のみ）
         guard let baseURL = URL(string: space.url) else {
-            print("⚠️ Invalid server URL: \(space.url)")
+            print("⚠️ 無効なサーバーURL: \(space.url)")
             return
         }
 
-        // ProposeInputを作成（ハッシュのみ送信）
-        let input = ProposeAPIClient.ProposeInput(
-            id: proposeID,
-            payloadHash: signedPropose.payloadHash,
-            publicKey: identity.publicKey,
-            signatures: [.init(publicKey: identity.publicKey, signature: signature)]
+        let input = ProposeAPIClient.CreateProposeInput(
+            proposeId: proposeID.uuidString,
+            contentHash: contentHash,
+            creatorPublicKey: identity.publicKey,
+            creatorSignature: creatorSignature,
+            counterpartyPublicKeys: [counterpartyPublicKey],
+            createdAt: iso8601String
         )
 
         do {
-            // APIクライアントで送信
             let client = ProposeAPIClient(baseURL: baseURL)
             try await client.createPropose(input: input)
-
-            print("✅ Propose sent to API successfully: \(proposeID)")
-            print("   Only hash sent: \(signedPropose.payloadHash)")
+            print("✅ ProposeをAPIに送信しました: \(proposeID)")
         } catch {
             // API送信に失敗してもローカルには保存済みなので警告のみ
-            print("⚠️ Failed to send propose to API: \(error)")
-            print("ℹ️ Propose is saved locally and can be synced later")
+            print("⚠️ APIへの送信に失敗しました（ローカルには保存済み）: \(error)")
         }
-
     }
 }

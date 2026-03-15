@@ -7,10 +7,12 @@
 
 import Foundation
 
+/// サーバーステータス確認結果（新API仕様）
 struct ProposeServerCheckResult {
-    let exists: Bool
-    let newServerSignatures: [Signature]
-    let localOnlySignatures: [Signature]
+    /// サーバーが返したステータス
+    let serverStatus: ProposeStatus
+    /// Counterpartyがサーバーで署名済みだがローカル未反映の場合の署名文字列（nilの場合は新着なし）
+    let pendingCounterpartySignSignature: String?
 }
 
 protocol CheckProposeServerStatusUseCase {
@@ -38,39 +40,21 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         let hashedPropose = try await client.getPropose(proposeID: propose.id)
 
-        print("📊 Server has \(hashedPropose.signatures.count) signatures, local has \(propose.signatures.count)")
+        print("📊 サーバーステータス: \(hashedPropose.status.rawValue)")
 
-        // 署名の公開鍵で比較するためのセット
-        let localPublicKeys = Set(propose.signatures.map { $0.publicKey })
-        let serverPublicKeys = Set(hashedPropose.signatures.map { $0.publicKey })
-
-        // サーバーにのみある署名を抽出（ローカルにない新しい署名）
-        let newServerSignatures = hashedPropose.signatures.compactMap { signInput -> Signature? in
-            guard !localPublicKeys.contains(signInput.publicKey) else { return nil }
-            return Signature(
-                id: signInput.id,
-                publicKey: signInput.publicKey,
-                signature: signInput.signature,
-                createdAt: signInput.createdAt
-            )
-        }
-
-        // ローカルにのみある署名を抽出（サーバーにまだ送られていない署名）
-        let localOnlySigs = propose.signatures.filter { signature in
-            !serverPublicKeys.contains(signature.publicKey)
-        }
-
-        if !newServerSignatures.isEmpty {
-            print("🔄 Found \(newServerSignatures.count) new signature(s) on server")
-        }
-        if !localOnlySigs.isEmpty {
-            print("📤 Found \(localOnlySigs.count) local-only signature(s)")
+        // Counterpartyがサーバーで署名済みかつローカル未反映かを確認（PoCは1名のみ）
+        var pendingSignSignature: String? = nil
+        if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
+           let serverSignSignature = counterparty.signSignature,
+           propose.counterpartySignSignature == nil {
+            // サーバーでは署名済みだがローカルにはまだ反映されていない
+            pendingSignSignature = serverSignSignature
+            print("🔄 Counterpartyの署名をサーバーから検出: ローカル未反映")
         }
 
         return ProposeServerCheckResult(
-            exists: true,
-            newServerSignatures: newServerSignatures,
-            localOnlySignatures: localOnlySigs
+            serverStatus: hashedPropose.status,
+            pendingCounterpartySignSignature: pendingSignSignature
         )
     }
 }

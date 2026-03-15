@@ -8,7 +8,11 @@
 import Foundation
 
 protocol AppendServerSignaturesToLocalProposeUseCase {
-    func execute(proposeID: UUID, with serverSignatures: [Signature]) throws
+    /// Counterpartyのsign署名をローカルのProposeに反映する
+    /// - Parameters:
+    ///   - proposeID: 対象ProposeのID
+    ///   - counterpartySignSignature: Counterpartyの署名文字列（Base64 DER）
+    func execute(proposeID: UUID, counterpartySignSignature: String) throws
 }
 
 struct AppendServerSignaturesToLocalProposeUseCaseImpl {
@@ -20,24 +24,24 @@ struct AppendServerSignaturesToLocalProposeUseCaseImpl {
 }
 
 extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignaturesToLocalProposeUseCase {
-    func execute(proposeID: UUID, with serverSignatures: [Signature]) throws {
+    func execute(proposeID: UUID, counterpartySignSignature: String) throws {
         let localPropose = try proposeRepository.fetch(by: proposeID)
 
-        // サーバーから取得した署名をローカルのProposeに追加
-        var updatedSignatures = localPropose.signatures
-        updatedSignatures.append(contentsOf: serverSignatures)
-
+        // counterpartySignSignatureをセットしてProposeを更新
         let updatedPropose = Propose(
             id: localPropose.id,
             spaceID: localPropose.spaceID,
             message: localPropose.message,
-            signatures: updatedSignatures,
+            creatorPublicKey: localPropose.creatorPublicKey,
+            creatorSignature: localPropose.creatorSignature,
+            counterpartyPublicKey: localPropose.counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
             createdAt: localPropose.createdAt,
             updatedAt: Date()
         )
 
         // ローカルに保存
         try proposeRepository.update(updatedPropose)
-        print("✅ Synced \(serverSignatures.count) new signature(s) from server: \(localPropose.id)")
+        print("✅ Counterparty署名をローカルに反映しました: \(localPropose.id)")
     }
 }
