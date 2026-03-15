@@ -8,8 +8,8 @@
 import Foundation
 import SwiftData
 
-/// SwiftDataで永続化する署名モデル
-/// ProposeSwiftDataとのリレーションは削除（新APIではPropose内に直接署名データを格納する）
+/// Signature model persisted using SwiftData
+/// Relation to ProposeSwiftData has been removed (the new API stores signature data directly within the Propose)
 @Model
 final class SignatureSwiftData {
     var id: UUID = UUID()

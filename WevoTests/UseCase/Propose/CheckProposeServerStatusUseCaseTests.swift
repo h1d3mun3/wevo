@@ -15,7 +15,7 @@ struct CheckProposeServerStatusUseCaseTests {
     private let creatorPublicKey = "creatorKey"
     private let counterpartyPublicKey = "counterpartyKey"
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(
         id: UUID = UUID(),
         counterpartySignSignature: String? = nil
@@ -33,7 +33,7 @@ struct CheckProposeServerStatusUseCaseTests {
         )
     }
 
-    /// テスト用HashedProposeを生成するヘルパー
+    /// Helper to generate a test HashedPropose
     private func makeHashedPropose(
         proposeID: UUID,
         counterpartySignSignature: String? = nil,
@@ -76,7 +76,7 @@ struct CheckProposeServerStatusUseCaseTests {
     @Test func testDetectsPendingCounterpartySignSignature() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        // ローカルは未署名、サーバーでは署名済み
+        // Unsigned locally, signed on the server
         let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
@@ -89,7 +89,7 @@ struct CheckProposeServerStatusUseCaseTests {
         // Act
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert: pendingCounterpartySignSignatureが返ってくる
+        // Assert: pendingCounterpartySignSignature is returned
         #expect(result.pendingCounterpartySignSignature == "serverCounterpartySig")
         #expect(result.serverStatus == .signed)
     }
@@ -97,7 +97,7 @@ struct CheckProposeServerStatusUseCaseTests {
     @Test func testNoPendingSignatureWhenAlreadyLocallySet() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        // ローカルでも署名済み
+        // Also signed locally
         let propose = makePropose(counterpartySignSignature: "localSig")
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
@@ -110,7 +110,7 @@ struct CheckProposeServerStatusUseCaseTests {
         // Act
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert: ローカルに既に署名があるのでpendingはnil
+        // Assert: pending is nil because the local signature already exists
         #expect(result.pendingCounterpartySignSignature == nil)
     }
 
@@ -118,7 +118,7 @@ struct CheckProposeServerStatusUseCaseTests {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: nil)
-        // サーバーでも未署名
+        // Also unsigned on the server
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
             counterpartySignSignature: nil,

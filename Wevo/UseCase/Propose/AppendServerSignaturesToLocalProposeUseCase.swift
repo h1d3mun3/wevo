@@ -8,10 +8,10 @@
 import Foundation
 
 protocol AppendServerSignaturesToLocalProposeUseCase {
-    /// Counterpartyのsign署名をローカルのProposeに反映する
+    /// Reflect the Counterparty's sign signature in the local Propose
     /// - Parameters:
-    ///   - proposeID: 対象ProposeのID
-    ///   - counterpartySignSignature: Counterpartyの署名文字列（Base64 DER）
+    ///   - proposeID: ID of the target Propose
+    ///   - counterpartySignSignature: Counterparty's signature string (Base64 DER)
     func execute(proposeID: UUID, counterpartySignSignature: String) throws
 }
 
@@ -27,7 +27,7 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
     func execute(proposeID: UUID, counterpartySignSignature: String) throws {
         let localPropose = try proposeRepository.fetch(by: proposeID)
 
-        // counterpartySignSignatureをセットしてProposeを更新
+        // Update Propose with the counterpartySignSignature set
         let updatedPropose = Propose(
             id: localPropose.id,
             spaceID: localPropose.spaceID,
@@ -40,8 +40,8 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
             updatedAt: Date()
         )
 
-        // ローカルに保存
+        // Save locally
         try proposeRepository.update(updatedPropose)
-        print("✅ Counterparty署名をローカルに反映しました: \(localPropose.id)")
+        print("✅ Reflected Counterparty signature locally: \(localPropose.id)")
     }
 }

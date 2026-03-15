@@ -21,8 +21,8 @@ struct SignatureRepositoryTests {
         return (container.mainContext, container)
     }
 
-    /// SignatureSwiftDataを直接contextに挿入するヘルパー
-    /// 新APIではSignatureSwiftDataとProposeSwiftDataのリレーションはない
+    /// Helper to insert SignatureSwiftData directly into context
+    /// In the new API, there is no relation between SignatureSwiftData and ProposeSwiftData
     private func insertSignature(
         context: ModelContext,
         id: UUID = UUID(),
@@ -52,7 +52,7 @@ struct SignatureRepositoryTests {
 
     @Test func testFetchAllReturnsAllSignatures() throws {
         let (context, _container) = try makeContext()
-        // 2件のSignatureを直接insertする
+        // Insert 2 Signatures directly
         _ = insertSignature(context: context, publicKey: "key1")
         _ = insertSignature(context: context, publicKey: "key2")
 
@@ -93,14 +93,14 @@ struct SignatureRepositoryTests {
     }
 
     // MARK: - FetchPayloadHash
-    // 新APIではSignatureSwiftDataとProposeSwiftDataのリレーションがないため、
-    // fetchPayloadHashは常にエラーをスローする
+    // In the new API, since there is no relation between SignatureSwiftData and ProposeSwiftData,
+    // fetchPayloadHash always throws an error
 
     @Test func testFetchPayloadHashThrowsWhenSignatureNotFound() throws {
         let (context, _container) = try makeContext()
         let repo = SignatureRepositoryImpl(modelContext: context)
 
-        // 新APIでは常にproposeNotFoundForSignatureをスローする
+        // In the new API, always throws proposeNotFoundForSignature
         #expect(throws: SignatureRepositoryError.self) {
             try repo.fetchPayloadHash(forSignatureID: UUID())
         }
@@ -109,12 +109,12 @@ struct SignatureRepositoryTests {
     @Test func testFetchPayloadHashAlwaysThrows() throws {
         let (context, _container) = try makeContext()
         let sigID = UUID()
-        // SignatureをContextに直接insert（Proposeとのリレーションなし）
+        // Insert Signature directly into Context (no relation to Propose)
         _ = insertSignature(context: context, id: sigID)
 
         let repo = SignatureRepositoryImpl(modelContext: context)
 
-        // 新APIではリレーションがないため常にエラー
+        // In the new API, always errors because there is no relation
         #expect(throws: SignatureRepositoryError.self) {
             try repo.fetchPayloadHash(forSignatureID: sigID)
         }

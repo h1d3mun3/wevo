@@ -12,7 +12,7 @@ import Foundation
 @MainActor
 struct ResendProposeToServerUseCaseTests {
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(
         id: UUID = UUID(),
         creatorPublicKey: String = "creatorKey",
@@ -42,7 +42,7 @@ struct ResendProposeToServerUseCaseTests {
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert: createProposeが呼ばれた
+        // Assert: createPropose was called
         #expect(mockAPI.createProposeCalled == true)
         #expect(mockAPI.createProposeInput?.proposeId == propose.id.uuidString)
         #expect(mockAPI.createProposeInput?.contentHash == propose.payloadHash)
@@ -58,7 +58,7 @@ struct ResendProposeToServerUseCaseTests {
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert: Creatorの公開鍵が正しく送信されている
+        // Assert: Creator's public key is sent correctly
         #expect(mockAPI.createProposeInput?.creatorPublicKey == "my-creator-key")
     }
 
@@ -72,7 +72,7 @@ struct ResendProposeToServerUseCaseTests {
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com")
 
-        // Assert: CounterpartyPublicKeysが正しく送信されている
+        // Assert: CounterpartyPublicKeys are sent correctly
         #expect(mockAPI.createProposeInput?.counterpartyPublicKeys == ["my-counterparty-key"])
     }
 
@@ -93,7 +93,7 @@ struct ResendProposeToServerUseCaseTests {
     @Test func testThrowsWhenNoSignatureFound() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        // creatorSignatureが空の場合
+        // When creatorSignature is empty
         let propose = makePropose(creatorSignature: "")
 
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)

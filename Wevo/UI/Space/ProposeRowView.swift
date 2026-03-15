@@ -29,14 +29,14 @@ struct ProposeRowView: View {
     @State private var showProposeDetail = false
     @State private var contactNicknames: [String: String] = [:]
 
-    /// サーバーで取得したCounterpartyの署名（ローカル未反映）
+    /// Counterparty signature retrieved from server (not yet reflected locally)
     @State private var pendingCounterpartySignSignature: String? = nil
-    /// 署名承認処理中かどうか
+    /// Whether signature acceptance is in progress
     @State private var isAcceptingSignature = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // ヘッダー部分（メッセージ・日時・Counterpartyニックネーム）
+            // Header section (message, timestamp, Counterparty nickname)
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(propose.message)
@@ -50,7 +50,7 @@ struct ProposeRowView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // CounterpartyのニックネームをHeaderに表示
+                // Show Counterparty nickname in header
                 let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
                     ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
                 HStack(spacing: 4) {
@@ -62,17 +62,17 @@ struct ProposeRowView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // ローカルステータスバッジ
+                // Local status badge
                 statusBadge
             }
 
-            // アクションボタン
+            // Action buttons
             actionBar
 
-            // ステータスメッセージ
+            // Status messages
             statusMessages
 
-            // Counterpartyの承認待ち署名バナー
+            // Pending signature banner for Counterparty approval
             if let pendingSig = pendingCounterpartySignSignature {
                 let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
                     ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
@@ -85,19 +85,19 @@ struct ProposeRowView: View {
                         onSigned()
                     }
                 } onIgnore: {
-                    // 無視: バナーを非表示にするだけ（ローカルには反映しない）
+                    // Ignore: just hide the banner (do not reflect locally)
                     pendingCounterpartySignSignature = nil
                 }
             }
 
-            // Counterpartyがまだ署名していない場合の署名ボタン
+            // Sign button when Counterparty has not yet signed
             if shouldShowSignButton {
                 signButton
             }
 
-            // Honor / Part ボタン（signed状態のとき）
-            // TODO: PoC段階のため、Honor/Partは将来実装
-            // signed状態のUI表示のみ（ボタンはスタブ）
+            // Honor / Part buttons (when in signed state)
+            // TODO: Honor/Part to be implemented in a future iteration after PoC
+            // Only UI display for signed state (buttons are stubs)
             if propose.localStatus == .signed {
                 honorPartStubButtons
             }
@@ -108,7 +108,7 @@ struct ProposeRowView: View {
             showProposeDetail = true
         }
         .task(id: propose.localStatus) {
-            // ローカルステータスが変化したときにサーバーステータスを確認
+            // Check server status when local status changes
             await checkServerStatus()
         }
         .task {
@@ -140,11 +140,11 @@ struct ProposeRowView: View {
 
     // MARK: - Computed Properties
 
-    /// Signボタンを表示するかどうか
-    /// Counterpartyかつproposed状態のときのみ表示
+    /// Whether to show the Sign button
+    /// Only shown when the identity is the Counterparty and the state is proposed
     private var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
-        // 自分がCounterpartyで、かつまだ署名していない（proposed状態）
+        // I am the Counterparty and have not yet signed (proposed state)
         return identity.publicKey == propose.counterpartyPublicKey
             && propose.localStatus == .proposed
             && signSuccess != true
@@ -152,7 +152,7 @@ struct ProposeRowView: View {
 
     // MARK: - Sub Views
 
-    /// ローカルステータスバッジ
+    /// Local status badge
     @ViewBuilder
     private var statusBadge: some View {
         HStack(spacing: 4) {
@@ -163,7 +163,7 @@ struct ProposeRowView: View {
                 .font(.caption2)
                 .foregroundStyle(propose.localStatus.statusColor)
 
-            // サーバーステータスを追加で表示
+            // Also show server status
             Image(systemName: serverStatus.icon)
                 .font(.caption2)
                 .foregroundStyle(serverStatus.color)
@@ -235,7 +235,7 @@ struct ProposeRowView: View {
                 Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
-                Text(resendSuccess ? "サーバーに送信しました" : (resendErrorMessage ?? "送信に失敗しました"))
+                Text(resendSuccess ? "Sent to server" : (resendErrorMessage ?? "Failed to send"))
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
             }
@@ -252,14 +252,14 @@ struct ProposeRowView: View {
                 Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.caption2)
                     .foregroundStyle(signSuccess ? .green : .red)
-                Text(signSuccess ? "署名しました" : (signErrorMessage ?? "署名に失敗しました"))
+                Text(signSuccess ? "Signed" : (signErrorMessage ?? "Failed to sign"))
                     .font(.caption2)
                     .foregroundStyle(signSuccess ? .green : .red)
             }
         }
     }
 
-    /// Signボタン（Counterpartyかつproposed状態のとき表示）
+    /// Sign button (shown when identity is Counterparty and state is proposed)
     @ViewBuilder
     private var signButton: some View {
         HStack {
@@ -275,7 +275,7 @@ struct ProposeRowView: View {
                     HStack(spacing: 4) {
                         ProgressView()
                             .scaleEffect(0.6)
-                        Text("署名中...")
+                        Text("Signing...")
                             .font(.caption)
                     }
                 } else {
@@ -289,15 +289,15 @@ struct ProposeRowView: View {
         }
     }
 
-    /// Honor / Part スタブボタン（PoCのため将来実装）
+    /// Honor / Part stub buttons (to be implemented after PoC)
     @ViewBuilder
     private var honorPartStubButtons: some View {
         HStack(spacing: 8) {
             Spacer()
 
-            // TODO: PoC後にHonor機能を実装する
+            // TODO: Implement Honor functionality after PoC
             Button {
-                print("TODO: Honor機能は将来実装予定")
+                print("TODO: Honor functionality to be implemented in the future")
             } label: {
                 Label("Honor", systemImage: "checkmark.seal")
                     .font(.caption)
@@ -306,9 +306,9 @@ struct ProposeRowView: View {
             .controlSize(.small)
             .tint(.green)
 
-            // TODO: PoC後にPart機能を実装する
+            // TODO: Implement Part functionality after PoC
             Button {
-                print("TODO: Part機能は将来実装予定")
+                print("TODO: Part functionality to be implemented in the future")
             } label: {
                 Label("Part", systemImage: "xmark.seal")
                     .font(.caption)
@@ -327,7 +327,7 @@ struct ProposeRowView: View {
             shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
         } catch {
-            print("❌ Proposeエクスポートエラー: \(error)")
+            print("❌ Propose export error: \(error)")
             shareError = "Export failed"
         }
     }
@@ -339,7 +339,7 @@ struct ProposeRowView: View {
             showShareSheet = true
             shareError = nil
         } catch {
-            print("❌ Proposeエクスポートエラー: \(error)")
+            print("❌ Propose export error: \(error)")
             shareError = "Export failed"
         }
     }
@@ -366,7 +366,7 @@ struct ProposeRowView: View {
             await MainActor.run { resendSuccess = nil }
 
         } catch {
-            print("❌ Propose再送信エラー: \(error)")
+            print("❌ Propose resend error: \(error)")
             await MainActor.run {
                 isResending = false
                 resendSuccess = false
@@ -397,7 +397,7 @@ struct ProposeRowView: View {
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                // Counterpartyの承認待ち署名を設定
+                // Set the pending Counterparty signature awaiting acceptance
                 pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
             }
 
@@ -409,7 +409,7 @@ struct ProposeRowView: View {
 
         } catch let error as ProposeAPIClient.APIError {
             if case .httpError(let statusCode) = error, statusCode == 404 {
-                print("ℹ️ Proposeがサーバーに見つかりません: \(propose.id)")
+                print("ℹ️ Propose not found on server: \(propose.id)")
                 await MainActor.run {
                     serverStatus = .notFound
                     isCheckingServer = false
@@ -417,14 +417,14 @@ struct ProposeRowView: View {
                 return
             }
 
-            print("⚠️ サーバーステータス確認エラー: \(error)")
+            print("⚠️ Server status check error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ 予期しないエラー: \(error)")
+            print("⚠️ Unexpected error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
@@ -446,7 +446,7 @@ struct ProposeRowView: View {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
         } catch {
-            print("❌ デフォルトIdentityの読み込みエラー: \(error)")
+            print("❌ Error loading default Identity: \(error)")
             await MainActor.run { self.defaultIdentity = nil }
         }
     }
@@ -457,7 +457,7 @@ struct ProposeRowView: View {
             let contacts = try useCase.execute()
             contactNicknames = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
         } catch {
-            print("❌ Contactニックネームの読み込みエラー: \(error)")
+            print("❌ Error loading contact nicknames: \(error)")
         }
     }
 
@@ -485,11 +485,11 @@ struct ProposeRowView: View {
             await MainActor.run { signSuccess = nil }
 
         } catch SignProposeUseCaseError.notCounterparty {
-            print("⚠️ このIdentityはCounterpartyではないため署名できません")
+            print("⚠️ This identity is not the Counterparty and cannot sign")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
-                signErrorMessage = "このIdentityはCounterpartyではありません"
+                signErrorMessage = "This identity is not the Counterparty"
             }
 
             try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -499,7 +499,7 @@ struct ProposeRowView: View {
             }
 
         } catch {
-            print("❌ 署名エラー: \(error)")
+            print("❌ Signing error: \(error)")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
@@ -514,7 +514,7 @@ struct ProposeRowView: View {
         }
     }
 
-    /// Counterpartyのサーバー署名を承認してローカルに反映する
+    /// Accept the Counterparty's server signature and reflect it locally
     private func acceptCounterpartySignature(signature: String) async {
         await MainActor.run { isAcceptingSignature = true }
 
@@ -529,9 +529,9 @@ struct ProposeRowView: View {
                 isAcceptingSignature = false
                 pendingCounterpartySignSignature = nil
             }
-            print("✅ Counterparty署名を承認してローカルに反映しました")
+            print("✅ Accepted Counterparty signature and reflected it locally")
         } catch {
-            print("❌ Counterparty署名の反映に失敗しました: \(error)")
+            print("❌ Failed to reflect Counterparty signature locally: \(error)")
             await MainActor.run { isAcceptingSignature = false }
         }
     }

@@ -14,7 +14,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
     private let counterpartyPublicKey = "counterpartyKey"
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(
         id: UUID = UUID(),
         counterpartyPublicKey: String = "counterpartyKey",
@@ -40,10 +40,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
-        // Act: IdentityPublicKeyがCounterpartyPublicKeyと一致する場合
+        // Act: when IdentityPublicKey matches CounterpartyPublicKey
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
 
-        // Assert: signProposeエンドポイントが呼ばれた
+        // Assert: signPropose endpoint was called
         #expect(mockAPI.signProposeCalled == true)
         #expect(mockAPI.signProposeID == propose.id)
         #expect(mockAPI.signProposeInput?.signerPublicKey == counterpartyPublicKey)
@@ -57,17 +57,17 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
-        // Act: CreatorのPublicKeyでは送信しない
+        // Act: does not send with Creator's PublicKey
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURL: "https://example.com")
 
-        // Assert: signProposeは呼ばれない
+        // Assert: signPropose is not called
         #expect(mockAPI.signProposeCalled == false)
     }
 
     @Test func testThrowsNoSignatureFoundWhenCounterpartySignSignatureIsNil() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
-        // counterpartySignSignatureがnil（未署名）
+        // counterpartySignSignature is nil (unsigned)
         let propose = makePropose(counterpartySignSignature: nil)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)

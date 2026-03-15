@@ -12,7 +12,7 @@ import Foundation
 @MainActor
 struct LoadAllProposesUseCaseTests {
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(spaceID: UUID, message: String) -> Propose {
         Propose(
             id: UUID(),

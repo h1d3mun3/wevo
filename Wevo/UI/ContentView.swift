@@ -149,7 +149,7 @@ struct ContentView: View {
                 await loadSpaces()
             } catch {
                 print("❌ Error deleting space: \(error)")
-                // TODO: エラーをユーザーに表示
+                // TODO: Show error to user
             }
         }
     }

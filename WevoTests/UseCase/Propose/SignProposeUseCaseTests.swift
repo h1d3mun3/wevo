@@ -12,7 +12,7 @@ import Foundation
 @MainActor
 struct SignProposeUseCaseTests {
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(
         id: UUID = UUID(),
         creatorPublicKey: String = "creatorKey",
@@ -55,7 +55,7 @@ struct SignProposeUseCaseTests {
         // Act
         try await useCase.execute(to: proposeID, signIdentityID: identityID)
 
-        // Assert: counterpartySignSignatureがセットされた
+        // Assert: counterpartySignSignature is set
         #expect(mockPropose.updateCalled == true)
         #expect(mockPropose.updatedPropose?.counterpartySignSignature == "newCounterpartySig")
         #expect(mockPropose.updatedPropose?.counterpartyPublicKey == counterpartyKey)
@@ -84,7 +84,7 @@ struct SignProposeUseCaseTests {
         // Act
         try await useCase.execute(to: proposeID, signIdentityID: identityID)
 
-        // Assert: 署名後はsigned状態
+        // Assert: status is signed after signing
         #expect(mockPropose.updatedPropose?.localStatus == .signed)
     }
 
@@ -96,7 +96,7 @@ struct SignProposeUseCaseTests {
         let proposeID = UUID()
         let identityID = UUID()
         let creatorKey = "creatorPubKey"
-        // CreatorがSignしようとする（counterpartyPublicKeyは別のキー）
+        // Creator attempts to Sign (counterpartyPublicKey is a different key)
         let testPropose = makePropose(id: proposeID, creatorPublicKey: creatorKey, counterpartyPublicKey: "differentKey")
 
         let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: creatorKey)
@@ -108,7 +108,7 @@ struct SignProposeUseCaseTests {
             proposeRepository: mockPropose
         )
 
-        // Act & Assert: notCounterpartyエラーが発生する
+        // Act & Assert: notCounterparty error is thrown
         await #expect(throws: SignProposeUseCaseError.notCounterparty) {
             try await useCase.execute(to: proposeID, signIdentityID: identityID)
         }
@@ -123,7 +123,7 @@ struct SignProposeUseCaseTests {
         let identityID = UUID()
         let testPropose = makePropose(id: proposeID, creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
 
-        // 無関係なキーでSign試行
+        // Attempt to Sign with an unrelated key
         let unrelatedIdentity = Identity(id: identityID, nickname: "Eve", publicKey: "unrelatedKey")
         mockKeychain.getIdentityResult = unrelatedIdentity
         mockPropose.fetchByIDResult = testPropose

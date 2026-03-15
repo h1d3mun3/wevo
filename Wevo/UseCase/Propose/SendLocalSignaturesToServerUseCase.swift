@@ -8,11 +8,11 @@
 import Foundation
 
 protocol SendLocalSignaturesToServerUseCase {
-    /// ローカルのCounterparty署名をサーバーに送信する
+    /// Send the local Counterparty signature to the server
     /// - Parameters:
-    ///   - propose: 対象Propose
-    ///   - identityPublicKey: 操作者の公開鍵（Counterpartyのみ送信可能）
-    ///   - serverURL: サーバーのURL
+    ///   - propose: The target Propose
+    ///   - identityPublicKey: Operator's public key (only Counterparty can send)
+    ///   - serverURL: Server URL
     func execute(propose: Propose, identityPublicKey: String, serverURL: String) async throws
 }
 
@@ -35,18 +35,18 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
             throw SendLocalSignaturesToServerUseCaseError.invalidServerURL
         }
 
-        // CounterpartyのみがSign送信できる
+        // Only Counterparty can send Sign
         guard identityPublicKey == propose.counterpartyPublicKey else {
-            print("ℹ️ Counterpartyではないため、署名送信をスキップします")
+            print("ℹ️ Not the Counterparty; skipping signature send")
             return
         }
 
-        // counterpartySignSignatureがある場合のみ送信
+        // Only send when counterpartySignSignature exists
         guard let counterpartySignSignature = propose.counterpartySignSignature else {
             throw SendLocalSignaturesToServerUseCaseError.noSignatureFound
         }
 
-        // 署名メッセージを構築（sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt)）
+        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
         let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
 
         let input = ProposeAPIClient.SignInput(
@@ -58,6 +58,6 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.signPropose(proposeID: propose.id, input: input)
 
-        print("✅ Counterparty署名をサーバーに送信しました: \(propose.id)")
+        print("✅ Sent Counterparty signature to server: \(propose.id)")
     }
 }

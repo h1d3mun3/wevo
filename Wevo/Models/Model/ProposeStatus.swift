@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Proposeの状態を表すenum
+/// Enum representing the state of a Propose
 enum ProposeStatus: String, Codable {
     case proposed
     case signed
@@ -15,7 +15,7 @@ enum ProposeStatus: String, Codable {
     case parted
     case dissolved
 
-    /// アクティブ（進行中）な状態かどうか
+    /// Whether the state is active (in progress)
     var isActive: Bool {
         self == .proposed || self == .signed
     }

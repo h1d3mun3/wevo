@@ -21,10 +21,10 @@ struct AddSpaceUseCaseImpl {
 
 extension AddSpaceUseCaseImpl: AddSpaceUseCase {
     func execute(name: String, urlString: String, defaultIdentityID: UUID?) throws {
-        // URLの妥当性チェック（オプショナル）
+        // Validate URL (optional)
         let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // 既存のSpaceの数を取得してorderIndexを決定
+        // Fetch existing Spaces count to determine orderIndex
         let orderIndex: Int
         do {
             let existingSpaces = try spaceRepository.fetchAll()
@@ -34,7 +34,7 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
             orderIndex = 0
         }
 
-        // Spaceエンティティの作成
+        // Create Space entity
         let space = Space(
             id: UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -45,7 +45,7 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
             updatedAt: .now
         )
 
-        // SwiftDataに保存
+        // Save to SwiftData
         try spaceRepository.create(space)
         print("✅ Space saved: \(space.name)")
     }

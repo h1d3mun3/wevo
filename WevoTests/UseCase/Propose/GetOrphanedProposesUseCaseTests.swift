@@ -12,7 +12,7 @@ import Foundation
 @MainActor
 struct GetOrphanedProposesUseCaseTests {
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(spaceID: UUID, message: String, createdAt: Date = .now) -> Propose {
         Propose(
             id: UUID(),
@@ -73,7 +73,7 @@ struct GetOrphanedProposesUseCaseTests {
         // Act
         let result = try useCase.execute(validSpaceIDs: Set([UUID()]))
 
-        // Assert: 新しい方が先
+        // Assert: the newer one comes first
         #expect(result[0].spaceID == newerSpaceID)
         #expect(result[1].spaceID == olderSpaceID)
     }

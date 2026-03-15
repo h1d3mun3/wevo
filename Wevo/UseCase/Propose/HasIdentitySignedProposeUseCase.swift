@@ -8,9 +8,9 @@
 import Foundation
 
 protocol HasIdentitySignedProposeUseCase {
-    /// 指定したIdentityがProposeに署名済みかどうかを返す
-    /// - Creator: 常にtrue（Propose作成時に必ず署名する）
-    /// - Counterparty: counterpartySignSignatureが存在する場合にtrue
+    /// Returns whether the specified Identity has signed the Propose
+    /// - Creator: always true (Creator always signs at Propose creation time)
+    /// - Counterparty: true when counterpartySignSignature exists
     func execute(identity: Identity, propose: Propose) -> Bool
 }
 
@@ -18,17 +18,17 @@ struct HasIdentitySignedProposeUseCaseImpl: HasIdentitySignedProposeUseCase {
     func execute(identity: Identity, propose: Propose) -> Bool {
         let myPublicKey = identity.publicKey
 
-        // Creatorは常に署名済み（Propose作成時に必ず署名するため）
+        // Creator is always signed (they always sign when creating a Propose)
         if myPublicKey == propose.creatorPublicKey {
             return true
         }
 
-        // CounterpartyはcounterpartySignSignatureの有無で判定
+        // Counterparty is determined by the presence of counterpartySignSignature
         if myPublicKey == propose.counterpartyPublicKey {
             return propose.counterpartySignSignature != nil
         }
 
-        // 参加者でない場合はfalse
+        // Not a participant, return false
         return false
     }
 }

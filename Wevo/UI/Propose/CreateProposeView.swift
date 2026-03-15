@@ -31,7 +31,7 @@ struct CreateProposeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - 基本情報セクション
+                // MARK: - Basic Information Section
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Space")
@@ -56,7 +56,7 @@ struct CreateProposeView: View {
                     Text("Information")
                 }
 
-                // MARK: - To（Counterparty）セクション
+                // MARK: - To (Counterparty) Section
                 Section {
                     if let contact = selectedContact {
                         HStack {
@@ -71,7 +71,7 @@ struct CreateProposeView: View {
 
                             Spacer()
 
-                            Button("変更") {
+                            Button("Change") {
                                 showContactPicker = true
                             }
                             .buttonStyle(.borderless)
@@ -84,7 +84,7 @@ struct CreateProposeView: View {
                             HStack {
                                 Image(systemName: "person.crop.circle.badge.plus")
                                     .foregroundStyle(.blue)
-                                Text("Contactを選択...")
+                                Text("Select a Contact...")
                                     .foregroundStyle(.blue)
                             }
                         }
@@ -93,10 +93,10 @@ struct CreateProposeView: View {
                 } header: {
                     Text("To（Counterparty）")
                 } footer: {
-                    Text("Proposeに署名してもらう相手を選択してください。")
+                    Text("Select the counterparty who will sign the Propose.")
                 }
 
-                // MARK: - メッセージセクション
+                // MARK: - Message Section
                 Section {
                     TextField("Message", text: $message, axis: .vertical)
                         .autocorrectionDisabled()
@@ -104,10 +104,10 @@ struct CreateProposeView: View {
                 } header: {
                     Text("Propose Message")
                 } footer: {
-                    Text("提案するメッセージを入力してください。SHA256ハッシュ化された後、あなたのIDで署名されます。")
+                    Text("Enter the message for the propose. It will be SHA256-hashed and signed with your identity.")
                 }
 
-                // MARK: - エラーメッセージ
+                // MARK: - Error Message
                 if let errorMessage = errorMessage {
                     Section {
                         HStack {
@@ -159,7 +159,7 @@ struct CreateProposeView: View {
 
         guard let contact = selectedContact else {
             await MainActor.run {
-                errorMessage = "Counterpartyが選択されていません"
+                errorMessage = "No Counterparty selected"
                 isSaving = false
             }
             return
@@ -179,7 +179,7 @@ struct CreateProposeView: View {
                 counterpartyPublicKey: contact.publicKey
             )
 
-            // 結果に関わらず画面を閉じる
+            // Close the screen regardless of result
             await MainActor.run {
                 isSaving = false
                 onSuccess()
@@ -187,7 +187,7 @@ struct CreateProposeView: View {
             }
 
         } catch {
-            print("❌ Propose作成エラー: \(error)")
+            print("❌ Error creating propose: \(error)")
             await MainActor.run {
                 errorMessage = "Failed to create propose: \(error.localizedDescription)"
                 isSaving = false
@@ -198,7 +198,7 @@ struct CreateProposeView: View {
 
 // MARK: - ContactPickerSheet
 
-/// Contactを選択するシート
+/// Sheet for selecting a Contact
 struct ContactPickerSheet: View {
     @Binding var selectedContact: Contact?
     @Environment(\.dismiss) private var dismiss
@@ -215,9 +215,9 @@ struct ContactPickerSheet: View {
                         Image(systemName: "person.crop.circle.badge.xmark")
                             .font(.largeTitle)
                             .foregroundStyle(.secondary)
-                        Text("Contactが見つかりません")
+                        Text("No contacts found")
                             .foregroundStyle(.secondary)
-                        Text("先にContactを追加してください。")
+                        Text("Please add a contact first.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -241,13 +241,13 @@ struct ContactPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Counterpartyを選択")
+            .navigationTitle("Select Counterparty")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") {
+                    Button("Cancel") {
                         dismiss()
                     }
                 }
@@ -263,8 +263,8 @@ struct ContactPickerSheet: View {
         do {
             contacts = try useCase.execute()
         } catch {
-            print("❌ Contact読み込みエラー: \(error)")
-            errorMessage = "Contactの読み込みに失敗しました"
+            print("❌ Error loading contacts: \(error)")
+            errorMessage = "Failed to load contacts"
         }
     }
 }

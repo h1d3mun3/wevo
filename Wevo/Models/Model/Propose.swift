@@ -7,35 +7,35 @@
 
 import Foundation
 
-/// ローカルストレージ用のProposeモデル
-/// 元のメッセージとハッシュ化されたメッセージの両方を持つ
-/// ステータスはローカルの署名有無からcomputed propertyで導出する（サーバーのstatusは参考値のみ）
+/// Propose model for local storage
+/// Holds both the original message and the hashed message
+/// Status is derived as a computed property from the presence of local signatures (the server's status field is a reference value only)
 struct Propose: Codable, Identifiable {
     let id: UUID
     let spaceID: UUID
-    let message: String            // 元のメッセージ（ローカルのみ）
-    let payloadHash: String        // SHA256ハッシュ（APIでは contentHash として送信）
+    let message: String            // Original message (local only)
+    let payloadHash: String        // SHA256 hash (sent as contentHash to API)
     let createdAt: Date
     let updatedAt: Date
 
-    // MARK: - 参加者（1:1 PoC）
+    // MARK: - Participants (1:1 PoC)
 
-    /// Proposeを作成したユーザーの公開鍵（Base64 x963）
+    /// Public key of the user who created the Propose (Base64 x963)
     let creatorPublicKey: String
 
-    /// Creatorが作成時に付与した署名（Base64 DER）
+    /// Signature attached by the Creator at creation time (Base64 DER)
     let creatorSignature: String
 
-    /// Counterpartyの公開鍵（Base64 x963）
+    /// Counterparty's public key (Base64 x963)
     let counterpartyPublicKey: String
 
-    /// Counterpartyの署名（nilの場合はまだ署名していない）
+    /// Counterparty's signature (nil means not yet signed)
     let counterpartySignSignature: String?
 
-    // MARK: - ローカルステータス（computed property）
+    // MARK: - Local Status (computed property)
 
-    /// ローカルの署名有無から導出したステータス
-    /// サーバーから受け取った status フィールドは参考値のみで、こちらを使う
+    /// Status derived from the presence of local signatures
+    /// The status field received from the server is a reference value only; use this instead
     var localStatus: ProposeStatus {
         if counterpartySignSignature != nil {
             return .signed
@@ -57,7 +57,7 @@ struct Propose: Codable, Identifiable {
         self.id = id
         self.spaceID = spaceID
         self.message = message
-        // SHA256ハッシュを自動計算して payloadHash に格納
+        // Automatically compute SHA256 hash and store in payloadHash
         self.payloadHash = message.sha256HashedString
         self.creatorPublicKey = creatorPublicKey
         self.creatorSignature = creatorSignature

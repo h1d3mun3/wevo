@@ -15,7 +15,7 @@ struct HasIdentitySignedProposeUseCaseTests {
     let counterpartyPublicKey = "CounterpartyPublicKey"
     let useCase = HasIdentitySignedProposeUseCaseImpl()
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(counterpartySignSignature: String?) -> Propose {
         Propose(
             id: UUID(),
@@ -30,7 +30,7 @@ struct HasIdentitySignedProposeUseCaseTests {
         )
     }
 
-    @Test("Creatorは常にtrueを返す")
+    @Test("Creator always returns true")
     func returnsTrueForCreator() {
         let identity = Identity(id: UUID(), nickname: "Alice", publicKey: creatorPublicKey)
         let propose = makePropose(counterpartySignSignature: nil)
@@ -38,11 +38,11 @@ struct HasIdentitySignedProposeUseCaseTests {
         // Act
         let result = useCase.execute(identity: identity, propose: propose)
 
-        // Assert: Creatorは常に署名済み
+        // Assert: Creator is always considered signed
         #expect(result == true)
     }
 
-    @Test("CounterpartyはcounterpartySignSignatureがある場合trueを返す")
+    @Test("Counterparty returns true when counterpartySignSignature exists")
     func returnsTrueForCounterpartyWhenSigned() {
         let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
         let propose = makePropose(counterpartySignSignature: "someSig")
@@ -54,7 +54,7 @@ struct HasIdentitySignedProposeUseCaseTests {
         #expect(result == true)
     }
 
-    @Test("CounterpartyはcounterpartySignSignatureがnilの場合falseを返す")
+    @Test("Counterparty returns false when counterpartySignSignature is nil")
     func returnsFalseForCounterpartyWhenNotSigned() {
         let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
         let propose = makePropose(counterpartySignSignature: nil)
@@ -66,7 +66,7 @@ struct HasIdentitySignedProposeUseCaseTests {
         #expect(result == false)
     }
 
-    @Test("参加者でないIdentityはfalseを返す")
+    @Test("Identity that is not a participant returns false")
     func returnsFalseForNonParticipant() {
         let identity = Identity(id: UUID(), nickname: "Eve", publicKey: "unrelatedKey")
         let propose = makePropose(counterpartySignSignature: "someSig")

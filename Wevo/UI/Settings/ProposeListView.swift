@@ -42,7 +42,7 @@ struct ProposeListView: View {
                             }
 
                             HStack {
-                                // ローカルステータスアイコン（proposed=⏳, signed=✅）
+                                // Local status icon (proposed=⏳, signed=✅)
                                 Image(systemName: propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
                                     .font(.caption)
                                     .foregroundStyle(propose.localStatus == .proposed ? .orange : .green)

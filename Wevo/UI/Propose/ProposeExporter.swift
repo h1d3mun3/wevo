@@ -8,7 +8,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// ProposeをエクスポートするためのWrapper
+/// Wrapper for exporting a Propose
 struct ProposeExportData: Codable {
     let propose: Propose
     let spaceID: UUID
@@ -23,10 +23,10 @@ struct ProposeExportData: Codable {
     }
 }
 
-/// ProposeのエクスポートとAirDrop共有を管理
+/// Manages Propose export and AirDrop sharing
 struct ProposeExporter {
     
-    /// ProposeをJSON形式でエクスポートし、共有可能なURLを返す
+    /// Exports a Propose in JSON format and returns a shareable URL
     static func exportPropose(_ propose: Propose, space: Space) throws -> URL {
         let exportData = ProposeExportData(
             propose: propose,
@@ -41,8 +41,8 @@ struct ProposeExporter {
         
         let jsonData = try encoder.encode(exportData)
         
-        // 一時ディレクトリにファイルを保存
-        // カスタム拡張子 .wevo-propose を使用
+        // Save file to the temporary directory
+        // Using custom extension .wevo-propose
         let fileName = "propose-\(propose.id.uuidString).wevo-propose"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         
@@ -53,7 +53,7 @@ struct ProposeExporter {
         return tempURL
     }
     
-    /// JSONファイルからProposeをインポート
+    /// Import a Propose from a JSON file
     static func importPropose(from url: URL) throws -> ProposeExportData {
         let jsonData = try Data(contentsOf: url)
         
@@ -68,5 +68,5 @@ struct ProposeExporter {
     }
 }
 
-// Note: Transferable実装は将来的な拡張のために残しています
-// 現在はShareSheetを使用してファイル共有を行います
+// Note: The Transferable implementation is kept for future extension
+// Currently, file sharing is done using ShareSheet

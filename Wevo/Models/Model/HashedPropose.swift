@@ -7,36 +7,36 @@
 
 import Foundation
 
-/// Counterpartyの情報を表す構造体（APIレスポンス内のcounterpartiesフィールドに対応）
+/// Struct representing counterparty information (corresponds to the counterparties field in API responses)
 struct ProposeCounterparty: Codable {
-    /// CounterpartyのBase64 x963形式の公開鍵
+    /// Counterparty's public key in Base64 x963 format
     let publicKey: String
-    /// Counterpartyの署名署名（nil = 未署名）
+    /// Counterparty's sign signature (nil = unsigned)
     let signSignature: String?
-    /// Counterpartyのhonor署名（nil = 未実行）
+    /// Counterparty's honor signature (nil = not yet executed)
     let honorSignature: String?
-    /// Counterpartyのpart署名（nil = 未実行）
+    /// Counterparty's part signature (nil = not yet executed)
     let partSignature: String?
 }
 
-/// API通信用のProposeモデル
-/// ハッシュ化されたメッセージのみを持つ（元のメッセージは含まない）
-/// サーバーのProposeResponseに対応
+/// Propose model for API communication
+/// Contains only the hashed message (does not include the original message)
+/// Corresponds to the server's ProposeResponse
 struct HashedPropose: Codable, Identifiable {
     let id: UUID
-    /// SHA256ハッシュ（APIではcontentHashとして受け取るが、内部ではpayloadHashとして扱う）
+    /// SHA256 hash (received as contentHash from API, treated internally as payloadHash)
     let contentHash: String
-    /// Creatorの公開鍵（Base64 x963）
+    /// Creator's public key (Base64 x963)
     let creatorPublicKey: String
-    /// Creatorが作成時に付与した署名（Base64 DER）
+    /// Signature attached by the Creator at creation time (Base64 DER)
     let creatorSignature: String
-    /// Counterpartyのリスト（PoCでは1名のみ）
+    /// List of counterparties (only 1 in PoC)
     let counterparties: [ProposeCounterparty]
-    /// Creatorのhonor署名（nil = 未実行）
+    /// Creator's honor signature (nil = not yet executed)
     let honorCreatorSignature: String?
-    /// Creatorのpart署名（nil = 未実行）
+    /// Creator's part signature (nil = not yet executed)
     let partCreatorSignature: String?
-    /// サーバーが管理するステータス（参考値のみ）
+    /// Status managed by the server (reference value only)
     let status: ProposeStatus
     let createdAt: Date
     let updatedAt: Date

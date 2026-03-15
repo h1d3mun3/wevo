@@ -7,10 +7,10 @@
 
 import Foundation
 
-/// Contact構造体とContactSwiftDataの相互変換を行う
+/// Handles bidirectional conversion between the Contact struct and ContactSwiftData
 struct ContactConverter {
 
-    /// Contact構造体からContactSwiftDataへ変換
+    /// Converts a Contact struct to ContactSwiftData
     static func toModel(from contact: Contact) -> ContactSwiftData {
         return ContactSwiftData(
             id: contact.id,
@@ -20,7 +20,7 @@ struct ContactConverter {
         )
     }
 
-    /// ContactSwiftDataからContact構造体へ変換
+    /// Converts ContactSwiftData to a Contact struct
     static func toEntity(from model: ContactSwiftData) -> Contact {
         return Contact(
             id: model.id,
@@ -30,12 +30,12 @@ struct ContactConverter {
         )
     }
 
-    /// 複数のContactSwiftDataを変換
+    /// Converts multiple ContactSwiftData objects
     static func toEntities(from models: [ContactSwiftData]) -> [Contact] {
         return models.map { toEntity(from: $0) }
     }
 
-    /// ContactSwiftDataを既存のContact構造体で更新
+    /// Updates a ContactSwiftData with an existing Contact struct
     static func updateModel(_ model: ContactSwiftData, with contact: Contact) {
         model.nickname = contact.nickname
         model.publicKey = contact.publicKey

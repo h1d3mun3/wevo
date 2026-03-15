@@ -7,16 +7,16 @@
 
 import SwiftUI
 
-/// Counterpartyのサーバー署名が承認待ちの場合に表示するバナー
-/// ユーザーが明示的に「承認する」を選んだ場合のみローカルに反映する
+/// Banner displayed when the Counterparty's server signature is pending approval
+/// Reflected locally only when the user explicitly chooses to accept
 struct PendingSignatureBannerView: View {
-    /// CounterpartyのニックネームまたはPublicKeyのプレフィックス
+    /// Counterparty's nickname or prefix of their PublicKey
     let counterpartyNickname: String
-    /// 承認処理中かどうか
+    /// Whether acceptance processing is in progress
     let isAccepting: Bool
-    /// 「承認する」ボタンが押されたときのコールバック
+    /// Callback when the "Accept" button is tapped
     let onAccept: () -> Void
-    /// 「無視する」ボタンが押されたときのコールバック
+    /// Callback when the "Ignore" button is tapped
     let onIgnore: () -> Void
 
     var body: some View {
@@ -26,7 +26,7 @@ struct PendingSignatureBannerView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
 
-                Text("\(counterpartyNickname)がサーバーで署名しました")
+                Text("\(counterpartyNickname) signed on the server")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .fontWeight(.medium)
@@ -37,7 +37,7 @@ struct PendingSignatureBannerView: View {
             HStack(spacing: 8) {
                 Spacer()
 
-                Button("無視する") {
+                Button("Ignore") {
                     onIgnore()
                 }
                 .buttonStyle(.borderless)
@@ -50,11 +50,11 @@ struct PendingSignatureBannerView: View {
                         HStack(spacing: 4) {
                             ProgressView()
                                 .scaleEffect(0.7)
-                            Text("承認中...")
+                            Text("Accepting...")
                                 .font(.caption)
                         }
                     } else {
-                        Label("承認する", systemImage: "checkmark.circle.fill")
+                        Label("Accept", systemImage: "checkmark.circle.fill")
                             .font(.caption)
                     }
                 }

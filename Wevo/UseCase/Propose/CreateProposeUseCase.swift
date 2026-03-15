@@ -31,25 +31,25 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         let identity = try keychainRepository.getIdentity(id: identityID)
         let space = try spaceRepository.fetch(by: spaceID)
 
-        // ProposeIDと作成日時を生成
+        // Generate ProposeID and creation timestamp
         let proposeID = UUID()
         let createdAt = Date()
 
-        // contentHash（SHA256）を計算
+        // Calculate contentHash (SHA256)
         let contentHash = trimmedMessage.sha256HashedString
 
-        // 署名メッセージを構築（create: proposeId + contentHash + counterpartyPublicKeys(sorted & joined) + createdAt）
+        // Build signature message (create: proposeId + contentHash + counterpartyPublicKeys(sorted & joined) + createdAt)
         let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: createdAt)
         let sortedCounterpartyKeys = [counterpartyPublicKey].sorted().joined()
         let signatureMessage = proposeID.uuidString + contentHash + sortedCounterpartyKeys + iso8601String
 
-        // Creatorが署名
+        // Creator signs
         let creatorSignature = try keychainRepository.signMessage(
             signatureMessage,
             withIdentityId: identity.id
         )
 
-        // Proposeエンティティを作成（counterpartySignSignatureはnilで初期化）
+        // Create Propose entity (counterpartySignSignature initialized to nil)
         let propose = Propose(
             id: proposeID,
             spaceID: spaceID,
@@ -62,15 +62,15 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
             updatedAt: createdAt
         )
 
-        // ローカルに保存
+        // Save locally
         try proposeRepository.create(propose, spaceID: space.id)
-        print("✅ Proposeをローカルに保存しました: \(proposeID)")
-        print("   メッセージ: \(trimmedMessage)")
+        print("✅ Saved Propose locally: \(proposeID)")
+        print("   Message: \(trimmedMessage)")
         print("   contentHash: \(contentHash)")
 
-        // APIに送信（失敗してもローカルには保存済みなので警告のみ）
+        // Send to API (only warn if it fails since it's already saved locally)
         guard let baseURL = URL(string: space.url) else {
-            print("⚠️ 無効なサーバーURL: \(space.url)")
+            print("⚠️ Invalid server URL: \(space.url)")
             return
         }
 
@@ -86,10 +86,10 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         do {
             let client = ProposeAPIClient(baseURL: baseURL)
             try await client.createPropose(input: input)
-            print("✅ ProposeをAPIに送信しました: \(proposeID)")
+            print("✅ Sent Propose to API: \(proposeID)")
         } catch {
-            // API送信に失敗してもローカルには保存済みなので警告のみ
-            print("⚠️ APIへの送信に失敗しました（ローカルには保存済み）: \(error)")
+            // Only warn if API send fails since it's already saved locally
+            print("⚠️ Failed to send to API (already saved locally): \(error)")
         }
     }
 }

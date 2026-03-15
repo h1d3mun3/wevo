@@ -105,7 +105,7 @@ class MockProposeAPIClient: ProposeAPIClientProtocol {
             throw error
         }
         guard let result = getProposeResult else {
-            throw NSError(domain: "MockProposeAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "getProposeResultが設定されていません"])
+            throw NSError(domain: "MockProposeAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "getProposeResult is not set"])
         }
         return result
     }
@@ -115,7 +115,7 @@ class MockProposeAPIClient: ProposeAPIClientProtocol {
             throw error
         }
         guard let result = listProposesResult else {
-            throw NSError(domain: "MockProposeAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "listProposesResultが設定されていません"])
+            throw NSError(domain: "MockProposeAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "listProposesResult is not set"])
         }
         return result
     }

@@ -7,11 +7,11 @@
 
 import Foundation
 
-/// サーバーステータス確認結果（新API仕様）
+/// Server status check result (new API specification)
 struct ProposeServerCheckResult {
-    /// サーバーが返したステータス
+    /// Status returned by the server
     let serverStatus: ProposeStatus
-    /// Counterpartyがサーバーで署名済みだがローカル未反映の場合の署名文字列（nilの場合は新着なし）
+    /// Signature string when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
     let pendingCounterpartySignSignature: String?
 }
 
@@ -40,16 +40,16 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         let hashedPropose = try await client.getPropose(proposeID: propose.id)
 
-        print("📊 サーバーステータス: \(hashedPropose.status.rawValue)")
+        print("📊 Server status: \(hashedPropose.status.rawValue)")
 
-        // Counterpartyがサーバーで署名済みかつローカル未反映かを確認（PoCは1名のみ）
+        // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
         var pendingSignSignature: String? = nil
         if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
            let serverSignSignature = counterparty.signSignature,
            propose.counterpartySignSignature == nil {
-            // サーバーでは署名済みだがローカルにはまだ反映されていない
+            // Signed on server but not yet reflected locally
             pendingSignSignature = serverSignSignature
-            print("🔄 Counterpartyの署名をサーバーから検出: ローカル未反映")
+            print("🔄 Detected Counterparty signature from server: not yet reflected locally")
         }
 
         return ProposeServerCheckResult(

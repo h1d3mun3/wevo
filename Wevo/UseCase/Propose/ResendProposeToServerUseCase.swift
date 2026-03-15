@@ -30,15 +30,15 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
             throw ResendProposeToServerUseCaseError.invalidServerURL
         }
 
-        // CreatorSignatureが存在することを確認
+        // Verify that CreatorSignature exists
         guard !propose.creatorSignature.isEmpty else {
             throw ResendProposeToServerUseCaseError.noSignatureFound
         }
 
-        // 作成日時のISO8601文字列
+        // ISO8601 string of creation timestamp
         let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
 
-        // CreateProposeInputを使ってPOST /proposesに再送信
+        // Resend to POST /proposes using CreateProposeInput
         let input = ProposeAPIClient.CreateProposeInput(
             proposeId: propose.id.uuidString,
             contentHash: propose.payloadHash,
@@ -51,6 +51,6 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.createPropose(input: input)
 
-        print("✅ Proposeをサーバーに再送信しました: \(propose.id)")
+        print("✅ Resent Propose to server: \(propose.id)")
     }
 }

@@ -12,7 +12,7 @@ import Foundation
 @MainActor
 struct AppendServerSignaturesToLocalProposeUseCaseTests {
 
-    /// テスト用Proposeを生成するヘルパー
+    /// Helper to generate a test Propose
     private func makePropose(
         id: UUID = UUID(),
         counterpartyPublicKey: String = "counterpartyKey",
@@ -43,7 +43,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Act
         try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
 
-        // Assert: counterpartySignSignatureがセットされた
+        // Assert: counterpartySignSignature is set
         #expect(mockRepository.fetchByIDCalledWithID == proposeID)
         #expect(mockRepository.updateCalled == true)
         #expect(mockRepository.updatedPropose?.counterpartySignSignature == "serverSig123")
@@ -61,7 +61,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Act
         try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
 
-        // Assert: 署名後はsigned状態
+        // Assert: status is signed after signing
         #expect(mockRepository.updatedPropose?.localStatus == .signed)
     }
 
@@ -77,7 +77,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Act
         try useCase.execute(proposeID: proposeID, counterpartySignSignature: "newSig")
 
-        // Assert: 他のフィールドが保持されている
+        // Assert: other fields are preserved
         #expect(mockRepository.updatedPropose?.id == proposeID)
         #expect(mockRepository.updatedPropose?.counterpartyPublicKey == "cpartyKey")
         #expect(mockRepository.updatedPropose?.message == "test")

@@ -22,7 +22,7 @@ protocol SignatureRepository {
     func fetchPayloadHash(forSignatureID id: UUID) throws -> String
 }
 
-/// SwiftDataを使用してSignatureの操作を提供するRepository
+/// Repository providing Signature operations using SwiftData
 final class SignatureRepositoryImpl: SignatureRepository {
     private let modelContext: ModelContext
 
@@ -32,7 +32,7 @@ final class SignatureRepositoryImpl: SignatureRepository {
 
     // MARK: - Fetch
 
-    /// すべてのSignatureを取得（作成日時の降順でソート）
+    /// Retrieve all Signatures (sorted by creation date descending)
     func fetchAll() throws -> [Signature] {
         let descriptor = FetchDescriptor<SignatureSwiftData>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -40,7 +40,7 @@ final class SignatureRepositoryImpl: SignatureRepository {
 
         do {
             let models = try modelContext.fetch(descriptor)
-            // SignatureSwiftDataをSignatureエンティティに変換
+            // Convert SignatureSwiftData to Signature entity
             return models.map { model in
                 Signature(
                     id: model.id,
@@ -81,10 +81,10 @@ final class SignatureRepositoryImpl: SignatureRepository {
 
     // MARK: - Fetch
 
-    /// 署名IDに紐づくProposeのpayloadHashを取得
-    /// 新APIではSignatureSwiftDataとProposeSwiftDataのリレーションがないため、
-    /// 常にSignatureRepositoryError.proposeNotFoundForSignatureをスローする
-    /// （この機能は新APIでは使用されない）
+    /// Retrieve the payloadHash of the Propose associated with a signature ID
+    /// Since there is no relation between SignatureSwiftData and ProposeSwiftData in the new API,
+    /// this always throws SignatureRepositoryError.proposeNotFoundForSignature
+    /// (this functionality is not used in the new API)
     func fetchPayloadHash(forSignatureID id: UUID) throws -> String {
         throw SignatureRepositoryError.proposeNotFoundForSignature(id)
     }

@@ -169,7 +169,7 @@ struct ProposeRepositoryTests {
         let original = makePropose(id: id, spaceID: spaceID, counterpartySignSignature: nil)
         try repo.create(original, spaceID: spaceID)
 
-        // counterpartySignSignatureをセットして更新
+        // Update with counterpartySignSignature set
         let updated = Propose(
             id: id,
             spaceID: spaceID,

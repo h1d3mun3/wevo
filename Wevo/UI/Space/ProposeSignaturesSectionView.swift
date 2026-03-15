@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// Participants（Creator + Counterparty）のセクションビュー
-/// 旧のシグネチャリスト表示から参加者ステータス表示に変更
+/// Section view for Participants (Creator + Counterparty)
+/// Changed from the old signature list display to participant status display
 struct ProposeSignaturesSectionView: View {
     let propose: Propose
     let contactNicknames: [String: String]
@@ -23,14 +23,14 @@ struct ProposeSignaturesSectionView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
 
-            // Creator行（常に署名済み）
+            // Creator row (always signed)
             participantRow(
                 publicKey: propose.creatorPublicKey,
                 role: "Creator",
                 isSigned: true
             )
 
-            // Counterparty行（localStatusに応じたアイコン）
+            // Counterparty row (icon based on localStatus)
             participantRow(
                 publicKey: propose.counterpartyPublicKey,
                 role: "Counterparty",
@@ -42,13 +42,13 @@ struct ProposeSignaturesSectionView: View {
     @ViewBuilder
     private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
         HStack(spacing: 8) {
-            // 署名状態アイコン（proposed=⏳, signed=✅）
+            // Signature status icon (proposed=⏳, signed=✅)
             Image(systemName: isSigned ? "checkmark.circle.fill" : "clock")
                 .font(.caption)
                 .foregroundStyle(isSigned ? .green : .orange)
 
             VStack(alignment: .leading, spacing: 2) {
-                // ニックネームまたはPublicKeyのプレフィックス
+                // Nickname or prefix of PublicKey
                 let nickname = contactNicknames[publicKey] ?? String(publicKey.prefix(12)) + "..."
                 Text(nickname)
                     .font(.caption)
@@ -60,9 +60,9 @@ struct ProposeSignaturesSectionView: View {
 
             Spacer()
 
-            // 自分自身かどうかを示すバッジ
+            // Badge indicating whether this is the current user
             if publicKey == defaultIdentity?.publicKey {
-                Text("自分")
+                Text("Me")
                     .font(.caption2)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)

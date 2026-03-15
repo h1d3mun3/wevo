@@ -238,7 +238,7 @@ struct WevoApp: App {
         availableSpaces = []
     }
 
-    /// アプリ起動時に一時ディレクトリ内の秘密鍵・Proposeエクスポートファイルを削除
+    /// Deletes private key and Propose export files in the temporary directory on app launch
     private func cleanupTemporaryFiles() {
         let tempDir = FileManager.default.temporaryDirectory
         let sensitiveExtensions = ["wevo-identity", "wevo-propose", "wevo-contact"]

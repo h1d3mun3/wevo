@@ -20,7 +20,7 @@ struct ExportIdentityUseCaseTests {
         publicKey: "TestPublicKey"
     )
 
-    @Test("秘密鍵を取得してBase64エンコードしファイルにエクスポートできる")
+    @Test("Can retrieve private key, Base64-encode it, and export to file")
     func executeSuccess() throws {
         let privateKeyData = Data("test-private-key".utf8)
         mockKeychainRepository.getPrivateKeyResult = privateKeyData
@@ -31,16 +31,16 @@ struct ExportIdentityUseCaseTests {
         #expect(url.pathExtension == "wevo-identity")
         #expect(FileManager.default.fileExists(atPath: url.path))
 
-        // ファイル内容にBase64エンコードされた秘密鍵が含まれる
+        // File content contains the Base64-encoded private key
         let data = try Data(contentsOf: url)
         let fileContent = String(data: data, encoding: .utf8)!
         #expect(fileContent.contains(privateKeyData.base64EncodedString()))
 
-        // クリーンアップ
+        // Cleanup
         try? FileManager.default.removeItem(at: url)
     }
 
-    @Test("秘密鍵の取得に失敗した場合エラーが返る")
+    @Test("Returns error when private key retrieval fails")
     func executeFailsWhenPrivateKeyNotFound() {
         mockKeychainRepository.getPrivateKeyError = KeychainError.itemNotFound
 

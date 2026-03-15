@@ -9,7 +9,7 @@ import Foundation
 
 enum SignProposeUseCaseError: Error {
     case failedToSavePropose
-    /// 署名しようとしているIDがCounterpartyではない
+    /// The identity attempting to sign is not the Counterparty
     case notCounterparty
 }
 
@@ -32,23 +32,23 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         let identity = try keychainRepository.getIdentity(id: signIdentityID)
         let propose = try proposeRepository.fetch(by: proposeID)
 
-        // CounterpartyのみがSignできる
+        // Only Counterparty can sign
         guard identity.publicKey == propose.counterpartyPublicKey else {
-            print("⚠️ 署名者がCounterpartyではありません: \(identity.publicKey)")
+            print("⚠️ Signer is not the Counterparty: \(identity.publicKey)")
             throw SignProposeUseCaseError.notCounterparty
         }
 
-        // 署名メッセージを構築（sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt)）
+        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
         let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
         let signatureMessage = propose.id.uuidString + propose.payloadHash + identity.publicKey + iso8601String
 
-        // 署名
+        // Sign
         let signatureData = try keychainRepository.signMessage(
             signatureMessage,
             withIdentityId: identity.id
         )
 
-        // counterpartySignSignatureをセットしてProposeを更新
+        // Update Propose with counterpartySignSignature set
         let updatedPropose = Propose(
             id: propose.id,
             spaceID: propose.spaceID,
@@ -61,17 +61,17 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             updatedAt: Date()
         )
 
-        // ローカルに保存
+        // Save locally
         do {
             try proposeRepository.update(updatedPropose)
-            print("✅ Counterparty署名をローカルに保存しました: \(propose.id)")
+            print("✅ Saved Counterparty signature locally: \(propose.id)")
         } catch {
-            print("❌ Proposeの更新に失敗しました: \(error)")
+            print("❌ Failed to update Propose: \(error)")
             throw SignProposeUseCaseError.failedToSavePropose
         }
 
-        // APIに送信（失敗してもローカルには保存済みなので警告のみ）
-        // APIへの送信は SendLocalSignaturesToServerUseCase で行う
-        print("ℹ️ API送信はSendLocalSignaturesToServerUseCaseで実行してください")
+        // API submission (only a warning if it fails since already saved locally)
+        // API submission is handled by SendLocalSignaturesToServerUseCase
+        print("ℹ️ Please use SendLocalSignaturesToServerUseCase to submit to the API")
     }
 }

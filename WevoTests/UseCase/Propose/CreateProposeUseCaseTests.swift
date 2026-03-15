@@ -70,7 +70,7 @@ struct CreateProposeUseCaseTests {
         // Act
         try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
-        // Assert: creatorPublicKeyとcounterpartyPublicKeyが正しくセットされている
+        // Assert: creatorPublicKey and counterpartyPublicKey are correctly set
         #expect(mockPropose.createdPropose?.creatorPublicKey == "pubkey123")
         #expect(mockPropose.createdPropose?.counterpartyPublicKey == counterpartyPublicKey)
         #expect(mockPropose.createdPropose?.counterpartySignSignature == nil)
@@ -100,7 +100,7 @@ struct CreateProposeUseCaseTests {
         // Act
         try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
-        // Assert: 作成直後はcounterpartySignSignatureがnilなのでproposed状態
+        // Assert: immediately after creation, counterpartySignSignature is nil so status is proposed
         #expect(mockPropose.createdPropose?.localStatus == .proposed)
     }
 
@@ -128,7 +128,7 @@ struct CreateProposeUseCaseTests {
         // Act
         try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
-        // Assert: signMessageが呼ばれた
+        // Assert: signMessage was called
         #expect(mockKeychain.signMessageCalledWithIdentityID == identityID)
         #expect(mockKeychain.signMessageCalledWithMessage != nil)
     }
@@ -252,7 +252,7 @@ struct CreateProposeUseCaseTests {
             proposeRepository: mockPropose
         )
 
-        // Act & Assert: 無効なURLでも例外を投げない（警告のみ）
+        // Act & Assert: does not throw even with an invalid URL (warning only)
         try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "test", counterpartyPublicKey: counterpartyPublicKey)
         #expect(mockPropose.createCalled == true)
     }

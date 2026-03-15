@@ -16,7 +16,7 @@ struct LoadSettingsDataUseCaseTests {
     let mockSpaceRepository = MockSpaceRepository()
     let mockSignatureRepository = MockSignatureRepository()
 
-    @Test("全データを一括で取得できる")
+    @Test("Can fetch all data at once")
     func executeSuccess() throws {
         let propose = Propose(
             id: UUID(),
@@ -52,7 +52,7 @@ struct LoadSettingsDataUseCaseTests {
         #expect(data.signatures[0].id == signature.id)
     }
 
-    @Test("データが空の場合も正常に動作する")
+    @Test("Works correctly even when data is empty")
     func executeWithEmptyData() throws {
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
@@ -67,7 +67,7 @@ struct LoadSettingsDataUseCaseTests {
         #expect(data.signatures.isEmpty)
     }
 
-    @Test("Propose取得に失敗した場合エラーが返る")
+    @Test("Returns error when Propose fetch fails")
     func executeFailsWhenProposeFetchFails() {
         mockProposeRepository.fetchAllNoFilterError = ProposeRepositoryError.fetchError(NSError(domain: "", code: -1))
 
@@ -82,7 +82,7 @@ struct LoadSettingsDataUseCaseTests {
         }
     }
 
-    @Test("Space取得に失敗した場合エラーが返る")
+    @Test("Returns error when Space fetch fails")
     func executeFailsWhenSpaceFetchFails() {
         mockSpaceRepository.fetchAllError = SpaceRepositoryError.fetchError(NSError(domain: "", code: -1))
 
@@ -97,7 +97,7 @@ struct LoadSettingsDataUseCaseTests {
         }
     }
 
-    @Test("Signature取得に失敗した場合エラーが返る")
+    @Test("Returns error when Signature fetch fails")
     func executeFailsWhenSignatureFetchFails() {
         mockSignatureRepository.fetchAllError = SignatureRepositoryError.fetchError(NSError(domain: "", code: -1))
 

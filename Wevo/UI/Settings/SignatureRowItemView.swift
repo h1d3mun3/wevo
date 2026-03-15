@@ -14,7 +14,7 @@ struct SignatureRowItemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                // 検証状態に応じてアイコンと色を変更
+                // Change icon and color based on verification status
                 if let isValid = isValid {
                     Image(systemName: isValid ? "checkmark.seal.fill" : "xmark.seal.fill")
                         .foregroundStyle(isValid ? .green : .red)

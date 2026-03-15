@@ -79,7 +79,7 @@ struct IdentityListView: View {
                 await loadIdentities()
             } catch {
                 print("❌ Error deleting identity: \(error)")
-                // TODO: エラーをユーザーに表示
+                // TODO: Show error to user
             }
         }
     }

@@ -16,7 +16,7 @@ struct VerifyProposeHashUseCaseImpl {
 }
 
 extension VerifyProposeHashUseCaseImpl: VerifyProposeHashUseCase {
-    /// メッセージのSHA256ハッシュがpayloadHashと一致するか検証する
+    /// Verifies that the SHA256 hash of the message matches the payloadHash
     func execute(message: String, payloadHash: String) -> Bool {
         let messageHash = message.sha256HashedString
         let isValid = messageHash == payloadHash

@@ -63,13 +63,13 @@ struct ContactRepositoryTests {
         let older = Contact(id: UUID(), nickname: "Older", publicKey: "pk1", createdAt: Date(timeIntervalSinceNow: -100))
         let newer = Contact(id: UUID(), nickname: "Newer", publicKey: "pk2", createdAt: .now)
 
-        // 意図的に新しい順で登録
+        // Intentionally registered in descending order
         try repo.create(newer)
         try repo.create(older)
 
         let all = try repo.fetchAll()
 
-        // createdAt 昇順（古い方が先）
+        // Ascending by createdAt (oldest first)
         #expect(all.count == 2)
         #expect(all[0].nickname == "Older")
         #expect(all[1].nickname == "Newer")

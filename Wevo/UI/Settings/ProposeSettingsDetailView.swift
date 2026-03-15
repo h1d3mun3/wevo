@@ -32,7 +32,7 @@ struct ProposeSettingsDetailView: View {
 
                         Spacer()
 
-                        // ハッシュ検証結果
+                        // Hash verification result
                         if let isValid = isHashValid {
                             Image(systemName: isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundStyle(isValid ? .green : .red)
@@ -77,16 +77,16 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            // MARK: - Participantsセクション（旧Signaturesセクションを置き換え）
+            // MARK: - Participants Section (replaces the old Signatures section)
             Section("Participants") {
-                // Creator行（常に署名済み）
+                // Creator row (always signed)
                 participantRow(
                     publicKey: propose.creatorPublicKey,
                     role: "Creator",
                     isSigned: true
                 )
 
-                // Counterparty行（localStatusに応じたアイコン）
+                // Counterparty row (icon based on localStatus)
                 participantRow(
                     publicKey: propose.counterpartyPublicKey,
                     role: "Counterparty",
@@ -94,11 +94,11 @@ struct ProposeSettingsDetailView: View {
                 )
             }
 
-            // MARK: - Statusセクション
+            // MARK: - Status Section
             Section("Status") {
                 LabeledContent("Local Status") {
                     HStack(spacing: 4) {
-                        // localStatusのアイコン（proposed=⏳, signed=✅）
+                        // localStatus icon (proposed=⏳, signed=✅)
                         Image(systemName: propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
                             .foregroundStyle(propose.localStatus == .proposed ? .orange : .green)
                         Text(propose.localStatus.rawValue.capitalized)
@@ -117,16 +117,16 @@ struct ProposeSettingsDetailView: View {
         #endif
     }
 
-    /// 参加者行（Creator / Counterparty）
+    /// Participant row (Creator / Counterparty)
     @ViewBuilder
     private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
         HStack(spacing: 8) {
-            // 署名状態アイコン（proposed=⏳, signed=✅）
+            // Signature status icon (proposed=⏳, signed=✅)
             Image(systemName: isSigned ? "checkmark.circle.fill" : "clock")
                 .foregroundStyle(isSigned ? .green : .orange)
 
             VStack(alignment: .leading, spacing: 2) {
-                // ニックネームまたはPublicKeyのプレフィックス
+                // Nickname or prefix of PublicKey
                 let nickname = contactNicknames[publicKey] ?? String(publicKey.prefix(16)) + "..."
                 Text(nickname)
                     .font(.body)
@@ -163,7 +163,7 @@ struct ProposeSettingsDetailView: View {
                 contactNicknames = dict
             }
         } catch {
-            print("❌ Contactニックネームの読み込みエラー: \(error)")
+            print("❌ Error loading contact nicknames: \(error)")
         }
     }
 }

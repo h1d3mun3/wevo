@@ -7,10 +7,10 @@
 
 import Foundation
 
-/// Propose構造体とProposeSwiftDataの相互変換を行う
+/// Handles bidirectional conversion between the Propose struct and ProposeSwiftData
 struct ProposeConverter {
 
-    /// Propose構造体からProposeSwiftDataへ変換
+    /// Converts a Propose struct to ProposeSwiftData
     static func toModel(from propose: Propose, spaceID: UUID) -> ProposeSwiftData {
         return ProposeSwiftData(
             id: propose.id,
@@ -26,7 +26,7 @@ struct ProposeConverter {
         )
     }
 
-    /// ProposeSwiftDataからPropose構造体へ変換
+    /// Converts ProposeSwiftData to a Propose struct
     static func toEntity(from model: ProposeSwiftData) -> Propose {
         return Propose(
             id: model.id,
@@ -41,14 +41,14 @@ struct ProposeConverter {
         )
     }
 
-    /// 複数のProposeSwiftDataをPropose構造体のリストに変換
+    /// Converts multiple ProposeSwiftData objects to a list of Propose structs
     static func toEntities(from models: [ProposeSwiftData]) -> [Propose] {
         return models.map { model in
             toEntity(from: model)
         }
     }
 
-    /// ProposeSwiftDataを既存のPropose構造体で更新
+    /// Updates a ProposeSwiftData with an existing Propose struct
     static func updateModel(_ model: ProposeSwiftData, with propose: Propose) {
         model.message = propose.message
         model.payloadHash = propose.payloadHash
@@ -58,6 +58,6 @@ struct ProposeConverter {
         model.counterpartySignSignature = propose.counterpartySignSignature
         model.updatedAt = Date()
 
-        print("📝 ProposeSwiftData更新完了: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil")")
+        print("📝 ProposeSwiftData update complete: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil")")
     }
 }

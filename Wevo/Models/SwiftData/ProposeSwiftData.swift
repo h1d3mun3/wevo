@@ -8,29 +8,29 @@
 import Foundation
 import SwiftData
 
-/// SwiftDataで永続化するProposeモデル
-/// CloudKit互換のためオプショナルまたはデフォルト値を持つ必要がある
+/// Propose model persisted using SwiftData
+/// Must have optional or default values for CloudKit compatibility
 @Model
 final class ProposeSwiftData {
     var id: UUID = UUID()
-    var message: String = ""       // 元のメッセージ
-    var payloadHash: String = ""   // SHA256ハッシュ（APIでは contentHash として送信）
+    var message: String = ""       // Original message
+    var payloadHash: String = ""   // SHA256 hash (sent as contentHash to API)
     var spaceID: UUID = UUID()
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
-    // MARK: - 参加者フィールド（1:1 PoC）
+    // MARK: - Participant Fields (1:1 PoC)
 
-    /// Creatorの公開鍵（Base64 x963）
+    /// Creator's public key (Base64 x963)
     var creatorPublicKey: String = ""
 
-    /// Creatorが作成時に付与した署名（Base64 DER）
+    /// Signature attached by the Creator at creation time (Base64 DER)
     var creatorSignature: String = ""
 
-    /// Counterpartyの公開鍵（Base64 x963）
+    /// Counterparty's public key (Base64 x963)
     var counterpartyPublicKey: String = ""
 
-    /// Counterpartyの署名（nil = 未署名）
+    /// Counterparty's signature (nil = unsigned)
     var counterpartySignSignature: String? = nil
 
     init(

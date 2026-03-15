@@ -22,11 +22,11 @@ struct CreateIdentityUseCaseImpl {
 
 extension CreateIdentityUseCaseImpl: CreateIdentityUseCase {
     func execute(nickname: String) throws {
-        // P256鍵ペアの生成（SecureEnclave対応のため）
+        // Generate P256 key pair (for SecureEnclave compatibility)
         let privateKey = P256.Signing.PrivateKey()
         let privateKeyData = privateKey.rawRepresentation
         
-        // Keychainに保存
+        // Save to Keychain
         let id = UUID()
         let trimmedNickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
         try keychainRepository.createIdentity(
@@ -35,7 +35,7 @@ extension CreateIdentityUseCaseImpl: CreateIdentityUseCase {
             privateKey: privateKeyData
         )
         
-        // 公開鍵をログ出力（デバッグ用）
+        // Log the public key (for debugging)
         let publicKeyData = privateKey.publicKey.rawRepresentation
         
         print("✅ Identity Key saved successfully")
