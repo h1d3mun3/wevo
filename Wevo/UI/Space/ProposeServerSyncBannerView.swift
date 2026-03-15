@@ -12,6 +12,8 @@ import SwiftUI
 struct PendingSignatureBannerView: View {
     /// Counterparty's nickname or prefix of their PublicKey
     let counterpartyNickname: String
+    /// Custom message to display (nil = default "X signed on the server")
+    var message: String? = nil
     /// Whether acceptance processing is in progress
     let isAccepting: Bool
     /// Callback when the "Accept" button is tapped
@@ -26,7 +28,7 @@ struct PendingSignatureBannerView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
 
-                Text("\(counterpartyNickname) signed on the server")
+                Text(message ?? "\(counterpartyNickname) signed on the server")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .fontWeight(.medium)

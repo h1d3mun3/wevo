@@ -96,8 +96,10 @@ struct ProposeRowView: View {
             if let pendingSig = pendingCounterpartySignSignature {
                 let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
                     ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
+                let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
                 PendingSignatureBannerView(
                     counterpartyNickname: counterpartyName,
+                    message: isSelfSigned ? "Your signature was sent to the server. Save locally?" : nil,
                     isAccepting: isAcceptingSignature
                 ) {
                     Task {
@@ -183,9 +185,9 @@ struct ProposeRowView: View {
     /// Only shown when the identity is the Counterparty and the state is proposed
     private var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
-        // I am the Counterparty and have not yet signed (proposed state)
         return identity.publicKey == propose.counterpartyPublicKey
             && propose.localStatus == .proposed
+            && pendingCounterpartySignSignature == nil
             && signSuccess != true
     }
 
@@ -581,33 +583,26 @@ struct ProposeRowView: View {
             signErrorMessage = nil
         }
 
-        let signProposeUseCase = SignProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
+        let useCase = SignProposeServerOnlyUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
-            try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
-
-            // Send signature to server (fetch updated propose to get counterpartySignSignature)
-            if let updatedPropose = try? deps.proposeRepository.fetch(by: propose.id) {
-                let sendUseCase = SendLocalSignaturesToServerUseCaseImpl()
-                try? await sendUseCase.execute(
-                    propose: updatedPropose,
-                    identityPublicKey: identity.publicKey,
-                    serverURL: space.url
-                )
-            }
+            let signature = try await useCase.execute(
+                propose: propose,
+                identityID: identity.id,
+                serverURL: space.url
+            )
 
             await MainActor.run {
-                signSuccess = true
                 isSigning = false
+                signSuccess = true
+                // Show confirmation banner instead of auto-saving locally
+                pendingCounterpartySignSignature = signature
             }
 
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
 
-        } catch SignProposeUseCaseError.notCounterparty {
+        } catch SignProposeServerOnlyUseCaseError.notCounterparty {
             print("⚠️ This identity is not the Counterparty and cannot sign")
             await MainActor.run {
                 isSigning = false
@@ -680,6 +675,7 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
+            await checkServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
         } catch {
