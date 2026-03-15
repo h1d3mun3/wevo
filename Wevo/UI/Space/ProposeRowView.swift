@@ -43,10 +43,12 @@ struct ProposeRowView: View {
     @State private var isHonoring = false
     @State private var honorSuccess: Bool?
     @State private var honorErrorMessage: String?
+    @State private var myHonorSigned = false
 
     @State private var isParting = false
     @State private var partSuccess: Bool?
     @State private var partErrorMessage: String?
+    @State private var myPartSigned = false
 
     @State private var isDissolving = false
     @State private var dissolveSuccess: Bool?
@@ -294,6 +296,39 @@ struct ProposeRowView: View {
                     .foregroundStyle(signSuccess ? .green : .red)
             }
         }
+
+        if let honorSuccess = honorSuccess {
+            HStack {
+                Image(systemName: honorSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(honorSuccess ? .green : .red)
+                Text(honorSuccess ? "Honor sent" : (honorErrorMessage ?? "Failed to honor"))
+                    .font(.caption2)
+                    .foregroundStyle(honorSuccess ? .green : .red)
+            }
+        }
+
+        if let partSuccess = partSuccess {
+            HStack {
+                Image(systemName: partSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(partSuccess ? .green : .red)
+                Text(partSuccess ? "Part sent" : (partErrorMessage ?? "Failed to part"))
+                    .font(.caption2)
+                    .foregroundStyle(partSuccess ? .green : .red)
+            }
+        }
+
+        if let dissolveSuccess = dissolveSuccess {
+            HStack {
+                Image(systemName: dissolveSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(dissolveSuccess ? .green : .red)
+                Text(dissolveSuccess ? "Dissolved" : (dissolveErrorMessage ?? "Failed to dissolve"))
+                    .font(.caption2)
+                    .foregroundStyle(dissolveSuccess ? .green : .red)
+            }
+        }
     }
 
     /// Sign button (shown when identity is Counterparty and state is proposed)
@@ -362,16 +397,16 @@ struct ProposeRowView: View {
             } label: {
                 if isHonoring {
                     ProgressView().scaleEffect(0.7)
-                } else if honorSuccess == true {
-                    Label("Honored", systemImage: "checkmark.seal.fill").font(.caption)
+                } else if myHonorSigned {
+                    Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
                 } else {
                     Label("Honor", systemImage: "checkmark.seal").font(.caption)
                 }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(.green)
-            .disabled(isHonoring || defaultIdentity == nil)
+            .tint(myHonorSigned ? .green : .primary)
+            .disabled(isHonoring || defaultIdentity == nil || myHonorSigned || myPartSigned)
 
             Button {
                 guard let identity = defaultIdentity else { return }
@@ -379,16 +414,16 @@ struct ProposeRowView: View {
             } label: {
                 if isParting {
                     ProgressView().scaleEffect(0.7)
-                } else if partSuccess == true {
-                    Label("Parted", systemImage: "xmark.seal.fill").font(.caption)
+                } else if myPartSigned {
+                    Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
                 } else {
                     Label("Part", systemImage: "xmark.seal").font(.caption)
                 }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(.orange)
-            .disabled(isParting || defaultIdentity == nil)
+            .tint(myPartSigned ? .orange : .primary)
+            .disabled(isParting || defaultIdentity == nil || myPartSigned)
         }
     }
 
@@ -465,17 +500,18 @@ struct ProposeRowView: View {
         let useCase = CheckProposeServerStatusUseCaseImpl()
 
         do {
-            let result = try await useCase.execute(propose: propose, serverURL: space.url)
+            let myPublicKey = await MainActor.run { defaultIdentity?.publicKey }
+            let result = try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
 
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                // Set the pending Counterparty signature awaiting acceptance
                 pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
-                // Set pending terminal status transition (honored/parted/dissolved)
                 if pendingStatusTransition == nil {
                     pendingStatusTransition = result.pendingStatusTransition
                 }
+                myHonorSigned = result.myHonorSigned
+                myPartSigned = result.myPartSigned
             }
 
         } catch let error as CheckProposeServerStatusUseCaseError {
@@ -608,6 +644,7 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
+            await checkServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { dissolveSuccess = nil }
         } catch {
@@ -624,7 +661,8 @@ struct ProposeRowView: View {
         let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
-            await MainActor.run { isHonoring = false; honorSuccess = true }
+            await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
+            await checkServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { honorSuccess = nil }
         } catch {
@@ -641,7 +679,7 @@ struct ProposeRowView: View {
         let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
-            await MainActor.run { isParting = false; partSuccess = true }
+            await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
         } catch {
@@ -667,6 +705,7 @@ struct ProposeRowView: View {
                 pendingStatusTransition = nil
             }
             print("✅ Applied server status (\(status.rawValue)) locally")
+            onSigned()
         } catch {
             print("❌ Failed to apply server status locally: \(error)")
             await MainActor.run { isApplyingServerStatus = false }

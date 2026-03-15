@@ -58,25 +58,20 @@ struct CheckProposeServerStatusUseCaseTests {
     }
 
     @Test func testReturnsServerStatusWhenProposeFound() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose()
         mockAPI.getProposeResult = makeHashedPropose(proposeID: propose.id, status: .proposed)
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        // Assert
         #expect(result.serverStatus == .proposed)
         #expect(mockAPI.getProposeCalledWithID == propose.id)
     }
 
     @Test func testDetectsPendingCounterpartySignSignature() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
-        // Unsigned locally, signed on the server
         let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
@@ -86,18 +81,14 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        // Assert: pendingCounterpartySignSignature is returned
         #expect(result.pendingCounterpartySignSignature == "serverCounterpartySig")
         #expect(result.serverStatus == .signed)
     }
 
     @Test func testNoPendingSignatureWhenAlreadyLocallySet() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
-        // Also signed locally
         let propose = makePropose(counterpartySignSignature: "localSig")
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
@@ -107,18 +98,14 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        // Assert: pending is nil because the local signature already exists
         #expect(result.pendingCounterpartySignSignature == nil)
     }
 
     @Test func testNoPendingSignatureWhenCounterpartyNotSignedOnServer() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: nil)
-        // Also unsigned on the server
         mockAPI.getProposeResult = makeHashedPropose(
             proposeID: propose.id,
             counterpartySignSignature: nil,
@@ -127,45 +114,38 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        // Assert
         #expect(result.pendingCounterpartySignSignature == nil)
         #expect(result.serverStatus == .proposed)
     }
 
     @Test func testThrowsWhenServerURLIsInvalid() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose()
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act & Assert
         await #expect(throws: CheckProposeServerStatusUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: propose, serverURL: "")
+            try await useCase.execute(propose: propose, serverURL: "", myPublicKey: nil)
         }
     }
 
     @Test func testPropagatesAPIError() async throws {
-        // Arrange
         let mockAPI = MockProposeAPIClient()
         mockAPI.getProposeError = ProposeAPIClient.APIError.httpError(statusCode: 404)
         let propose = makePropose()
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        // Act & Assert
         await #expect(throws: ProposeAPIClient.APIError.self) {
-            try await useCase.execute(propose: propose, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
         }
     }
 
     // MARK: - pendingStatusTransition tests
 
     @Test func testDetectsPendingHonoredStatus() async throws {
-        // Arrange: server is honored, local is signed (finalStatus = nil)
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "signSig")
         mockAPI.getProposeResult = makeHashedPropose(
@@ -176,14 +156,13 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
         #expect(result.pendingStatusTransition == .honored)
         #expect(result.serverStatus == .honored)
     }
 
     @Test func testDetectsPendingPartedStatus() async throws {
-        // Arrange: server is parted, local is signed
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "signSig")
         mockAPI.getProposeResult = makeHashedPropose(
@@ -194,13 +173,12 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
         #expect(result.pendingStatusTransition == .parted)
     }
 
     @Test func testDetectsPendingDissolvedStatus() async throws {
-        // Arrange: server is dissolved, local is proposed
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeHashedPropose(
@@ -211,13 +189,12 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
         #expect(result.pendingStatusTransition == .dissolved)
     }
 
     @Test func testNoPendingStatusTransitionWhenLocalAlreadyMatches() async throws {
-        // Arrange: server is honored, local finalStatus is also honored
         let mockAPI = MockProposeAPIClient()
         let propose = Propose(
             id: UUID(),
@@ -239,13 +216,12 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
         #expect(result.pendingStatusTransition == nil)
     }
 
     @Test func testNoPendingStatusTransitionForNonTerminalStatus() async throws {
-        // Arrange: server is signed (not a terminal state) → no pendingStatusTransition
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeHashedPropose(
@@ -256,8 +232,90 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
         #expect(result.pendingStatusTransition == nil)
+    }
+
+    // MARK: - myHonorSigned / myPartSigned tests
+
+    @Test func testDetectsMyHonorSignedAsCreator() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = HashedPropose(
+            id: propose.id,
+            contentHash: "hash",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", honorSignature: nil, partSignature: nil)],
+            honorCreatorSignature: "honorSig",
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: creatorPublicKey)
+
+        #expect(result.myHonorSigned == true)
+        #expect(result.myPartSigned == false)
+    }
+
+    @Test func testDetectsMyHonorSignedAsCounterparty() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = HashedPropose(
+            id: propose.id,
+            contentHash: "hash",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", honorSignature: "honorSig", partSignature: nil)],
+            honorCreatorSignature: nil,
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: counterpartyPublicKey)
+
+        #expect(result.myHonorSigned == true)
+        #expect(result.myPartSigned == false)
+    }
+
+    @Test func testMyHonorSignedFalseWhenNotSigned() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "signSig",
+            status: .signed
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: creatorPublicKey)
+
+        #expect(result.myHonorSigned == false)
+        #expect(result.myPartSigned == false)
+    }
+
+    @Test func testMyHonorSignedFalseWhenPublicKeyIsNil() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "signSig",
+            status: .signed
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+
+        #expect(result.myHonorSigned == false)
+        #expect(result.myPartSigned == false)
     }
 }
