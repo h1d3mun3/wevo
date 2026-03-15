@@ -342,7 +342,6 @@ struct ProposeRowView: View {
                 guard let identity = defaultIdentity else { return }
                 Task {
                     await signPropose(with: identity)
-                    onSigned()
                 }
             } label: {
                 if isSigning {
