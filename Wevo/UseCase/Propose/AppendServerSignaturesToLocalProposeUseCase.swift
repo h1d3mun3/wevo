@@ -27,7 +27,7 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
     func execute(proposeID: UUID, counterpartySignSignature: String) throws {
         let localPropose = try proposeRepository.fetch(by: proposeID)
 
-        // Update Propose with the counterpartySignSignature set
+        // Update Propose with the counterpartySignSignature set (preserve existing finalStatus)
         let updatedPropose = Propose(
             id: localPropose.id,
             spaceID: localPropose.spaceID,
@@ -36,6 +36,7 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
             creatorSignature: localPropose.creatorSignature,
             counterpartyPublicKey: localPropose.counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
+            finalStatus: localPropose.finalStatus,
             createdAt: localPropose.createdAt,
             updatedAt: Date()
         )

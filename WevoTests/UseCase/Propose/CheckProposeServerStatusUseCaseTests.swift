@@ -161,4 +161,103 @@ struct CheckProposeServerStatusUseCaseTests {
             try await useCase.execute(propose: propose, serverURL: "https://example.com")
         }
     }
+
+    // MARK: - pendingStatusTransition tests
+
+    @Test func testDetectsPendingHonoredStatus() async throws {
+        // Arrange: server is honored, local is signed (finalStatus = nil)
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "signSig",
+            status: .honored
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        #expect(result.pendingStatusTransition == .honored)
+        #expect(result.serverStatus == .honored)
+    }
+
+    @Test func testDetectsPendingPartedStatus() async throws {
+        // Arrange: server is parted, local is signed
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "signSig",
+            status: .parted
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        #expect(result.pendingStatusTransition == .parted)
+    }
+
+    @Test func testDetectsPendingDissolvedStatus() async throws {
+        // Arrange: server is dissolved, local is proposed
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: nil)
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: nil,
+            status: .dissolved
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        #expect(result.pendingStatusTransition == .dissolved)
+    }
+
+    @Test func testNoPendingStatusTransitionWhenLocalAlreadyMatches() async throws {
+        // Arrange: server is honored, local finalStatus is also honored
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "test message",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: "signSig",
+            finalStatus: .honored,
+            createdAt: .now,
+            updatedAt: .now
+        )
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "signSig",
+            status: .honored
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        #expect(result.pendingStatusTransition == nil)
+    }
+
+    @Test func testNoPendingStatusTransitionForNonTerminalStatus() async throws {
+        // Arrange: server is signed (not a terminal state) → no pendingStatusTransition
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: nil)
+        mockAPI.getProposeResult = makeHashedPropose(
+            proposeID: propose.id,
+            counterpartySignSignature: "serverSig",
+            status: .signed
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com")
+
+        #expect(result.pendingStatusTransition == nil)
+    }
 }

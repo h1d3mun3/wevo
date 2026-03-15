@@ -13,6 +13,8 @@ struct ProposeServerCheckResult {
     let serverStatus: ProposeStatus
     /// Signature string when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
     let pendingCounterpartySignSignature: String?
+    /// Terminal status (honored/parted/dissolved) that the server has reached but has not yet been reflected locally (nil means no pending transition)
+    let pendingStatusTransition: ProposeStatus?
 }
 
 protocol CheckProposeServerStatusUseCase {
@@ -52,9 +54,19 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
             print("🔄 Detected Counterparty signature from server: not yet reflected locally")
         }
 
+        // Check if the server has reached a terminal state (honored/parted/dissolved) not yet reflected locally
+        var pendingStatusTransition: ProposeStatus? = nil
+        let terminalStatuses: Set<ProposeStatus> = [.honored, .parted, .dissolved]
+        if terminalStatuses.contains(hashedPropose.status),
+           propose.localStatus != hashedPropose.status {
+            pendingStatusTransition = hashedPropose.status
+            print("🔄 Detected terminal status from server: \(hashedPropose.status.rawValue), not yet reflected locally")
+        }
+
         return ProposeServerCheckResult(
             serverStatus: hashedPropose.status,
-            pendingCounterpartySignSignature: pendingSignSignature
+            pendingCounterpartySignSignature: pendingSignSignature,
+            pendingStatusTransition: pendingStatusTransition
         )
     }
 }

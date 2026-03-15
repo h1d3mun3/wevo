@@ -32,11 +32,17 @@ struct Propose: Codable, Identifiable {
     /// Counterparty's signature (nil means not yet signed)
     let counterpartySignSignature: String?
 
+    /// Terminal server status reflected locally (honored/parted/dissolved; nil = not yet finalized)
+    let finalStatus: ProposeStatus?
+
     // MARK: - Local Status (computed property)
 
-    /// Status derived from the presence of local signatures
+    /// Status derived from the presence of local signatures and finalized server status
     /// The status field received from the server is a reference value only; use this instead
     var localStatus: ProposeStatus {
+        if let finalStatus = finalStatus {
+            return finalStatus
+        }
         if counterpartySignSignature != nil {
             return .signed
         }
@@ -51,6 +57,7 @@ struct Propose: Codable, Identifiable {
         creatorSignature: String,
         counterpartyPublicKey: String,
         counterpartySignSignature: String? = nil,
+        finalStatus: ProposeStatus? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -63,6 +70,7 @@ struct Propose: Codable, Identifiable {
         self.creatorSignature = creatorSignature
         self.counterpartyPublicKey = counterpartyPublicKey
         self.counterpartySignSignature = counterpartySignSignature
+        self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

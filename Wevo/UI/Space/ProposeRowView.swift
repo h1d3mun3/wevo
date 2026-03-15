@@ -35,6 +35,11 @@ struct ProposeRowView: View {
     /// Whether signature acceptance is in progress
     @State private var isAcceptingSignature = false
 
+    /// Terminal server status (honored/parted/dissolved) pending local reflection
+    @State private var pendingStatusTransition: ProposeStatus? = nil
+    /// Whether terminal status application is in progress
+    @State private var isApplyingServerStatus = false
+
     @State private var isHonoring = false
     @State private var honorSuccess: Bool?
     @State private var honorErrorMessage: String?
@@ -100,6 +105,18 @@ struct ProposeRowView: View {
                 } onIgnore: {
                     // Ignore: just hide the banner (do not reflect locally)
                     pendingCounterpartySignSignature = nil
+                }
+            }
+
+            // Pending terminal status banner (honored/parted/dissolved from server)
+            if let pendingStatus = pendingStatusTransition {
+                PendingServerStatusBannerView(
+                    status: pendingStatus,
+                    isApplying: isApplyingServerStatus
+                ) {
+                    Task { await applyServerStatus(pendingStatus) }
+                } onIgnore: {
+                    pendingStatusTransition = nil
                 }
             }
 
@@ -455,6 +472,10 @@ struct ProposeRowView: View {
                 isCheckingServer = false
                 // Set the pending Counterparty signature awaiting acceptance
                 pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
+                // Set pending terminal status transition (honored/parted/dissolved)
+                if pendingStatusTransition == nil {
+                    pendingStatusTransition = result.pendingStatusTransition
+                }
             }
 
         } catch let error as CheckProposeServerStatusUseCaseError {
@@ -628,6 +649,27 @@ struct ProposeRowView: View {
             await MainActor.run { isParting = false; partSuccess = false; partErrorMessage = error.localizedDescription }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run { partSuccess = nil; partErrorMessage = nil }
+        }
+    }
+
+    /// Apply terminal server status locally
+    private func applyServerStatus(_ status: ProposeStatus) async {
+        await MainActor.run { isApplyingServerStatus = true }
+
+        let useCase = ApplyServerStatusToLocalProposeUseCaseImpl(
+            proposeRepository: deps.proposeRepository
+        )
+
+        do {
+            try useCase.execute(proposeID: propose.id, status: status)
+            await MainActor.run {
+                isApplyingServerStatus = false
+                pendingStatusTransition = nil
+            }
+            print("✅ Applied server status (\(status.rawValue)) locally")
+        } catch {
+            print("❌ Failed to apply server status locally: \(error)")
+            await MainActor.run { isApplyingServerStatus = false }
         }
     }
 

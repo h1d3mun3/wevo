@@ -33,6 +33,9 @@ final class ProposeSwiftData {
     /// Counterparty's signature (nil = unsigned)
     var counterpartySignSignature: String? = nil
 
+    /// Terminal server status reflected locally (honored/parted/dissolved raw value; nil = not yet finalized)
+    var finalStatus: String? = nil
+
     init(
         id: UUID,
         message: String,
@@ -42,6 +45,7 @@ final class ProposeSwiftData {
         creatorSignature: String,
         counterpartyPublicKey: String,
         counterpartySignSignature: String? = nil,
+        finalStatus: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -53,6 +57,7 @@ final class ProposeSwiftData {
         self.creatorSignature = creatorSignature
         self.counterpartyPublicKey = counterpartyPublicKey
         self.counterpartySignSignature = counterpartySignSignature
+        self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
