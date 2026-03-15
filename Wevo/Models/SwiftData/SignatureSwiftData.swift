@@ -8,15 +8,14 @@
 import Foundation
 import SwiftData
 
+/// SwiftDataで永続化する署名モデル
+/// ProposeSwiftDataとのリレーションは削除（新APIではPropose内に直接署名データを格納する）
 @Model
 final class SignatureSwiftData {
     var id: UUID = UUID()
     var publicKey: String = ""
     var signatureData: String = ""
     var createdAt: Date = Date()
-    
-    // ProposeSwiftDataとの関係（逆方向）
-    @Relationship(inverse: \ProposeSwiftData.signatures) var propose: ProposeSwiftData?
 
     init(
         id: UUID,
