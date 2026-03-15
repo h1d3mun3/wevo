@@ -8,7 +8,12 @@
 import Foundation
 
 protocol SendLocalSignaturesToServerUseCase {
-    func execute(propose: Propose, serverURL: String) async throws
+    /// Send the local Counterparty signature to the server
+    /// - Parameters:
+    ///   - propose: The target Propose
+    ///   - identityPublicKey: Operator's public key (only Counterparty can send)
+    ///   - serverURL: Server URL
+    func execute(propose: Propose, identityPublicKey: String, serverURL: String) async throws
 }
 
 enum SendLocalSignaturesToServerUseCaseError: Error {
@@ -25,33 +30,34 @@ struct SendLocalSignaturesToServerUseCaseImpl {
 }
 
 extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUseCase {
-    func execute(propose: Propose, serverURL: String) async throws {
+    func execute(propose: Propose, identityPublicKey: String, serverURL: String) async throws {
         guard let baseURL = URL(string: serverURL) else {
             throw SendLocalSignaturesToServerUseCaseError.invalidServerURL
         }
 
-        guard let firstSignature = propose.signatures.first else {
+        // Only Counterparty can send Sign
+        guard identityPublicKey == propose.counterpartyPublicKey else {
+            print("ℹ️ Not the Counterparty; skipping signature send")
+            return
+        }
+
+        // Only send when counterpartySignSignature exists
+        guard let counterpartySignSignature = propose.counterpartySignSignature else {
             throw SendLocalSignaturesToServerUseCaseError.noSignatureFound
         }
 
-        // 全ての署名をSignInputに変換
-        let allSignInputs = propose.signatures.map { signature in
-            ProposeAPIClient.SignInput(
-                publicKey: signature.publicKey,
-                signature: signature.signature
-            )
-        }
+        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
+        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
 
-        let input = ProposeAPIClient.ProposeInput(
-            id: propose.id,
-            payloadHash: propose.payloadHash,
-            publicKey: firstSignature.publicKey,
-            signatures: allSignInputs
+        let input = ProposeAPIClient.SignInput(
+            signerPublicKey: identityPublicKey,
+            signature: counterpartySignSignature,
+            createdAt: iso8601String
         )
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
-        try await client.updatePropose(proposeID: input.id, input: input)
+        try await client.signPropose(proposeID: propose.id, input: input)
 
-        print("✅ Sent local signature(s) to server (total: \(allSignInputs.count)): \(propose.id)")
+        print("✅ Sent Counterparty signature to server: \(propose.id)")
     }
 }

@@ -28,7 +28,7 @@ extension EditSpaceUseCaseImpl: EditSpaceUseCase {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // 更新されたSpaceを作成
+        // Create updated Space
         let updatedSpace = Space(
             id: space.id,
             name: trimmedName,
@@ -39,7 +39,7 @@ extension EditSpaceUseCaseImpl: EditSpaceUseCase {
             updatedAt: .now
         )
 
-        // リポジトリで更新
+        // Update in repository
         try spaceRepository.update(updatedSpace)
         print("✅ Space updated successfully: \(updatedSpace.name)")
     }

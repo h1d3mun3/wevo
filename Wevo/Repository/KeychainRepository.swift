@@ -9,7 +9,7 @@ import Foundation
 import Security
 import CryptoKit
 
-/// Keychainに保存するIdentityKeyの情報
+/// Information for the IdentityKey stored in the Keychain
 private struct IdentityKeyChainItem {
     let id: UUID
     let nickname: String
@@ -17,7 +17,7 @@ private struct IdentityKeyChainItem {
     let publicKey: Data
 }
 
-/// メタデータのみ
+/// Metadata only
 private struct IdentityMetadataKeychainItem: Codable {
     let id: UUID
     let nickname: String
@@ -54,11 +54,11 @@ final class KeychainRepositoryImpl: KeychainRepository {
     
     // MARK: - Save
     
-    /// 新しいIdentityを作成して保存
+    /// Create and save a new Identity
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
-        // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
+        // Derive public key from private key (using P256 signing key)
         let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
-        // x963Representation形式で保存（サーバーと互換性を持たせるため）
+        // Save in x963Representation format (for server compatibility)
         let publicKey = key.publicKey.x963Representation
         
         let item = IdentityKeyChainItem(
@@ -70,13 +70,13 @@ final class KeychainRepositoryImpl: KeychainRepository {
         try saveIdentityKey(item)
     }
 
-    /// IdentityKeyを保存
+    /// Save an IdentityKey
     private func saveIdentityKey(_ item: IdentityKeyChainItem) throws {
         try saveIdentityMetadata(item)
         try savePrivateKey(item)
     }
 
-    /// IdentityKeyのメタデータを保存
+    /// Save IdentityKey metadata
     private func saveIdentityMetadata(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
         let metadata = IdentityMetadataKeychainItem(
@@ -106,7 +106,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
         }
     }
     
-    /// 秘密鍵を保存
+    /// Save the private key
     private func savePrivateKey(_ item: IdentityKeyChainItem) throws {
         let encoder = JSONEncoder()
         let privateKeyData = try encoder.encode(PrivateKeyData(privateKey: item.privateKey))
@@ -133,7 +133,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
 
     // MARK: - Retrieve
     
-    /// すべてのIdentityメタデータを取得
+    /// Retrieve all Identity metadata
     private func getAllIdentityMetadata() throws -> [IdentityMetadataKeychainItem] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -163,7 +163,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
         }
     }
     
-    /// すべてのIdentityを取得
+    /// Retrieve all Identities
     func getAllIdentities() throws -> [Identity] {
         let metadataList = try getAllIdentityMetadata()
         return metadataList.map { metadata in
@@ -171,15 +171,15 @@ final class KeychainRepositoryImpl: KeychainRepository {
         }
     }
     
-    /// 特定のIDのメタデータを取得
+    /// Retrieve metadata for a specific ID
     fileprivate func getIdentityMetadata(id: UUID) throws -> IdentityMetadataKeychainItem {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: id.uuidString,
-            kSecReturnData as String: kCFBooleanTrue as Any, // 明示的にCFBoolean
+            kSecReturnData as String: kCFBooleanTrue as Any, // Explicit CFBoolean
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // キャストを確認
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Confirm cast
         ]
 
         var result: AnyObject?
@@ -206,7 +206,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
         return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
     }
 
-    /// 秘密鍵を取得
+    /// Retrieve the private key
     func getPrivateKey(id: UUID) throws -> Data {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -239,7 +239,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
         return privateKeyData.privateKey
     }
     
-    /// 特定のIDのIdentityKeyを取得
+    /// Retrieve the IdentityKey for a specific ID
     private func getIdentityKey(id: UUID) throws -> IdentityKeyChainItem {
         let metadata = try getIdentityMetadata(id: id)
         let privateKey = try getPrivateKey(id: id)
@@ -254,7 +254,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
 
     // MARK: - Update
     
-    /// IdentityKeyのニックネームを更新
+    /// Update the nickname of an IdentityKey
     func updateNickname(id: UUID, newNickname: String) throws {
         let existingMetadata = try getIdentityMetadata(id: id)
 
@@ -266,12 +266,12 @@ final class KeychainRepositoryImpl: KeychainRepository {
         )
         let metadataData = try encoder.encode(updatedMetadata)
 
-        // 💡 検索条件に同期フラグを追加
+        // Add synchronization flag to search criteria
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
             kSecAttrAccount as String: id.uuidString,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // これが必要！
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Required
         ]
 
         let attributesToUpdate: [String: Any] = [
@@ -290,9 +290,9 @@ final class KeychainRepositoryImpl: KeychainRepository {
     
     // MARK: - Delete
     
-    /// 特定のIDのIdentityKeyを削除（メタデータと秘密鍵の両方）
+    /// Delete the IdentityKey for a specific ID (both metadata and private key)
     func deleteIdentityKey(id: UUID) throws {
-        // メタデータを削除
+        // Delete metadata
         let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
@@ -302,26 +302,26 @@ final class KeychainRepositoryImpl: KeychainRepository {
         
         let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
         
-        // 秘密鍵を削除
+        // Delete private key
         let privateKeyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: servicePrivateKey,
             kSecAttrAccount as String: id.uuidString,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
-        
+
         let privateKeyStatus = SecItemDelete(privateKeyQuery as CFDictionary)
-        
-        // どちらかが失敗していて、かつ「見つからない」以外のエラーなら例外を投げる
+
+        // Throw if either operation failed with an error other than "not found"
         guard (metadataStatus == errSecSuccess || metadataStatus == errSecItemNotFound) &&
               (privateKeyStatus == errSecSuccess || privateKeyStatus == errSecItemNotFound) else {
             throw KeychainError.unhandledError(status: metadataStatus)
         }
     }
     
-    /// すべてのIdentityKeyを削除（メタデータと秘密鍵の両方）
+    /// Delete all IdentityKeys (both metadata and private keys)
     func deleteAllIdentityKeys() throws {
-        // メタデータを削除
+        // Delete metadata
         let metadataQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceMetadata,
@@ -330,7 +330,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
 
         let metadataStatus = SecItemDelete(metadataQuery as CFDictionary)
 
-        // 秘密鍵を削除
+        // Delete private keys
         let privateKeyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: servicePrivateKey,
@@ -355,75 +355,75 @@ private struct PrivateKeyData: Codable {
 
 extension KeychainRepositoryImpl {
     
-    /// 指定されたIdentityの秘密鍵でStringに署名する
+    /// Sign a String using the private key of the specified Identity
     /// - Parameters:
-    ///   - message: 署名対象の文字列
-    ///   - identityId: 使用するIdentityのID
-    /// - Returns: Base64エンコードされた署名文字列
+    ///   - message: The string to sign
+    ///   - identityId: ID of the Identity to use
+    /// - Returns: Base64-encoded signature string
     func signMessage(_ message: String, withIdentityId identityId: UUID) throws -> String {
-        // 秘密鍵を取得
+        // Retrieve the private key
         let privateKeyData = try getPrivateKey(id: identityId)
-        
-        // 秘密鍵をP256.Signing.PrivateKeyに変換
+
+        // Convert private key to P256.Signing.PrivateKey
         let privateKey = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
-        
-        // メッセージをDataに変換
+
+        // Convert message to Data
         guard let messageData = message.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
-        
-        // 署名を生成
+
+        // Generate signature
         let signature = try privateKey.signature(for: messageData)
-        
-        // DER形式でBase64エンコードして返す（サーバーと互換性を持たせるため）
+
+        // Return Base64-encoded DER representation (for server compatibility)
         return signature.derRepresentation.base64EncodedString()
     }
     
-    /// 署名の検証のコア処理（プライベート）
+    /// Core signature verification logic (private)
     private func verifySignatureData(_ signatureData: Data, for messageData: Data, withPublicKey publicKeyData: Data) throws -> Bool {
         let publicKey = try P256.Signing.PublicKey(x963Representation: publicKeyData)
         let signatureObject = try P256.Signing.ECDSASignature(derRepresentation: signatureData)
         return publicKey.isValidSignature(signatureObject, for: messageData)
     }
     
-    /// 署名を検証する（公開鍵を直接指定）
+    /// Verify a signature (public key provided directly)
     /// - Parameters:
-    ///   - signature: Base64エンコードされた署名文字列
-    ///   - message: 署名対象の文字列
-    ///   - publicKey: 検証に使用する公開鍵（x963Representation形式のData）
-    /// - Returns: 署名が有効な場合はtrue
+    ///   - signature: Base64-encoded signature string
+    ///   - message: The string that was signed
+    ///   - publicKey: Public key to use for verification (Data in x963Representation format)
+    /// - Returns: true if the signature is valid
     func verifySignature(_ signature: String, for message: String, withPublicKey publicKey: Data) throws -> Bool {
-        // Base64デコードして署名データに変換
+        // Base64-decode to get signature data
         guard let signatureData = Data(base64Encoded: signature) else {
             throw KeychainError.invalidData
         }
-        // メッセージをDataに変換
+        // Convert message to Data
         guard let messageData = message.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
         return try verifySignatureData(signatureData, for: messageData, withPublicKey: publicKey)
     }
     
-    /// 署名を検証する（IdentityIdから公開鍵を取得）
+    /// Verify a signature (public key retrieved from Identity ID)
     /// - Parameters:
-    ///   - signature: Base64エンコードされた署名文字列
-    ///   - message: 署名対象の文字列
-    ///   - identityId: 検証に使用するIdentityのID
-    /// - Returns: 署名が有効な場合はtrue
+    ///   - signature: Base64-encoded signature string
+    ///   - message: The string that was signed
+    ///   - identityId: ID of the Identity to use for verification
+    /// - Returns: true if the signature is valid
     func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
-        // メタデータから公開鍵を取得
+        // Retrieve public key from metadata
         let metadata = try getIdentityMetadata(id: identityId)
         return try verifySignature(signature, for: message, withPublicKey: metadata.publicKey)
     }
     
-    /// 署名を検証する（Base64エンコードされた公開鍵文字列を使用）
+    /// Verify a signature (using a Base64-encoded public key string)
     /// - Parameters:
-    ///   - signature: Base64エンコードされた署名文字列
-    ///   - message: 署名対象の文字列
-    ///   - publicKeyString: Base64エンコードされた公開鍵文字列（x963Representation形式）
-    /// - Returns: 署名が有効な場合はtrue
+    ///   - signature: Base64-encoded signature string
+    ///   - message: The string that was signed
+    ///   - publicKeyString: Base64-encoded public key string (x963Representation format)
+    /// - Returns: true if the signature is valid
     func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
-        // Base64デコードして公開鍵Dataに変換
+        // Base64-decode to get public key Data
         guard let publicKeyData = Data(base64Encoded: publicKeyString) else {
             throw KeychainError.invalidData
         }
@@ -433,13 +433,13 @@ extension KeychainRepositoryImpl {
 
 extension KeychainRepositoryImpl {
     func migrateKey(id: UUID) throws {
-        /// 古いIdentityと秘密鍵を取得
+        /// Retrieve old Identity and private key
         let oldMetadata = try getIdentity(id: id)
         let oldPrivateKey = try getPrivateKey(id: id)
 
-        // 秘密鍵から公開鍵を導出（P256署名鍵を使用）
+        // Derive public key from private key (using P256 signing key)
         let key = try P256.Signing.PrivateKey(rawRepresentation: oldPrivateKey)
-        // x963Representation形式で保存（サーバーと互換性を持たせるため）
+        // Save in x963Representation format (for server compatibility)
         let oldPublicKey = key.publicKey.x963Representation
 
 

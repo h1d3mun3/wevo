@@ -7,14 +7,22 @@
 
 import Foundation
 
+/// Server status check result (new API specification)
 struct ProposeServerCheckResult {
-    let exists: Bool
-    let newServerSignatures: [Signature]
-    let localOnlySignatures: [Signature]
+    /// Status returned by the server
+    let serverStatus: ProposeStatus
+    /// Signature string when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
+    let pendingCounterpartySignSignature: String?
+    /// Terminal status (honored/parted/dissolved) that the server has reached but has not yet been reflected locally (nil means no pending transition)
+    let pendingStatusTransition: ProposeStatus?
+    /// Whether the current user has already sent their honor signature to the server
+    let myHonorSigned: Bool
+    /// Whether the current user has already sent their part signature to the server
+    let myPartSigned: Bool
 }
 
 protocol CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerCheckResult
+    func execute(propose: Propose, serverURL: String, myPublicKey: String?) async throws -> ProposeServerCheckResult
 }
 
 enum CheckProposeServerStatusUseCaseError: Error {
@@ -30,7 +38,7 @@ struct CheckProposeServerStatusUseCaseImpl {
 }
 
 extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String) async throws -> ProposeServerCheckResult {
+    func execute(propose: Propose, serverURL: String, myPublicKey: String? = nil) async throws -> ProposeServerCheckResult {
         guard let baseURL = URL(string: serverURL) else {
             throw CheckProposeServerStatusUseCaseError.invalidServerURL
         }
@@ -38,39 +46,45 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         let hashedPropose = try await client.getPropose(proposeID: propose.id)
 
-        print("📊 Server has \(hashedPropose.signatures.count) signatures, local has \(propose.signatures.count)")
+        print("📊 Server status: \(hashedPropose.status.rawValue)")
 
-        // 署名の公開鍵で比較するためのセット
-        let localPublicKeys = Set(propose.signatures.map { $0.publicKey })
-        let serverPublicKeys = Set(hashedPropose.signatures.map { $0.publicKey })
-
-        // サーバーにのみある署名を抽出（ローカルにない新しい署名）
-        let newServerSignatures = hashedPropose.signatures.compactMap { signInput -> Signature? in
-            guard !localPublicKeys.contains(signInput.publicKey) else { return nil }
-            return Signature(
-                id: signInput.id,
-                publicKey: signInput.publicKey,
-                signature: signInput.signature,
-                createdAt: signInput.createdAt
-            )
+        // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
+        var pendingSignSignature: String? = nil
+        if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
+           let serverSignSignature = counterparty.signSignature,
+           propose.counterpartySignSignature == nil {
+            pendingSignSignature = serverSignSignature
+            print("🔄 Detected Counterparty signature from server: not yet reflected locally")
         }
 
-        // ローカルにのみある署名を抽出（サーバーにまだ送られていない署名）
-        let localOnlySigs = propose.signatures.filter { signature in
-            !serverPublicKeys.contains(signature.publicKey)
+        // Check if the server has reached a terminal state (honored/parted/dissolved) not yet reflected locally
+        var pendingStatusTransition: ProposeStatus? = nil
+        let terminalStatuses: Set<ProposeStatus> = [.honored, .parted, .dissolved]
+        if terminalStatuses.contains(hashedPropose.status),
+           propose.localStatus != hashedPropose.status {
+            pendingStatusTransition = hashedPropose.status
+            print("🔄 Detected terminal status from server: \(hashedPropose.status.rawValue), not yet reflected locally")
         }
 
-        if !newServerSignatures.isEmpty {
-            print("🔄 Found \(newServerSignatures.count) new signature(s) on server")
-        }
-        if !localOnlySigs.isEmpty {
-            print("📤 Found \(localOnlySigs.count) local-only signature(s)")
+        // Check if the current user has already sent their honor/part signature
+        var myHonorSigned = false
+        var myPartSigned = false
+        if let myPublicKey = myPublicKey {
+            if myPublicKey == propose.creatorPublicKey {
+                myHonorSigned = hashedPropose.honorCreatorSignature != nil
+                myPartSigned = hashedPropose.partCreatorSignature != nil
+            } else if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == myPublicKey }) {
+                myHonorSigned = counterparty.honorSignature != nil
+                myPartSigned = counterparty.partSignature != nil
+            }
         }
 
         return ProposeServerCheckResult(
-            exists: true,
-            newServerSignatures: newServerSignatures,
-            localOnlySignatures: localOnlySigs
+            serverStatus: hashedPropose.status,
+            pendingCounterpartySignSignature: pendingSignSignature,
+            pendingStatusTransition: pendingStatusTransition,
+            myHonorSigned: myHonorSigned,
+            myPartSigned: myPartSigned
         )
     }
 }

@@ -12,21 +12,26 @@ struct CreateProposeView: View {
     let space: Space
     let identity: Identity
     let onSuccess: () -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
-    
+
     @State private var message: String = ""
     @State private var isSaving: Bool = false
     @State private var errorMessage: String?
-    
+    @State private var selectedContact: Contact?
+    @State private var showContactPicker = false
+
     private var canSave: Bool {
-        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSaving
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isSaving
+            && selectedContact != nil
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Basic Information Section
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Space")
@@ -35,7 +40,7 @@ struct CreateProposeView: View {
                         Text(space.name)
                             .font(.body)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Identity")
                             .font(.caption)
@@ -50,7 +55,48 @@ struct CreateProposeView: View {
                 } header: {
                     Text("Information")
                 }
-                
+
+                // MARK: - To (Counterparty) Section
+                Section {
+                    if let contact = selectedContact {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(contact.nickname)
+                                    .font(.body)
+                                Text(contact.publicKey.prefix(16) + "...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fontDesign(.monospaced)
+                            }
+
+                            Spacer()
+
+                            Button("Change") {
+                                showContactPicker = true
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.blue)
+                        }
+                    } else {
+                        Button {
+                            showContactPicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .foregroundStyle(.blue)
+                                Text("Select a Contact...")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("To（Counterparty）")
+                } footer: {
+                    Text("Select the counterparty who will sign the Propose.")
+                }
+
+                // MARK: - Message Section
                 Section {
                     TextField("Message", text: $message, axis: .vertical)
                         .autocorrectionDisabled()
@@ -58,9 +104,10 @@ struct CreateProposeView: View {
                 } header: {
                     Text("Propose Message")
                 } footer: {
-                    Text("Enter the message you want to propose. This will be hashed and signed with your identity.")
+                    Text("Enter the message for the propose. It will be SHA256-hashed and signed with your identity.")
                 }
-                
+
+                // MARK: - Error Message
                 if let errorMessage = errorMessage {
                     Section {
                         HStack {
@@ -84,7 +131,7 @@ struct CreateProposeView: View {
                     }
                     .disabled(isSaving)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         Task {
@@ -95,16 +142,27 @@ struct CreateProposeView: View {
                 }
             }
             .disabled(isSaving)
+            .sheet(isPresented: $showContactPicker) {
+                ContactPickerSheet(selectedContact: $selectedContact)
+            }
         }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
     }
-    
+
     private func createPropose() async {
         await MainActor.run {
             isSaving = true
             errorMessage = nil
+        }
+
+        guard let contact = selectedContact else {
+            await MainActor.run {
+                errorMessage = "No Counterparty selected"
+                isSaving = false
+            }
+            return
         }
 
         let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
@@ -114,21 +172,99 @@ struct CreateProposeView: View {
         )
 
         do {
-            try await createProposeUseCaseImpl.execute(identityID: identity.id, spaceID: space.id, message: message)
+            try await createProposeUseCaseImpl.execute(
+                identityID: identity.id,
+                spaceID: space.id,
+                message: message,
+                counterpartyPublicKey: contact.publicKey
+            )
 
-            // 結果に関わらず画面を閉じる
+            // Close the screen regardless of result
             await MainActor.run {
                 isSaving = false
                 onSuccess()
                 dismiss()
             }
-            
+
         } catch {
             print("❌ Error creating propose: \(error)")
             await MainActor.run {
                 errorMessage = "Failed to create propose: \(error.localizedDescription)"
                 isSaving = false
             }
+        }
+    }
+}
+
+// MARK: - ContactPickerSheet
+
+/// Sheet for selecting a Contact
+struct ContactPickerSheet: View {
+    @Binding var selectedContact: Contact?
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dependencies) private var deps
+
+    @State private var contacts: [Contact] = []
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if contacts.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.crop.circle.badge.xmark")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("No contacts found")
+                            .foregroundStyle(.secondary)
+                        Text("Please add a contact first.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                } else {
+                    List(contacts) { contact in
+                        Button {
+                            selectedContact = contact
+                            dismiss()
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(contact.nickname)
+                                    .font(.body)
+                                Text(contact.publicKey.prefix(24) + "...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fontDesign(.monospaced)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Select Counterparty")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                loadContacts()
+            }
+        }
+    }
+
+    private func loadContacts() {
+        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
+        do {
+            contacts = try useCase.execute()
+        } catch {
+            print("❌ Error loading contacts: \(error)")
+            errorMessage = "Failed to load contacts"
         }
     }
 }

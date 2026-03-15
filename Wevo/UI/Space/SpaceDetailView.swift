@@ -20,6 +20,25 @@ struct SpaceDetailView: View {
     @State private var shouldShowCreatePropose = false
     @State private var shouldShowEditSpace = false
     @State private var currentSpace: Space
+    @State private var serverCheckTrigger = UUID()
+
+    /// Tab for switching between active / completed
+    @State private var selectedTab: ProposeTab = .active
+
+    private enum ProposeTab: String, CaseIterable {
+        case active = "Active"
+        case completed = "Completed"
+    }
+
+    /// List of active (proposed / signed) Proposes
+    private var activeProposes: [Propose] {
+        proposes.filter { $0.localStatus.isActive }
+    }
+
+    /// List of completed (honored / parted / dissolved) Proposes
+    private var completedProposes: [Propose] {
+        proposes.filter { !$0.localStatus.isActive }
+    }
 
     init(space: Space) {
         self.space = space
@@ -37,6 +56,18 @@ struct SpaceDetailView: View {
 
             Divider()
 
+            // SegmentedControl (Active / Completed)
+            Picker("", selection: $selectedTab) {
+                ForEach(ProposeTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Divider()
+
             // Content
             if isLoading {
                 Spacer()
@@ -50,19 +81,23 @@ struct SpaceDetailView: View {
                     onRetry: loadProposesFromLocal
                 )
                 Spacer()
-            } else if proposes.isEmpty {
-                Spacer()
-                EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
-                Spacer()
             } else {
-                List {
-                    ForEach(proposes) { propose in
-                        ProposeRowView(propose: propose, space: space) {
-                            loadProposesFromLocal()
+                let displayProposes = selectedTab == .active ? activeProposes : completedProposes
+
+                if displayProposes.isEmpty {
+                    Spacer()
+                    EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(displayProposes) { propose in
+                            ProposeRowView(propose: propose, space: space, serverCheckTrigger: serverCheckTrigger) {
+                                loadProposesFromLocal()
+                            }
                         }
                     }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle(currentSpace.name)
@@ -85,6 +120,7 @@ struct SpaceDetailView: View {
         }
         .refreshable {
             loadProposesFromLocal()
+            serverCheckTrigger = UUID()
         }
         .onCloudKitImport {
             loadProposesFromLocal()
@@ -120,7 +156,7 @@ struct SpaceDetailView: View {
             let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
             self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
         } catch {
-            print("❌ Error loading default identity: \(error)")
+            print("❌ Error loading default Identity: \(error)")
             await MainActor.run {
                 self.defaultIdentity = nil
             }
@@ -139,9 +175,9 @@ struct SpaceDetailView: View {
             isLoading = false
 
             if loadedProposes.isEmpty {
-                print("ℹ️ No proposes found locally for space: \(currentSpace.name)")
+                print("ℹ️ No proposes found locally: \(currentSpace.name)")
             } else {
-                print("✅ Loaded \(loadedProposes.count) proposes from local storage")
+                print("✅ Loaded \(loadedProposes.count) propose(s) from local storage")
             }
         } catch {
             print("❌ Error loading proposes from local storage: \(error)")
@@ -157,11 +193,11 @@ struct SpaceDetailView: View {
             do {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
-                print("✅ Space reloaded: \(updatedSpace.name)")
+                print("✅ Space reload complete: \(updatedSpace.name)")
             } catch SpaceRepositoryError.spaceNotFound {
                 dismiss()
             } catch {
-                print("Failed to Reload Space: \(error)")
+                print("Failed to reload Space: \(error)")
             }
         }
     }

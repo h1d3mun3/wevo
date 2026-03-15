@@ -7,88 +7,154 @@
 
 import SwiftUI
 
-/// サーバーに新しい署名がある場合の同期バナー
-struct ProposeNewSignaturesBannerView: View {
-    let count: Int
-    let isSyncing: Bool
-    let onSync: () -> Void
+/// Banner displayed when the Counterparty's server signature is pending approval
+/// Reflected locally only when the user explicitly chooses to accept
+struct PendingSignatureBannerView: View {
+    /// Counterparty's nickname or prefix of their PublicKey
+    let counterpartyNickname: String
+    /// Custom message to display (nil = default "X signed on the server")
+    var message: String? = nil
+    /// Whether acceptance processing is in progress
+    let isAccepting: Bool
+    /// Callback when the "Accept" button is tapped
+    let onAccept: () -> Void
+    /// Callback when the "Ignore" button is tapped
+    let onIgnore: () -> Void
 
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.circle.fill")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "signature")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+
+                Text(message ?? "\(counterpartyNickname) signed on the server")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fontWeight(.medium)
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Spacer()
+
+                Button("Ignore") {
+                    onIgnore()
+                }
+                .buttonStyle(.borderless)
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.secondary)
+                .disabled(isAccepting)
 
-            Text("Server has \(count) new signature(s)")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Button(action: onSync) {
-                if isSyncing {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                        Text("Syncing...")
+                Button(action: onAccept) {
+                    if isAccepting {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Accepting...")
+                                .font(.caption)
+                        }
+                    } else {
+                        Label("Accept", systemImage: "checkmark.circle.fill")
                             .font(.caption)
                     }
-                } else {
-                    Label("Sync from Server", systemImage: "arrow.down.circle.fill")
-                        .font(.caption)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .disabled(isAccepting)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            .disabled(isSyncing)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
         .padding(.horizontal, 8)
         .background(Color.orange.opacity(0.1))
         .cornerRadius(8)
     }
 }
 
-/// ローカルにのみある署名がある場合の送信バナー
-struct ProposeLocalSignaturesBannerView: View {
-    let count: Int
-    let isSending: Bool
-    let onSend: () -> Void
+/// Banner displayed when the server has reached a terminal status (honored/parted/dissolved)
+/// that has not yet been reflected locally
+struct PendingServerStatusBannerView: View {
+    let status: ProposeStatus
+    let isApplying: Bool
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+
+    private var bannerColor: Color {
+        switch status {
+        case .honored:   return .green
+        case .parted:    return .gray
+        case .dissolved: return .red
+        default:         return .orange
+        }
+    }
+
+    private var bannerIcon: String {
+        switch status {
+        case .honored:   return "checkmark.seal.fill"
+        case .parted:    return "xmark.seal"
+        case .dissolved: return "trash.circle"
+        default:         return "exclamationmark.circle"
+        }
+    }
+
+    private var bannerMessage: String {
+        switch status {
+        case .honored:   return "Server status: Honored — reflect locally?"
+        case .parted:    return "Server status: Parted — reflect locally?"
+        case .dissolved: return "Server status: Dissolved — reflect locally?"
+        default:         return "Server status updated — reflect locally?"
+        }
+    }
 
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.circle.fill")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: bannerIcon)
+                    .font(.caption)
+                    .foregroundStyle(bannerColor)
+
+                Text(bannerMessage)
+                    .font(.caption)
+                    .foregroundStyle(bannerColor)
+                    .fontWeight(.medium)
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Spacer()
+
+                Button("Ignore") {
+                    onIgnore()
+                }
+                .buttonStyle(.borderless)
                 .font(.caption)
-                .foregroundStyle(.blue)
+                .foregroundStyle(.secondary)
+                .disabled(isApplying)
 
-            Text("You have \(count) local signature(s)")
-                .font(.caption)
-                .foregroundStyle(.blue)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Button(action: onSend) {
-                if isSending {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                        Text("Sending...")
+                Button(action: onApply) {
+                    if isApplying {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Applying...")
+                                .font(.caption)
+                        }
+                    } else {
+                        Label("Apply", systemImage: "arrow.down.circle.fill")
                             .font(.caption)
                     }
-                } else {
-                    Label("Send to Server", systemImage: "arrow.up.circle.fill")
-                        .font(.caption)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .tint(bannerColor)
+                .disabled(isApplying)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            .disabled(isSending)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
         .padding(.horizontal, 8)
-        .background(Color.blue.opacity(0.1))
+        .background(bannerColor.opacity(0.1))
         .cornerRadius(8)
     }
 }

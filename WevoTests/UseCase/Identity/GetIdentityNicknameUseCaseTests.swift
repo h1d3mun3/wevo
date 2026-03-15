@@ -14,7 +14,7 @@ struct GetIdentityNicknameUseCaseTests {
 
     let mockKeychainRepository = MockKeychainRepository()
 
-    @Test("IDに対応するIdentityのニックネームを返す")
+    @Test("Returns the nickname of the Identity corresponding to the ID")
     func executeSuccess() {
         let id = UUID()
         let identity = Identity(id: id, nickname: "My Key", publicKey: "PK")
@@ -27,7 +27,7 @@ struct GetIdentityNicknameUseCaseTests {
         #expect(mockKeychainRepository.getIdentityCalledWithID == id)
     }
 
-    @Test("Identityが見つからない場合Unknownを返す")
+    @Test("Returns Unknown when Identity is not found")
     func executeReturnsUnknownWhenNotFound() {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 

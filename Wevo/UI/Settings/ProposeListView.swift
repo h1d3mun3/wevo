@@ -42,10 +42,11 @@ struct ProposeListView: View {
                             }
 
                             HStack {
-                                Image(systemName: "signature")
+                                // Local status icon (proposed=⏳, signed=✅)
+                                Image(systemName: propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(propose.signatures.count) signature(s)")
+                                    .foregroundStyle(propose.localStatus == .proposed ? .orange : .green)
+                                Text(propose.localStatus.rawValue.capitalized)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -89,18 +90,14 @@ struct ProposeListView: View {
 }
 
 #Preview("Propose List") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "SamplePublicKey",
-        signature: "SampleSignature",
-        createdAt: .now
-    )
-
     let propose = Propose(
         id: UUID(),
         spaceID: UUID(),
         message: "Preview propose",
-        signatures: [signature],
+        creatorPublicKey: "creatorPublicKey",
+        creatorSignature: "creatorSignature",
+        counterpartyPublicKey: "counterpartyPublicKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )

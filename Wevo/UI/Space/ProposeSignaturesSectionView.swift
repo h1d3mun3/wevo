@@ -7,66 +7,70 @@
 
 import SwiftUI
 
+/// Section view for Participants (Creator + Counterparty)
+/// Changed from the old signature list display to participant status display
 struct ProposeSignaturesSectionView: View {
-    let signaturesWithNicknames: [(signature: Signature, nickname: String?)]
+    let propose: Propose
+    let contactNicknames: [String: String]
     let defaultIdentity: Identity?
-    let showSignButton: Bool
-    let isSigning: Bool
-    let signSuccess: Bool?
-    let signErrorMessage: String?
-    let onSign: () -> Void
 
     var body: some View {
         Divider()
             .padding(.vertical, 4)
 
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Signatures:")
+            Text("Participants:")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            // Creator row (always signed)
+            participantRow(
+                publicKey: propose.creatorPublicKey,
+                role: "Creator",
+                isSigned: true
+            )
+
+            // Counterparty row (icon based on localStatus)
+            participantRow(
+                publicKey: propose.counterpartyPublicKey,
+                role: "Counterparty",
+                isSigned: propose.counterpartySignSignature != nil
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
+        HStack(spacing: 8) {
+            // Signature status icon (proposed=⏳, signed=✅)
+            Image(systemName: isSigned ? "checkmark.circle.fill" : "clock")
+                .font(.caption)
+                .foregroundStyle(isSigned ? .green : .orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                // Nickname or prefix of PublicKey
+                let nickname = contactNicknames[publicKey] ?? String(publicKey.prefix(12)) + "..."
+                Text(nickname)
+                    .font(.caption)
+
+                Text(role)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
-
-                Spacer()
-
-                if showSignButton {
-                    Button(action: onSign) {
-                        if isSigning {
-                            HStack(spacing: 4) {
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                Text("Signing...")
-                                    .font(.caption2)
-                            }
-                        } else {
-                            Label("Sign", systemImage: "signature")
-                                .font(.caption2)
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .disabled(isSigning)
-                }
+                    .foregroundStyle(.secondary)
             }
 
-            if let signSuccess = signSuccess {
-                HStack {
-                    Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(signSuccess ? .green : .red)
-                    Text(signSuccess ? "Signed successfully" : (signErrorMessage ?? "Failed to sign"))
-                        .font(.caption2)
-                        .foregroundStyle(signSuccess ? .green : .red)
-                }
-                .padding(.top, 2)
-            }
+            Spacer()
 
-            ForEach(signaturesWithNicknames, id: \.signature.id) { item in
-                SignatureRowView(
-                    signature: item.signature,
-                    myPublicKey: defaultIdentity?.publicKey,
-                    contactNickname: item.nickname
-                )
+            // Badge indicating whether this is the current user
+            if publicKey == defaultIdentity?.publicKey {
+                Text("Me")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.blue.opacity(0.1))
+                    .foregroundStyle(.blue)
+                    .cornerRadius(4)
             }
         }
+        .padding(.vertical, 2)
     }
 }

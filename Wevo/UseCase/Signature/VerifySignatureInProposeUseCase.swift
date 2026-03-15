@@ -22,12 +22,12 @@ struct VerifySignatureInProposeUseCaseImpl {
 }
 
 extension VerifySignatureInProposeUseCaseImpl: VerifySignatureInProposeUseCase {
-    /// 署名IDからProposeを見つけ、署名を検証する
+    /// Finds the Propose from the signature ID and verifies the signature
     /// - Parameters:
-    ///   - signatureID: 検証対象の署名ID
-    ///   - signatureData: Base64エンコードされた署名文字列
-    ///   - publicKey: Base64エンコードされた公開鍵文字列
-    /// - Returns: 署名が有効な場合はtrue
+    ///   - signatureID: The signature ID to verify
+    ///   - signatureData: Base64-encoded signature string
+    ///   - publicKey: Base64-encoded public key string
+    /// - Returns: true if the signature is valid
     func execute(signatureID: UUID, signatureData: String, publicKey: String) throws -> Bool {
         let payloadHash = try signatureRepository.fetchPayloadHash(forSignatureID: signatureID)
 

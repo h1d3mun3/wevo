@@ -30,22 +30,27 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
             throw ResendProposeToServerUseCaseError.invalidServerURL
         }
 
-        guard let firstSignature = propose.signatures.first else {
+        // Verify that CreatorSignature exists
+        guard !propose.creatorSignature.isEmpty else {
             throw ResendProposeToServerUseCaseError.noSignatureFound
         }
 
-        let input = ProposeAPIClient.ProposeInput(
-            id: propose.id,
-            payloadHash: propose.payloadHash,
-            publicKey: firstSignature.publicKey,
-            signatures: propose.signatures.map {
-                ProposeAPIClient.SignInput(publicKey: $0.publicKey, signature: $0.signature)
-            }
+        // ISO8601 string of creation timestamp
+        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
+
+        // Resend to POST /proposes using CreateProposeInput
+        let input = ProposeAPIClient.CreateProposeInput(
+            proposeId: propose.id.uuidString,
+            contentHash: propose.payloadHash,
+            creatorPublicKey: propose.creatorPublicKey,
+            creatorSignature: propose.creatorSignature,
+            counterpartyPublicKeys: [propose.counterpartyPublicKey],
+            createdAt: iso8601String
         )
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.createPropose(input: input)
 
-        print("✅ Propose resent to server successfully: \(propose.id)")
+        print("✅ Resent Propose to server: \(propose.id)")
     }
 }

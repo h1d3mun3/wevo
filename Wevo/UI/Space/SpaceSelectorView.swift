@@ -33,7 +33,7 @@ struct SpaceSelectorView: View {
                             Image(systemName: "signature")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
-                            Text("\(propose.signatures.count) signature(s)")
+                            Text(propose.localStatus.rawValue.capitalized)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
 

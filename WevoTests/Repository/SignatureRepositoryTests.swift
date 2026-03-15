@@ -21,21 +21,19 @@ struct SignatureRepositoryTests {
         return (container.mainContext, container)
     }
 
-    private func insertPropose(
+    /// Helper to insert SignatureSwiftData directly into context
+    /// In the new API, there is no relation between SignatureSwiftData and ProposeSwiftData
+    private func insertSignature(
         context: ModelContext,
-        proposeID: UUID = UUID(),
-        spaceID: UUID = UUID(),
-        message: String = "test",
-        signatures: [SignatureSwiftData] = []
-    ) -> ProposeSwiftData {
-        let model = ProposeSwiftData(
-            id: proposeID,
-            message: message,
-            payloadHash: message,
-            spaceID: spaceID,
-            signatures: signatures,
-            createdAt: .now,
-            updatedAt: .now
+        id: UUID = UUID(),
+        publicKey: String = "pk",
+        signatureData: String = "sig"
+    ) -> SignatureSwiftData {
+        let model = SignatureSwiftData(
+            id: id,
+            publicKey: publicKey,
+            signatureData: signatureData,
+            createdAt: .now
         )
         context.insert(model)
         try? context.save()
@@ -54,9 +52,9 @@ struct SignatureRepositoryTests {
 
     @Test func testFetchAllReturnsAllSignatures() throws {
         let (context, _container) = try makeContext()
-        let sig1 = makeSignatureModel(publicKey: "key1")
-        let sig2 = makeSignatureModel(publicKey: "key2")
-        _ = insertPropose(context: context, signatures: [sig1, sig2])
+        // Insert 2 Signatures directly
+        _ = insertSignature(context: context, publicKey: "key1")
+        _ = insertSignature(context: context, publicKey: "key2")
 
         let repo = SignatureRepositoryImpl(modelContext: context)
         let all = try repo.fetchAll()
@@ -76,8 +74,7 @@ struct SignatureRepositoryTests {
     @Test func testDeleteRemovesSignature() throws {
         let (context, _container) = try makeContext()
         let sigID = UUID()
-        let sig = makeSignatureModel(id: sigID)
-        _ = insertPropose(context: context, signatures: [sig])
+        _ = insertSignature(context: context, id: sigID)
 
         let repo = SignatureRepositoryImpl(modelContext: context)
         try repo.delete(by: sigID)
@@ -96,25 +93,30 @@ struct SignatureRepositoryTests {
     }
 
     // MARK: - FetchPayloadHash
-
-    @Test func testFetchPayloadHashReturnsCorrectHash() throws {
-        let (context, _container) = try makeContext()
-        let sigID = UUID()
-        let sig = makeSignatureModel(id: sigID)
-        _ = insertPropose(context: context, message: "hello", signatures: [sig])
-
-        let repo = SignatureRepositoryImpl(modelContext: context)
-        let hash = try repo.fetchPayloadHash(forSignatureID: sigID)
-
-        #expect(hash == "hello")
-    }
+    // In the new API, since there is no relation between SignatureSwiftData and ProposeSwiftData,
+    // fetchPayloadHash always throws an error
 
     @Test func testFetchPayloadHashThrowsWhenSignatureNotFound() throws {
         let (context, _container) = try makeContext()
         let repo = SignatureRepositoryImpl(modelContext: context)
 
+        // In the new API, always throws proposeNotFoundForSignature
         #expect(throws: SignatureRepositoryError.self) {
             try repo.fetchPayloadHash(forSignatureID: UUID())
+        }
+    }
+
+    @Test func testFetchPayloadHashAlwaysThrows() throws {
+        let (context, _container) = try makeContext()
+        let sigID = UUID()
+        // Insert Signature directly into Context (no relation to Propose)
+        _ = insertSignature(context: context, id: sigID)
+
+        let repo = SignatureRepositoryImpl(modelContext: context)
+
+        // In the new API, always errors because there is no relation
+        #expect(throws: SignatureRepositoryError.self) {
+            try repo.fetchPayloadHash(forSignatureID: sigID)
         }
     }
 }

@@ -8,15 +8,14 @@
 import Foundation
 import SwiftData
 
+/// Signature model persisted using SwiftData
+/// Relation to ProposeSwiftData has been removed (the new API stores signature data directly within the Propose)
 @Model
 final class SignatureSwiftData {
     var id: UUID = UUID()
     var publicKey: String = ""
     var signatureData: String = ""
     var createdAt: Date = Date()
-    
-    // ProposeSwiftDataとの関係（逆方向）
-    @Relationship(inverse: \ProposeSwiftData.signatures) var propose: ProposeSwiftData?
 
     init(
         id: UUID,

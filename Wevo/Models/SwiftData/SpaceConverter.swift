@@ -7,10 +7,10 @@
 
 import Foundation
 
-/// Space構造体とSpaceModelの相互変換を行う
+/// Handles bidirectional conversion between the Space struct and SpaceModel
 struct SpaceConverter {
-    
-    /// Space構造体からSpaceModelへ変換
+
+    /// Converts a Space struct to SpaceModel
     static func toModel(from space: Space) -> SpaceSwiftData {
         return SpaceSwiftData(
             id: space.id,
@@ -23,7 +23,7 @@ struct SpaceConverter {
         )
     }
     
-    /// SpaceModelからSpace構造体へ変換
+    /// Converts SpaceModel to a Space struct
     static func toEntity(from model: SpaceSwiftData) -> Space {
         return Space(
             id: model.id,
@@ -36,14 +36,14 @@ struct SpaceConverter {
         )
     }
     
-    /// 複数のSpaceModelを変換
+    /// Converts multiple SpaceModel objects
     static func toEntities(from models: [SpaceSwiftData]) -> [Space] {
         return models.map { model in
             toEntity(from: model)
         }
     }
     
-    /// SpaceModelを既存のSpace構造体で更新
+    /// Updates a SpaceModel with an existing Space struct
     static func updateModel(_ model: SpaceSwiftData, with space: Space) {
         model.name = space.name
         model.urlString = space.url

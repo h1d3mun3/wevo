@@ -15,13 +15,13 @@ struct ImportIdentityFromExportUseCaseTests {
 
     let mockKeychainRepository = MockKeychainRepository()
 
-    /// 有効なP256秘密鍵のBase64文字列を生成
+    /// Generates a valid P256 private key Base64 string
     static func validPrivateKeyBase64() -> String {
         let key = P256.Signing.PrivateKey()
         return key.rawRepresentation.base64EncodedString()
     }
 
-    @Test("正常にインポートできる")
+    @Test("Can import successfully")
     func executeSuccess() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
@@ -41,7 +41,7 @@ struct ImportIdentityFromExportUseCaseTests {
         #expect(mockKeychainRepository.createdNickname == exportData.nickname)
     }
 
-    @Test("既存のIdentityがある場合は削除してからインポートする")
+    @Test("Deletes existing Identity before importing when one exists")
     func executeOverwritesExisting() throws {
         let id = UUID()
         let existingIdentity = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
@@ -63,7 +63,7 @@ struct ImportIdentityFromExportUseCaseTests {
         #expect(mockKeychainRepository.createIdentityCalled)
     }
 
-    @Test("Base64デコードに失敗した場合エラーが返る")
+    @Test("Returns error when Base64 decoding fails")
     func executeFailsWithInvalidBase64() {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
@@ -82,7 +82,7 @@ struct ImportIdentityFromExportUseCaseTests {
         }
     }
 
-    @Test("P256として無効なデータの場合エラーが返る")
+    @Test("Returns error when data is invalid as P256 key")
     func executeFailsWithInvalidP256Key() {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 
@@ -101,7 +101,7 @@ struct ImportIdentityFromExportUseCaseTests {
         }
     }
 
-    @Test("秘密鍵のDataが正しくデコードされてcreateIdentityに渡される")
+    @Test("Private key Data is correctly decoded and passed to createIdentity")
     func executeDecodesPrivateKeyCorrectly() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
 

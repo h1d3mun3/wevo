@@ -26,7 +26,7 @@ protocol SpaceRepository {
     func deleteAll() throws
 }
 
-/// SwiftDataを使用してSpaceのCRUD操作を提供するRepository
+/// Repository providing CRUD operations for Space using SwiftData
 @MainActor
 final class SpaceRepositoryImpl: SpaceRepository {
     
@@ -38,7 +38,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
     
     // MARK: - Create
     
-    /// 新しいSpaceを作成
+    /// Create a new Space
     func create(_ space: Space) throws {
         let model = SpaceConverter.toModel(from: space)
         modelContext.insert(model)
@@ -52,7 +52,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
     
     // MARK: - Read
     
-    /// すべてのSpaceを取得（orderIndexでソート）
+    /// Retrieve all Spaces (sorted by orderIndex)
     func fetchAll() throws -> [Space] {
         let descriptor = FetchDescriptor<SpaceSwiftData>(
             sortBy: [SortDescriptor(\.orderIndex, order: .forward)]
@@ -66,7 +66,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
         }
     }
     
-    /// 特定のIDのSpaceを取得
+    /// Retrieve a Space by a specific ID
     func fetch(by id: UUID) throws -> Space {
         let predicate = #Predicate<SpaceSwiftData> { model in
             model.id == id
@@ -91,7 +91,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
     
     // MARK: - Update
     
-    /// 既存のSpaceを更新
+    /// Update an existing Space
     func update(_ space: Space) throws {
         let spaceID = space.id
         let predicate = #Predicate<SpaceSwiftData> { model in
@@ -118,7 +118,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
     }
     
     // MARK: - Delete
-    /// 特定のIDのSpaceを削除
+    /// Delete a Space by a specific ID
     func delete(by id: UUID) throws {
         let predicate = #Predicate<SpaceSwiftData> { model in
             model.id == id
@@ -142,7 +142,7 @@ final class SpaceRepositoryImpl: SpaceRepository {
         }
     }
     
-    /// すべてのSpaceを削除
+    /// Delete all Spaces
     func deleteAll() throws {
         do {
             try modelContext.delete(model: SpaceSwiftData.self)

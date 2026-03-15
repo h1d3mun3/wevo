@@ -8,23 +8,40 @@
 import Foundation
 import CryptoKit
 
-/// ProposeAPIClientのプロトコル
+/// Protocol for ProposeAPIClient (conforms to the new backend API specification)
 protocol ProposeAPIClientProtocol {
-    func createPropose(input: ProposeAPIClient.ProposeInput) async throws
-    func updatePropose(proposeID: UUID, input: ProposeAPIClient.ProposeInput) async throws
+    func createPropose(input: ProposeAPIClient.CreateProposeInput) async throws
+    func signPropose(proposeID: UUID, input: ProposeAPIClient.SignInput) async throws
+    func dissolvePropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
+    func honorPropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
+    func partPropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
     func getPropose(proposeID: UUID) async throws -> HashedPropose
-    func listProposes(publicKey: String, page: Int, per: Int) async throws -> ProposeAPIClient.Page<HashedPropose>
+    func listProposes(publicKey: String, status: String?, page: Int, per: Int) async throws -> ProposeAPIClient.Page<HashedPropose>
 }
 
-/// ProposeController用のAPIクライアント
+/// API client for ProposeController (new backend API specification)
 actor ProposeAPIClient: ProposeAPIClientProtocol {
     private let baseURL: URL
     private let session: URLSession
 
-    /// イニシャライザ
+    /// ISO8601 formatter (shared as a static let because instantiation is expensive)
+    static let iso8601Formatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    /// ISO8601 formatter without fractional seconds (fallback)
+    static let iso8601FormatterBasic: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// Initializer
     /// - Parameters:
-    ///   - baseURL: サーバーのベースURL（例: "https://api.example.com"）
-    ///   - session: カスタムURLSession（デフォルトは.shared）
+    ///   - baseURL: The server's base URL (e.g. "https://api.example.com")
+    ///   - session: Custom URLSession (defaults to .shared)
     init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL.appendingPathComponent("v1")
         self.session = session
@@ -32,21 +49,43 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
 
     // MARK: - DTOs (Data Transfer Objects)
 
-    /// 提案作成時の入力データ
-    struct ProposeInput: Codable {
-        let id: UUID
-        let payloadHash: String
-        let publicKey: String
-        let signatures: [SignInput]
+    /// Input data for creating a propose (POST /v1/proposes)
+    struct CreateProposeInput: Codable {
+        /// UUID string of the Propose
+        let proposeId: String
+        /// SHA256 hash (Base64)
+        let contentHash: String
+        /// Creator's public key in Base64 x963 format
+        let creatorPublicKey: String
+        /// Creator's signature (Base64 DER)
+        let creatorSignature: String
+        /// List of counterparty public keys
+        let counterpartyPublicKeys: [String]
+        /// Creation timestamp (ISO8601)
+        let createdAt: String
     }
 
-    /// 署名追加時の入力データ
+    /// Input data when the Counterparty signs (PATCH /v1/proposes/:id/sign)
     struct SignInput: Codable {
-        let publicKey: String
+        /// Signer's public key (Base64 x963)
+        let signerPublicKey: String
+        /// Signature data (Base64 DER)
         let signature: String
+        /// Propose creation timestamp (ISO8601, must exactly match the Propose's createdAt)
+        let createdAt: String
     }
 
-    /// ページネーション結果
+    /// Common input data for dissolve / honor / part
+    struct TransitionInput: Codable {
+        /// Operator's public key (Base64 x963)
+        let publicKey: String
+        /// Signature data (Base64 DER)
+        let signature: String
+        /// Timestamp (ISO8601)
+        let timestamp: String
+    }
+
+    /// Paginated result
     struct Page<T: Codable>: Codable {
         let items: [T]
         let metadata: Metadata
@@ -60,10 +99,10 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
 
     // MARK: - API Methods
 
-    /// 新しい提案を作成
-    /// - Parameter input: 提案の入力データ
+    /// Create a new propose (POST /v1/proposes)
+    /// - Parameter input: Input data for the propose
     /// - Throws: APIError
-    func createPropose(input: ProposeInput) async throws {
+    func createPropose(input: CreateProposeInput) async throws {
         var request = URLRequest(url: baseURL.appendingPathComponent("proposes"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -82,16 +121,19 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         }
     }
 
-    /// 指定したUUIDの署名状況を更新
-    /// - Parameter proposeID: 提案のUUID
+    /// Counterparty signs (PATCH /v1/proposes/:id/sign)
+    /// - Parameters:
+    ///   - proposeID: UUID of the target Propose
+    ///   - input: Signature input data
     /// - Throws: APIError
-    func updatePropose(proposeID: UUID, input: ProposeInput) async throws {
+    func signPropose(proposeID: UUID, input: SignInput) async throws {
         let url = baseURL
             .appendingPathComponent("proposes")
             .appendingPathComponent(proposeID.uuidString)
+            .appendingPathComponent("sign")
 
         var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
+        request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let encoder = JSONEncoder()
@@ -108,9 +150,95 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         }
     }
 
-    /// 指定したUUIDの提案詳細を取得
-    /// - Parameter proposeID: 提案のUUID
-    /// - Returns: ハッシュ化された提案データ
+    /// Dissolve a Propose (DELETE /v1/proposes/:id)
+    /// - Parameters:
+    ///   - proposeID: UUID of the target Propose
+    ///   - input: Transition input data (signature required)
+    /// - Throws: APIError
+    func dissolvePropose(proposeID: UUID, input: TransitionInput) async throws {
+        let url = baseURL
+            .appendingPathComponent("proposes")
+            .appendingPathComponent(proposeID.uuidString)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(input)
+
+        let (_, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+    }
+
+    /// Honor a Propose (PATCH /v1/proposes/:id/honor)
+    /// - Parameters:
+    ///   - proposeID: UUID of the target Propose
+    ///   - input: Transition input data (signature required)
+    /// - Throws: APIError
+    func honorPropose(proposeID: UUID, input: TransitionInput) async throws {
+        let url = baseURL
+            .appendingPathComponent("proposes")
+            .appendingPathComponent(proposeID.uuidString)
+            .appendingPathComponent("honor")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(input)
+
+        let (_, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+    }
+
+    /// Part a Propose (PATCH /v1/proposes/:id/part)
+    /// - Parameters:
+    ///   - proposeID: UUID of the target Propose
+    ///   - input: Transition input data (signature required)
+    /// - Throws: APIError
+    func partPropose(proposeID: UUID, input: TransitionInput) async throws {
+        let url = baseURL
+            .appendingPathComponent("proposes")
+            .appendingPathComponent(proposeID.uuidString)
+            .appendingPathComponent("part")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(input)
+
+        let (_, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+    }
+
+    /// Retrieve propose details by UUID (GET /v1/proposes/:id)
+    /// - Parameter proposeID: UUID of the propose
+    /// - Returns: Server's Propose response
     /// - Throws: APIError
     func getPropose(proposeID: UUID) async throws -> HashedPropose {
         let url = baseURL
@@ -132,30 +260,52 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         }
 
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        // Custom decoding for ISO8601 (supports both with and without fractional seconds)
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            if let date = ProposeAPIClient.iso8601Formatter.date(from: dateString) {
+                return date
+            }
+            if let date = ProposeAPIClient.iso8601FormatterBasic.date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Failed to parse ISO8601 date: \(dateString)"
+            )
+        }
 
         return try decoder.decode(HashedPropose.self, from: data)
     }
 
-    /// 公開鍵で提案一覧を取得（ページネーション対応）
+    /// Retrieve a list of proposes by public key and status (GET /v1/proposes)
     /// - Parameters:
-    ///   - publicKey: 署名者の公開鍵
-    ///   - page: ページ番号（デフォルト: 1）
-    ///   - per: 1ページあたりの件数（デフォルト: 20）
-    /// - Returns: ページネーション結果
+    ///   - publicKey: Signer's public key
+    ///   - status: Status to filter by (nil = no filter)
+    ///   - page: Page number (default: 1)
+    ///   - per: Number of items per page (default: 10)
+    /// - Returns: Paginated result
     /// - Throws: APIError
-    func listProposes(publicKey: String, page: Int = 1, per: Int = 20) async throws -> Page<HashedPropose> {
+    func listProposes(publicKey: String, status: String? = nil, page: Int = 1, per: Int = 10) async throws -> Page<HashedPropose> {
         var components = URLComponents(url: baseURL.appendingPathComponent("proposes"), resolvingAgainstBaseURL: true)
 
-        // percentEncodedQueryItems で手動エンコード
+        // Manual encoding using percentEncodedQueryItems
         let encodedPublicKey = publicKey
             .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? publicKey
 
-        components?.percentEncodedQueryItems = [
+        var queryItems = [
             URLQueryItem(name: "publicKey", value: encodedPublicKey),
             URLQueryItem(name: "page", value: String(page)),
             URLQueryItem(name: "per", value: String(per))
         ]
+
+        // Only append status filter when specified
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+
+        components?.percentEncodedQueryItems = queryItems
 
         guard let url = components?.url else {
             throw APIError.invalidURL
@@ -176,7 +326,21 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         }
 
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        // Custom decoding for ISO8601 (supports both with and without fractional seconds)
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            if let date = ProposeAPIClient.iso8601Formatter.date(from: dateString) {
+                return date
+            }
+            if let date = ProposeAPIClient.iso8601FormatterBasic.date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Failed to parse ISO8601 date: \(dateString)"
+            )
+        }
 
         return try decoder.decode(Page<HashedPropose>.self, from: data)
     }
@@ -192,56 +356,14 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         var errorDescription: String? {
             switch self {
             case .invalidURL:
-                return "無効なURLです"
+                return "Invalid URL"
             case .invalidResponse:
-                return "サーバーからの応答が無効です"
+                return "Invalid response from server"
             case .httpError(let statusCode):
-                return "HTTPエラー: \(statusCode)"
+                return "HTTP error: \(statusCode)"
             case .decodingError(let error):
-                return "デコードエラー: \(error.localizedDescription)"
+                return "Decoding error: \(error.localizedDescription)"
             }
         }
     }
 }
-
-// MARK: - 使用例
-
-/*
-// 使用例1: 新しい提案を作成
-let client = ProposeAPIClient(baseURL: URL(string: "https://api.example.com")!)
-
-// 秘密鍵を生成または読み込む
-let privateKey = P256.Signing.PrivateKey()
-let publicKey = privateKey.publicKey
-
-// メッセージのハッシュを作成
-let payloadHash = "some-payload-hash"
-let signature = try ProposeAPIClient.createSignature(for: payloadHash, using: privateKey)
-let publicKeyString = ProposeAPIClient.encodePublicKey(publicKey)
-
-// 提案を作成
-let input = ProposeAPIClient.ProposeInput(
-    id: UUID(),
-    payloadHash: payloadHash,
-    publicKey: publicKeyString,
-    signature: signature
-)
-
-try await client.createPropose(input: input)
-
-// 使用例2: 提案一覧を取得
-let page = try await client.listProposes(publicKey: publicKeyString, page: 1, per: 20)
-print("取得した提案: \(page.items.count)件")
-print("全体: \(page.metadata.total)件")
-
-// 使用例3: 提案詳細を取得
-let propose = try await client.getPropose(proposeID: someUUID)
-print("署名数: \(propose.signatures.count)")
-
-// 使用例4: 提案に署名を追加
-let signInput = ProposeAPIClient.SignInput(
-    publicKey: publicKeyString,
-    signature: signature
-)
-try await client.signPropose(proposeID: someUUID, input: signInput)
-*/

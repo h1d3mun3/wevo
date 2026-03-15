@@ -11,6 +11,7 @@ struct ProposeRowView: View {
     let propose: Propose
     let space: Space
     let onSigned: () -> Void
+    var serverCheckTrigger: UUID = UUID()
 
     @Environment(\.dependencies) private var deps
 
@@ -26,19 +27,37 @@ struct ProposeRowView: View {
     @State private var signSuccess: Bool?
     @State private var signErrorMessage: String?
     @State private var defaultIdentity: Identity?
-    @State private var serverSignatures: [Signature] = []
-    @State private var hasNewSignatures = false
-    @State private var isSyncingSignatures = false
-    @State private var localOnlySignatures: [Signature] = []
-    @State private var hasLocalOnlySignatures = false
-    @State private var isSendingSignatures = false
     @State private var showProposeDetail = false
     @State private var contactNicknames: [String: String] = [:]
 
+    /// Counterparty signature retrieved from server (not yet reflected locally)
+    @State private var pendingCounterpartySignSignature: String? = nil
+    /// Whether signature acceptance is in progress
+    @State private var isAcceptingSignature = false
+
+    /// Terminal server status (honored/parted/dissolved) pending local reflection
+    @State private var pendingStatusTransition: ProposeStatus? = nil
+    /// Whether terminal status application is in progress
+    @State private var isApplyingServerStatus = false
+
+    @State private var isHonoring = false
+    @State private var honorSuccess: Bool?
+    @State private var honorErrorMessage: String?
+    @State private var myHonorSigned = false
+
+    @State private var isParting = false
+    @State private var partSuccess: Bool?
+    @State private var partErrorMessage: String?
+    @State private var myPartSigned = false
+
+    @State private var isDissolving = false
+    @State private var dissolveSuccess: Bool?
+    @State private var dissolveErrorMessage: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // メッセージ部分
-            VStack(alignment: .leading, spacing: 8) {
+            // Header section (message, timestamp, Counterparty nickname)
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(propose.message)
                         .font(.headline)
@@ -51,64 +70,73 @@ struct ProposeRowView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                // Show Counterparty nickname in header
+                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
+                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
                 HStack(spacing: 4) {
-                    Image(systemName: serverStatus.icon)
+                    Image(systemName: "person.fill")
                         .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
-                    Text(serverStatus.description)
+                        .foregroundStyle(.secondary)
+                    Text("To: \(counterpartyName)")
                         .font(.caption2)
-                        .foregroundStyle(serverStatus.color)
+                        .foregroundStyle(.secondary)
                 }
 
-                Text("\(propose.signatures.count) signature(s)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Local status badge
+                statusBadge
             }
 
-            // アクションボタン
+            // Action buttons
             actionBar
 
-            // ステータスメッセージ
+            // Status messages
             statusMessages
 
-            // サーバー同期バナー
-            if hasNewSignatures {
-                ProposeNewSignaturesBannerView(
-                    count: serverSignatures.count,
-                    isSyncing: isSyncingSignatures
+            // Pending signature banner for Counterparty approval
+            if let pendingSig = pendingCounterpartySignSignature {
+                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
+                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
+                let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
+                PendingSignatureBannerView(
+                    counterpartyNickname: counterpartyName,
+                    message: isSelfSigned ? "Your signature was sent to the server. Save locally?" : nil,
+                    isAccepting: isAcceptingSignature
                 ) {
                     Task {
-                        await syncSignaturesFromServer()
+                        await acceptCounterpartySignature(signature: pendingSig)
                         onSigned()
                     }
+                } onIgnore: {
+                    // Ignore: just hide the banner (do not reflect locally)
+                    pendingCounterpartySignSignature = nil
                 }
             }
 
-            if hasLocalOnlySignatures {
-                ProposeLocalSignaturesBannerView(
-                    count: localOnlySignatures.count,
-                    isSending: isSendingSignatures
+            // Pending terminal status banner (honored/parted/dissolved from server)
+            if let pendingStatus = pendingStatusTransition {
+                PendingServerStatusBannerView(
+                    status: pendingStatus,
+                    isApplying: isApplyingServerStatus
                 ) {
-                    Task { await sendLocalSignaturesToServer() }
+                    Task { await applyServerStatus(pendingStatus) }
+                } onIgnore: {
+                    pendingStatusTransition = nil
                 }
             }
 
-            // 署名セクション
-            if !propose.signatures.isEmpty {
-                ProposeSignaturesSectionView(
-                    signaturesWithNicknames: propose.signatures.map { (signature: $0, nickname: contactNicknames[$0.publicKey]) },
-                    defaultIdentity: defaultIdentity,
-                    showSignButton: shouldShowSignButton,
-                    isSigning: isSigning,
-                    signSuccess: signSuccess,
-                    signErrorMessage: signErrorMessage
-                ) {
-                    guard let identity = defaultIdentity else { return }
-                    Task {
-                        await signPropose(with: identity)
-                        onSigned()
-                    }
-                }
+            // Sign button when Counterparty has not yet signed
+            if shouldShowSignButton {
+                signButton
+            }
+
+            // Dissolve button (only available in proposed state, for any participant)
+            if propose.localStatus == .proposed {
+                dissolveButton
+            }
+
+            // Honor / Part buttons (when in signed state)
+            if propose.localStatus == .signed {
+                honorPartStubButtons
             }
         }
         .padding(.vertical, 8)
@@ -116,7 +144,12 @@ struct ProposeRowView: View {
         .onTapGesture {
             showProposeDetail = true
         }
-        .task(id: propose.signatures.count) {
+        .task(id: propose.localStatus) {
+            // Check server status when local status changes
+            await checkServerStatus()
+        }
+        .task(id: serverCheckTrigger) {
+            // Check server status when pull-to-refresh is triggered
             await checkServerStatus()
         }
         .task {
@@ -148,12 +181,38 @@ struct ProposeRowView: View {
 
     // MARK: - Computed Properties
 
+    /// Whether to show the Sign button
+    /// Only shown when the identity is the Counterparty and the state is proposed
     private var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
-        return !hasMySignature(identity: identity) && signSuccess != true
+        return identity.publicKey == propose.counterpartyPublicKey
+            && propose.localStatus == .proposed
+            && pendingCounterpartySignSignature == nil
+            && signSuccess != true
     }
 
     // MARK: - Sub Views
+
+    /// Local status badge
+    @ViewBuilder
+    private var statusBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: propose.localStatus.statusIcon)
+                .font(.caption2)
+                .foregroundStyle(propose.localStatus.statusColor)
+            Text(propose.localStatus.statusLabel)
+                .font(.caption2)
+                .foregroundStyle(propose.localStatus.statusColor)
+
+            // Also show server status
+            Image(systemName: serverStatus.icon)
+                .font(.caption2)
+                .foregroundStyle(serverStatus.color)
+            Text(serverStatus.description)
+                .font(.caption2)
+                .foregroundStyle(serverStatus.color)
+        }
+    }
 
     @ViewBuilder
     private var actionBar: some View {
@@ -217,7 +276,7 @@ struct ProposeRowView: View {
                 Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
-                Text(resendSuccess ? "Sent to server successfully" : (resendErrorMessage ?? "Failed to send to server"))
+                Text(resendSuccess ? "Sent to server" : (resendErrorMessage ?? "Failed to send"))
                     .font(.caption2)
                     .foregroundStyle(resendSuccess ? .green : .red)
             }
@@ -227,6 +286,145 @@ struct ProposeRowView: View {
             Text(shareError)
                 .font(.caption2)
                 .foregroundStyle(.red)
+        }
+
+        if let signSuccess = signSuccess {
+            HStack {
+                Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(signSuccess ? .green : .red)
+                Text(signSuccess ? "Signed" : (signErrorMessage ?? "Failed to sign"))
+                    .font(.caption2)
+                    .foregroundStyle(signSuccess ? .green : .red)
+            }
+        }
+
+        if let honorSuccess = honorSuccess {
+            HStack {
+                Image(systemName: honorSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(honorSuccess ? .green : .red)
+                Text(honorSuccess ? "Honor sent" : (honorErrorMessage ?? "Failed to honor"))
+                    .font(.caption2)
+                    .foregroundStyle(honorSuccess ? .green : .red)
+            }
+        }
+
+        if let partSuccess = partSuccess {
+            HStack {
+                Image(systemName: partSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(partSuccess ? .green : .red)
+                Text(partSuccess ? "Part sent" : (partErrorMessage ?? "Failed to part"))
+                    .font(.caption2)
+                    .foregroundStyle(partSuccess ? .green : .red)
+            }
+        }
+
+        if let dissolveSuccess = dissolveSuccess {
+            HStack {
+                Image(systemName: dissolveSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(dissolveSuccess ? .green : .red)
+                Text(dissolveSuccess ? "Dissolved" : (dissolveErrorMessage ?? "Failed to dissolve"))
+                    .font(.caption2)
+                    .foregroundStyle(dissolveSuccess ? .green : .red)
+            }
+        }
+    }
+
+    /// Sign button (shown when identity is Counterparty and state is proposed)
+    @ViewBuilder
+    private var signButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task {
+                    await signPropose(with: identity)
+                }
+            } label: {
+                if isSigning {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                        Text("Signing...")
+                            .font(.caption)
+                    }
+                } else {
+                    Label("Sign", systemImage: "signature")
+                        .font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(isSigning)
+        }
+    }
+
+    /// Dissolve button (shown when in proposed state)
+    @ViewBuilder
+    private var dissolveButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task { await dissolvePropose(with: identity) }
+            } label: {
+                if isDissolving {
+                    ProgressView().scaleEffect(0.7)
+                } else if dissolveSuccess == true {
+                    Label("Dissolved", systemImage: "trash.circle.fill").font(.caption)
+                } else {
+                    Label("Dissolve", systemImage: "trash.circle").font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.red)
+            .disabled(isDissolving || defaultIdentity == nil)
+        }
+    }
+
+    /// Honor / Part buttons (shown when in signed state)
+    @ViewBuilder
+    private var honorPartStubButtons: some View {
+        HStack(spacing: 8) {
+            Spacer()
+
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task { await honorPropose(with: identity) }
+            } label: {
+                if isHonoring {
+                    ProgressView().scaleEffect(0.7)
+                } else if myHonorSigned {
+                    Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
+                } else {
+                    Label("Honor", systemImage: "checkmark.seal").font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(myHonorSigned ? .green : .primary)
+            .disabled(isHonoring || defaultIdentity == nil || myHonorSigned || myPartSigned)
+
+            Button {
+                guard let identity = defaultIdentity else { return }
+                Task { await partPropose(with: identity) }
+            } label: {
+                if isParting {
+                    ProgressView().scaleEffect(0.7)
+                } else if myPartSigned {
+                    Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
+                } else {
+                    Label("Part", systemImage: "xmark.seal").font(.caption)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(myPartSigned ? .orange : .primary)
+            .disabled(isParting || defaultIdentity == nil || myPartSigned)
         }
     }
 
@@ -238,7 +436,7 @@ struct ProposeRowView: View {
             shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
         } catch {
-            print("❌ Error exporting propose: \(error)")
+            print("❌ Propose export error: \(error)")
             shareError = "Export failed"
         }
     }
@@ -250,7 +448,7 @@ struct ProposeRowView: View {
             showShareSheet = true
             shareError = nil
         } catch {
-            print("❌ Error exporting propose: \(error)")
+            print("❌ Propose export error: \(error)")
             shareError = "Export failed"
         }
     }
@@ -277,7 +475,7 @@ struct ProposeRowView: View {
             await MainActor.run { resendSuccess = nil }
 
         } catch {
-            print("❌ Error resending propose: \(error)")
+            print("❌ Propose resend error: \(error)")
             await MainActor.run {
                 isResending = false
                 resendSuccess = false
@@ -303,15 +501,18 @@ struct ProposeRowView: View {
         let useCase = CheckProposeServerStatusUseCaseImpl()
 
         do {
-            let status = try await useCase.execute(propose: propose, serverURL: space.url)
+            let myPublicKey = await MainActor.run { defaultIdentity?.publicKey }
+            let result = try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
 
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                self.serverSignatures = status.newServerSignatures
-                self.hasNewSignatures = !status.newServerSignatures.isEmpty
-                self.localOnlySignatures = status.localOnlySignatures
-                self.hasLocalOnlySignatures = !status.localOnlySignatures.isEmpty
+                pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
+                if pendingStatusTransition == nil {
+                    pendingStatusTransition = result.pendingStatusTransition
+                }
+                myHonorSigned = result.myHonorSigned
+                myPartSigned = result.myPartSigned
             }
 
         } catch let error as CheckProposeServerStatusUseCaseError {
@@ -330,14 +531,14 @@ struct ProposeRowView: View {
                 return
             }
 
-            print("⚠️ Error checking propose on server: \(error)")
+            print("⚠️ Server status check error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ Unexpected error checking propose: \(error)")
+            print("⚠️ Unexpected error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
@@ -359,7 +560,7 @@ struct ProposeRowView: View {
                 self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
             }
         } catch {
-            print("❌ Error loading default identity: \(error)")
+            print("❌ Error loading default Identity: \(error)")
             await MainActor.run { self.defaultIdentity = nil }
         }
     }
@@ -370,17 +571,8 @@ struct ProposeRowView: View {
             let contacts = try useCase.execute()
             contactNicknames = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
         } catch {
-            print("❌ Error loading contacts: \(error)")
+            print("❌ Error loading contact nicknames: \(error)")
         }
-    }
-
-    private func hasMySignature(identity: Identity) -> Bool {
-        let useCase = HasIdentitySignedProposeUseCaseImpl()
-        return useCase.execute(
-            identity: identity,
-            proposeSignatures: propose.signatures,
-            serverSignatures: serverSignatures
-        )
     }
 
     private func signPropose(with identity: Identity) async {
@@ -390,20 +582,42 @@ struct ProposeRowView: View {
             signErrorMessage = nil
         }
 
-        let signProposeUseCase = SignProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
+        let useCase = SignProposeServerOnlyUseCaseImpl(keychainRepository: deps.keychainRepository)
 
         do {
-            try await signProposeUseCase.execute(to: propose.id, signIdentityID: identity.id)
-            signSuccess = true
-            isSigning = false
+            let signature = try await useCase.execute(
+                propose: propose,
+                identityID: identity.id,
+                serverURL: space.url
+            )
 
+            await MainActor.run {
+                isSigning = false
+                signSuccess = true
+                // Show confirmation banner instead of auto-saving locally
+                pendingCounterpartySignSignature = signature
+            }
+
+            await checkServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
+
+        } catch SignProposeServerOnlyUseCaseError.notCounterparty {
+            print("⚠️ This identity is not the Counterparty and cannot sign")
+            await MainActor.run {
+                isSigning = false
+                signSuccess = false
+                signErrorMessage = "This identity is not the Counterparty"
+            }
+
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run {
+                signSuccess = nil
+                signErrorMessage = nil
+            }
+
         } catch {
-            print("❌ Error signing propose: \(error)")
+            print("❌ Signing error: \(error)")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
@@ -418,54 +632,140 @@ struct ProposeRowView: View {
         }
     }
 
-    private func syncSignaturesFromServer() async {
-        await MainActor.run { isSyncingSignatures = true }
+    private func dissolvePropose(with identity: Identity) async {
+        await MainActor.run { isDissolving = true; dissolveSuccess = nil; dissolveErrorMessage = nil }
+
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isDissolving = false; dissolveSuccess = true }
+            await checkServerStatus()
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { dissolveSuccess = nil }
+        } catch {
+            print("❌ Dissolve error: \(error)")
+            await MainActor.run { isDissolving = false; dissolveSuccess = false; dissolveErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { dissolveSuccess = nil; dissolveErrorMessage = nil }
+        }
+    }
+
+    private func honorPropose(with identity: Identity) async {
+        await MainActor.run { isHonoring = true; honorSuccess = nil; honorErrorMessage = nil }
+
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
+            await checkServerStatus()
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { honorSuccess = nil }
+        } catch {
+            print("❌ Honor error: \(error)")
+            await MainActor.run { isHonoring = false; honorSuccess = false; honorErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { honorSuccess = nil; honorErrorMessage = nil }
+        }
+    }
+
+    private func partPropose(with identity: Identity) async {
+        await MainActor.run { isParting = true; partSuccess = nil; partErrorMessage = nil }
+
+        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
+            await checkServerStatus()
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { partSuccess = nil }
+        } catch {
+            print("❌ Part error: \(error)")
+            await MainActor.run { isParting = false; partSuccess = false; partErrorMessage = error.localizedDescription }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await MainActor.run { partSuccess = nil; partErrorMessage = nil }
+        }
+    }
+
+    /// Apply terminal server status locally
+    private func applyServerStatus(_ status: ProposeStatus) async {
+        await MainActor.run { isApplyingServerStatus = true }
+
+        let useCase = ApplyServerStatusToLocalProposeUseCaseImpl(
+            proposeRepository: deps.proposeRepository
+        )
+
+        do {
+            try useCase.execute(proposeID: propose.id, status: status)
+            await MainActor.run {
+                isApplyingServerStatus = false
+                pendingStatusTransition = nil
+            }
+            print("✅ Applied server status (\(status.rawValue)) locally")
+            onSigned()
+        } catch {
+            print("❌ Failed to apply server status locally: \(error)")
+            await MainActor.run { isApplyingServerStatus = false }
+        }
+    }
+
+    /// Accept the Counterparty's server signature and reflect it locally
+    private func acceptCounterpartySignature(signature: String) async {
+        await MainActor.run { isAcceptingSignature = true }
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
             proposeRepository: deps.proposeRepository
         )
 
         do {
-            try useCase.execute(proposeID: propose.id, with: serverSignatures)
-            hasNewSignatures = false
-            serverSignatures = []
-            isSyncingSignatures = false
+            try useCase.execute(proposeID: propose.id, counterpartySignSignature: signature)
+
+            await MainActor.run {
+                isAcceptingSignature = false
+                pendingCounterpartySignSignature = nil
+            }
+            print("✅ Accepted Counterparty signature and reflected it locally")
         } catch {
-            print("❌ Failed to sync signatures locally: \(error)")
-            isSyncingSignatures = false
+            print("❌ Failed to reflect Counterparty signature locally: \(error)")
+            await MainActor.run { isAcceptingSignature = false }
+        }
+    }
+}
+
+// MARK: - ProposeStatus Extensions for UI
+
+private extension ProposeStatus {
+    var statusIcon: String {
+        switch self {
+        case .proposed: return "clock"
+        case .signed:   return "checkmark.circle"
+        case .honored:  return "checkmark.seal.fill"
+        case .parted:   return "xmark.seal"
+        case .dissolved: return "trash.circle"
         }
     }
 
-    private func sendLocalSignaturesToServer() async {
-        await MainActor.run { isSendingSignatures = true }
+    var statusColor: Color {
+        switch self {
+        case .proposed:  return .orange
+        case .signed:    return .blue
+        case .honored:   return .green
+        case .parted:    return .gray
+        case .dissolved: return .red
+        }
+    }
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl()
-
-        do {
-            try await useCase.execute(propose: propose, serverURL: space.url)
-
-            await MainActor.run {
-                isSendingSignatures = false
-                hasLocalOnlySignatures = false
-                localOnlySignatures = []
-                Task { await checkServerStatus() }
-            }
-
-        } catch {
-            print("❌ Error sending local signatures to server: \(error)")
-            await MainActor.run { isSendingSignatures = false }
+    var statusLabel: String {
+        switch self {
+        case .proposed:  return "Proposed"
+        case .signed:    return "Signed"
+        case .honored:   return "Honored"
+        case .parted:    return "Parted"
+        case .dissolved: return "Dissolved"
         }
     }
 }
 
 #Preview("Propose Row") {
-    let signature = Signature(
-        id: UUID(),
-        publicKey: "PreviewPk",
-        signature: "PreviewSig",
-        createdAt: .now
-    )
-
     let space = Space(
         id: UUID(),
         name: "Preview Space",
@@ -480,7 +780,10 @@ struct ProposeRowView: View {
         id: UUID(),
         spaceID: space.id,
         message: "Preview message",
-        signatures: [signature],
+        creatorPublicKey: "creatorPubKey",
+        creatorSignature: "creatorSig",
+        counterpartyPublicKey: "counterpartyPubKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )

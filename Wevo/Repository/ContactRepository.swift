@@ -24,7 +24,7 @@ protocol ContactRepository {
     func delete(by id: UUID) throws
 }
 
-/// SwiftDataを使用してContactのCRUD操作を提供するRepository
+/// Repository providing CRUD operations for Contact using SwiftData
 @MainActor
 final class ContactRepositoryImpl: ContactRepository {
 
@@ -49,7 +49,7 @@ final class ContactRepositoryImpl: ContactRepository {
 
     // MARK: - Read
 
-    /// すべてのContactを取得（作成日時の昇順）
+    /// Retrieve all Contacts (sorted by creation date ascending)
     func fetchAll() throws -> [Contact] {
         let descriptor = FetchDescriptor<ContactSwiftData>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]

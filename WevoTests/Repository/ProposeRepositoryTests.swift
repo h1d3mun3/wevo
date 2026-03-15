@@ -25,20 +25,21 @@ struct ProposeRepositoryTests {
         id: UUID = UUID(),
         spaceID: UUID = UUID(),
         message: String = "test message",
-        signatures: [Signature] = []
+        creatorPublicKey: String = "creatorKey",
+        counterpartyPublicKey: String = "counterpartyKey",
+        counterpartySignSignature: String? = nil
     ) -> Propose {
         Propose(
             id: id,
             spaceID: spaceID,
             message: message,
-            signatures: signatures,
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
             createdAt: .now,
             updatedAt: .now
         )
-    }
-
-    private func makeSignature(publicKey: String = "pk", signature: String = "sig") -> Signature {
-        Signature(id: UUID(), publicKey: publicKey, signature: signature, createdAt: .now)
     }
 
     // MARK: - Create & Fetch
@@ -55,17 +56,33 @@ struct ProposeRepositoryTests {
         #expect(fetched.message == propose.message)
     }
 
-    @Test func testCreateProposeWithSignatures() throws {
+    @Test func testCreateProposeWithCreatorAndCounterpartyKeys() throws {
         let (repo, _container) = try makeRepository()
         let spaceID = UUID()
-        let sig = makeSignature(publicKey: "key1")
-        let propose = makePropose(spaceID: spaceID, signatures: [sig])
+        let propose = makePropose(
+            spaceID: spaceID,
+            creatorPublicKey: "aliceKey",
+            counterpartyPublicKey: "bobKey"
+        )
 
         try repo.create(propose, spaceID: spaceID)
         let fetched = try repo.fetch(by: propose.id)
 
-        #expect(fetched.signatures.count == 1)
-        #expect(fetched.signatures[0].publicKey == "key1")
+        #expect(fetched.creatorPublicKey == "aliceKey")
+        #expect(fetched.counterpartyPublicKey == "bobKey")
+        #expect(fetched.counterpartySignSignature == nil)
+    }
+
+    @Test func testCreateProposeWithCounterpartySignature() throws {
+        let (repo, _container) = try makeRepository()
+        let spaceID = UUID()
+        let propose = makePropose(spaceID: spaceID, counterpartySignSignature: "counterpartySig")
+
+        try repo.create(propose, spaceID: spaceID)
+        let fetched = try repo.fetch(by: propose.id)
+
+        #expect(fetched.counterpartySignSignature == "counterpartySig")
+        #expect(fetched.localStatus == .signed)
     }
 
     // MARK: - FetchAll
@@ -132,7 +149,10 @@ struct ProposeRepositoryTests {
             id: id,
             spaceID: spaceID,
             message: "updated",
-            signatures: [],
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
             createdAt: original.createdAt,
             updatedAt: .now
         )
@@ -142,27 +162,30 @@ struct ProposeRepositoryTests {
         #expect(fetched.message == "updated")
     }
 
-    @Test func testUpdateAppendsNewSignatures() throws {
+    @Test func testUpdateSetsCounterpartySignSignature() throws {
         let (repo, _container) = try makeRepository()
         let id = UUID()
         let spaceID = UUID()
-        let sig1 = makeSignature(publicKey: "key1")
-        let original = makePropose(id: id, spaceID: spaceID, signatures: [sig1])
+        let original = makePropose(id: id, spaceID: spaceID, counterpartySignSignature: nil)
         try repo.create(original, spaceID: spaceID)
 
-        let sig2 = makeSignature(publicKey: "key2")
+        // Update with counterpartySignSignature set
         let updated = Propose(
             id: id,
             spaceID: spaceID,
             message: original.message,
-            signatures: [sig1, sig2],
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: "newSig",
             createdAt: original.createdAt,
             updatedAt: .now
         )
         try repo.update(updated)
 
         let fetched = try repo.fetch(by: id)
-        #expect(fetched.signatures.count == 2)
+        #expect(fetched.counterpartySignSignature == "newSig")
+        #expect(fetched.localStatus == .signed)
     }
 
     @Test func testUpdateThrowsWhenProposeNotFound() throws {

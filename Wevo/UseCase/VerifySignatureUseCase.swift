@@ -25,12 +25,12 @@ struct VerifySignatureUseCaseImpl {
 }
 
 extension VerifySignatureUseCaseImpl: VerifySignatureUseCase {
-    /// 署名を検証する
+    /// Verifies a signature
     /// - Parameters:
-    ///   - signature: Base64エンコードされた署名文字列
-    ///   - message: 署名対象のメッセージ文字列
-    ///   - publicKey: Base64エンコードされた公開鍵文字列（x963Representation形式）
-    /// - Returns: 署名が有効な場合はtrue、無効な場合はfalse
+    ///   - signature: Base64-encoded signature string
+    ///   - message: The message string that was signed
+    ///   - publicKey: Base64-encoded public key string (x963Representation format)
+    /// - Returns: true if the signature is valid, false if invalid
     func execute(signature: String, message: String, publicKey: String) throws -> Bool {
         do {
             let isValid = try keychainRepository.verifySignature(

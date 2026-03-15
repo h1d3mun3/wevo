@@ -19,7 +19,7 @@ struct KeychainRepositoryTests {
         P256.Signing.PrivateKey()
     }
 
-    /// テスト後にKeychainをクリーンアップするヘルパー
+    /// Helper to clean up Keychain after tests
     private func cleanUp(repo: KeychainRepositoryImpl, ids: [UUID]) {
         for id in ids {
             try? repo.deleteIdentityKey(id: id)
@@ -177,7 +177,7 @@ struct KeychainRepositoryTests {
 
         try repo.deleteAllIdentityKeys()
 
-        // 作成したIdentityが取得できないことを確認
+        // Confirm that the created Identities can no longer be retrieved
         #expect(throws: KeychainError.self) {
             try repo.getIdentity(id: id1)
         }
@@ -200,7 +200,7 @@ struct KeychainRepositoryTests {
         let message = "Hello, World!"
         let signature = try repo.signMessage(message, withIdentityId: id)
 
-        // 公開鍵文字列で検証
+        // Verify using public key string
         let publicKeyString = key.publicKey.x963Representation.base64EncodedString()
         let isValid = try repo.verifySignature(signature, for: message, withPublicKeyString: publicKeyString)
 

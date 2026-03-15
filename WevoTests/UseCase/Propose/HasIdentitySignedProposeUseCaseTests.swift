@@ -11,52 +11,70 @@ import Foundation
 
 struct HasIdentitySignedProposeUseCaseTests {
 
-    let identity = Identity(
-        id: UUID(),
-        nickname: "My Key",
-        publicKey: "MyPublicKey123"
-    )
-
+    let creatorPublicKey = "CreatorPublicKey"
+    let counterpartyPublicKey = "CounterpartyPublicKey"
     let useCase = HasIdentitySignedProposeUseCaseImpl()
 
-    @Test("ローカル署名に自分の署名がある場合trueを返す")
-    func returnsTrueWhenLocalSignatureExists() {
-        let signatures = [
-            Signature(id: UUID(), publicKey: "OtherKey", signature: "sig1", createdAt: .now),
-            Signature(id: UUID(), publicKey: "MyPublicKey123", signature: "sig2", createdAt: .now),
-        ]
+    /// Helper to generate a test Propose
+    private func makePropose(counterpartySignSignature: String?) -> Propose {
+        Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: counterpartySignSignature,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
 
-        let result = useCase.execute(identity: identity, proposeSignatures: signatures, serverSignatures: [])
+    @Test("Creator always returns true")
+    func returnsTrueForCreator() {
+        let identity = Identity(id: UUID(), nickname: "Alice", publicKey: creatorPublicKey)
+        let propose = makePropose(counterpartySignSignature: nil)
+
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert: Creator is always considered signed
         #expect(result == true)
     }
 
-    @Test("サーバー署名に自分の署名がある場合trueを返す")
-    func returnsTrueWhenServerSignatureExists() {
-        let localSignatures = [
-            Signature(id: UUID(), publicKey: "OtherKey", signature: "sig1", createdAt: .now),
-        ]
-        let serverSignatures = [
-            Signature(id: UUID(), publicKey: "MyPublicKey123", signature: "sig2", createdAt: .now),
-        ]
+    @Test("Counterparty returns true when counterpartySignSignature exists")
+    func returnsTrueForCounterpartyWhenSigned() {
+        let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
+        let propose = makePropose(counterpartySignSignature: "someSig")
 
-        let result = useCase.execute(identity: identity, proposeSignatures: localSignatures, serverSignatures: serverSignatures)
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == true)
     }
 
-    @Test("どこにも自分の署名がない場合falseを返す")
-    func returnsFalseWhenNoSignatureExists() {
-        let signatures = [
-            Signature(id: UUID(), publicKey: "OtherKey1", signature: "sig1", createdAt: .now),
-            Signature(id: UUID(), publicKey: "OtherKey2", signature: "sig2", createdAt: .now),
-        ]
+    @Test("Counterparty returns false when counterpartySignSignature is nil")
+    func returnsFalseForCounterpartyWhenNotSigned() {
+        let identity = Identity(id: UUID(), nickname: "Bob", publicKey: counterpartyPublicKey)
+        let propose = makePropose(counterpartySignSignature: nil)
 
-        let result = useCase.execute(identity: identity, proposeSignatures: signatures, serverSignatures: [])
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == false)
     }
 
-    @Test("署名が空の場合falseを返す")
-    func returnsFalseWhenNoSignatures() {
-        let result = useCase.execute(identity: identity, proposeSignatures: [], serverSignatures: [])
+    @Test("Identity that is not a participant returns false")
+    func returnsFalseForNonParticipant() {
+        let identity = Identity(id: UUID(), nickname: "Eve", publicKey: "unrelatedKey")
+        let propose = makePropose(counterpartySignSignature: "someSig")
+
+        // Act
+        let result = useCase.execute(identity: identity, propose: propose)
+
+        // Assert
         #expect(result == false)
     }
 }

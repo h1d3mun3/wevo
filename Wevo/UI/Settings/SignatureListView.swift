@@ -32,7 +32,7 @@ struct SignatureListView: View {
                         )
                     }
                     .task {
-                        // 署名を検証
+                        // Verify signature
                         if signatureVerifications[signature.id] == nil {
                             let isValid = await verifySignature(signature)
                             await MainActor.run {

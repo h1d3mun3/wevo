@@ -30,7 +30,7 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
     let keychainRepository: KeychainRepository
 
     func execute(exportData: IdentityPlainExport) throws {
-        // 既存のIdentityがあれば削除
+        // Delete existing Identity if present
         do {
             _ = try keychainRepository.getIdentity(id: exportData.id)
             try keychainRepository.deleteIdentityKey(id: exportData.id)
@@ -38,19 +38,19 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
             // Not found or not deletable; continue
         }
 
-        // Base64デコード
+        // Base64 decode
         guard let privateKeyData = Data(base64Encoded: exportData.privateKey) else {
             throw ImportIdentityFromExportUseCaseError.invalidPrivateKeyEncoding
         }
 
-        // P256秘密鍵として有効か検証
+        // Validate as a P256 private key
         do {
             _ = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
         } catch {
             throw ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat
         }
 
-        // インポート
+        // Import
         try keychainRepository.createIdentity(
             id: exportData.id,
             nickname: exportData.nickname,

@@ -10,7 +10,7 @@ import Foundation
 @MainActor
 struct GetProposeUseCaseTests {
 
-    @Test func testReturnsProposeFromRepository() async throws {
+    @Test func testReturnsProposeFromRepository() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let testID = UUID()
@@ -18,7 +18,10 @@ struct GetProposeUseCaseTests {
             id: testID,
             spaceID: UUID(),
             message: "Test message",
-            signatures: [],
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
             createdAt: .now,
             updatedAt: .now
         )
@@ -35,7 +38,7 @@ struct GetProposeUseCaseTests {
         #expect(mockRepository.fetchByIDCalledWithID == testID)
     }
 
-    @Test func testThrowsWhenRepositoryThrows() async throws {
+    @Test func testThrowsWhenRepositoryThrows() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchByIDError = NSError(domain: "Test", code: -1)
@@ -48,7 +51,7 @@ struct GetProposeUseCaseTests {
         }
     }
 
-    @Test func testThrowsWhenProposeNotFound() async throws {
+    @Test func testThrowsWhenProposeNotFound() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchByIDError = ProposeRepositoryError.proposeNotFound(UUID())

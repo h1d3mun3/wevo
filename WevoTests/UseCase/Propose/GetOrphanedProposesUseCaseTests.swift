@@ -12,15 +12,30 @@ import Foundation
 @MainActor
 struct GetOrphanedProposesUseCaseTests {
 
+    /// Helper to generate a test Propose
+    private func makePropose(spaceID: UUID, message: String, createdAt: Date = .now) -> Propose {
+        Propose(
+            id: UUID(),
+            spaceID: spaceID,
+            message: message,
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+    }
+
     @Test func testReturnsGroupedOrphanedProposes() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
         let spaceID1 = UUID()
         let spaceID2 = UUID()
         let testProposes = [
-            Propose(id: UUID(), spaceID: spaceID1, message: "Orphaned 1", signatures: [], createdAt: .now, updatedAt: .now),
-            Propose(id: UUID(), spaceID: spaceID1, message: "Orphaned 2", signatures: [], createdAt: .now, updatedAt: .now),
-            Propose(id: UUID(), spaceID: spaceID2, message: "Orphaned 3", signatures: [], createdAt: .now, updatedAt: .now)
+            makePropose(spaceID: spaceID1, message: "Orphaned 1"),
+            makePropose(spaceID: spaceID1, message: "Orphaned 2"),
+            makePropose(spaceID: spaceID2, message: "Orphaned 3")
         ]
         mockRepository.fetchAllOrphanedResult = testProposes
 
@@ -48,8 +63,8 @@ struct GetOrphanedProposesUseCaseTests {
         let newerDate = Date(timeIntervalSince1970: 2000)
 
         let testProposes = [
-            Propose(id: UUID(), spaceID: olderSpaceID, message: "Old", signatures: [], createdAt: olderDate, updatedAt: olderDate),
-            Propose(id: UUID(), spaceID: newerSpaceID, message: "New", signatures: [], createdAt: newerDate, updatedAt: newerDate)
+            makePropose(spaceID: olderSpaceID, message: "Old", createdAt: olderDate),
+            makePropose(spaceID: newerSpaceID, message: "New", createdAt: newerDate)
         ]
         mockRepository.fetchAllOrphanedResult = testProposes
 
@@ -58,7 +73,7 @@ struct GetOrphanedProposesUseCaseTests {
         // Act
         let result = try useCase.execute(validSpaceIDs: Set([UUID()]))
 
-        // Assert - 新しい方が先
+        // Assert: the newer one comes first
         #expect(result[0].spaceID == newerSpaceID)
         #expect(result[1].spaceID == olderSpaceID)
     }

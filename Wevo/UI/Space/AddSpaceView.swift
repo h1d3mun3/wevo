@@ -89,7 +89,7 @@ struct AddSpaceView: View {
             let loadedIdentities = try getAllIdentitiesUseCase.execute()
             await MainActor.run {
                 identities = loadedIdentities
-                // 最初のIdentityをデフォルトで選択
+                // Select the first Identity by default
                 if selectedIdentityID == nil, let first = loadedIdentities.first {
                     selectedIdentityID = first.id
                 }
@@ -117,7 +117,7 @@ struct AddSpaceView: View {
         } catch {
             print("❌ Error saving space: \(error)")
             isSaving = false
-            // TODO: エラーアラートを表示
+            // TODO: Show error alert
         }
     }
 }

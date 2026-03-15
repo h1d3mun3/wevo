@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 署名データ
+/// Signature data
 struct Signature: Codable, Identifiable, Hashable {
     let id: UUID
     let publicKey: String

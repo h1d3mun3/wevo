@@ -25,12 +25,15 @@ struct ExportProposeUseCaseTests {
         id: UUID(),
         spaceID: UUID(),
         message: "Test message",
-        signatures: [],
+        creatorPublicKey: "creatorKey",
+        creatorSignature: "creatorSig",
+        counterpartyPublicKey: "counterpartyKey",
+        counterpartySignSignature: nil,
         createdAt: .now,
         updatedAt: .now
     )
 
-    @Test("ProposeをJSONファイルにエクスポートできる")
+    @Test("Can export Propose to a JSON file")
     func executeSuccess() throws {
         let useCase = ExportProposeUseCaseImpl()
         let url = try useCase.execute(propose: propose, space: space)
@@ -38,11 +41,11 @@ struct ExportProposeUseCaseTests {
         #expect(url.pathExtension == "wevo-propose")
         #expect(FileManager.default.fileExists(atPath: url.path))
 
-        // クリーンアップ
+        // Cleanup
         try? FileManager.default.removeItem(at: url)
     }
 
-    @Test("エクスポートファイルにProposeデータが含まれる")
+    @Test("Export file contains Propose data")
     func exportContainsProposeData() throws {
         let useCase = ExportProposeUseCaseImpl()
         let url = try useCase.execute(propose: propose, space: space)
@@ -55,7 +58,7 @@ struct ExportProposeUseCaseTests {
         try? FileManager.default.removeItem(at: url)
     }
 
-    @Test("エクスポートファイルをインポートして同じデータが得られる")
+    @Test("Import of exported file yields the same data")
     func exportImportRoundTrip() throws {
         let useCase = ExportProposeUseCaseImpl()
         let url = try useCase.execute(propose: propose, space: space)
