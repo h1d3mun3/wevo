@@ -31,6 +31,34 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         )
     }
 
+    /// Helper to generate a test HashedPropose
+    private func makeServerPropose(
+        proposeID: UUID,
+        counterpartyPublicKey: String = "counterpartyKey",
+        signSignature: String? = "serverSig123",
+        signTimestamp: String? = "2026-01-02T00:00:00Z"
+    ) -> HashedPropose {
+        let counterparty = ProposeCounterparty(
+            publicKey: counterpartyPublicKey,
+            signSignature: signSignature,
+            signTimestamp: signTimestamp,
+            honorSignature: nil,
+            honorTimestamp: nil,
+            partSignature: nil,
+            partTimestamp: nil
+        )
+        return HashedPropose(
+            id: proposeID,
+            contentHash: "hash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [counterparty],
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
+
     @Test func testSetsCounterpartySignSignature() throws {
         // Arrange
         let mockRepository = MockProposeRepository()
@@ -41,12 +69,28 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
+        try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
 
         // Assert: counterpartySignSignature is set
         #expect(mockRepository.fetchByIDCalledWithID == proposeID)
         #expect(mockRepository.updateCalled == true)
         #expect(mockRepository.updatedPropose?.counterpartySignSignature == "serverSig123")
+    }
+
+    @Test func testSetsCounterpartySignTimestamp() throws {
+        // Arrange
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
+        mockRepository.fetchByIDResult = existingPropose
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+
+        // Act
+        try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID, signTimestamp: "2026-03-01T00:00:00Z"))
+
+        // Assert: counterpartySignTimestamp is set
+        #expect(mockRepository.updatedPropose?.counterpartySignTimestamp == "2026-03-01T00:00:00Z")
     }
 
     @Test func testLocalStatusBecomesSignedAfterAppend() throws {
@@ -59,7 +103,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "serverSig123")
+        try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
 
         // Assert: status is signed after signing
         #expect(mockRepository.updatedPropose?.localStatus == .signed)
@@ -75,7 +119,10 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
-        try useCase.execute(proposeID: proposeID, counterpartySignSignature: "newSig")
+        try useCase.execute(
+            proposeID: proposeID,
+            serverPropose: makeServerPropose(proposeID: proposeID, counterpartyPublicKey: "cpartyKey")
+        )
 
         // Assert: other fields are preserved
         #expect(mockRepository.updatedPropose?.id == proposeID)
@@ -91,7 +138,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
 
         // Act & Assert
         #expect(throws: NSError.self) {
-            try useCase.execute(proposeID: UUID(), counterpartySignSignature: "sig")
+            try useCase.execute(proposeID: UUID(), serverPropose: makeServerPropose(proposeID: UUID()))
         }
     }
 
@@ -107,7 +154,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
 
         // Act & Assert
         #expect(throws: NSError.self) {
-            try useCase.execute(proposeID: proposeID, counterpartySignSignature: "sig")
+            try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
         }
     }
 }
