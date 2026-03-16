@@ -8,11 +8,11 @@
 import Foundation
 
 protocol AppendServerSignaturesToLocalProposeUseCase {
-    /// Reflect the Counterparty's sign signature in the local Propose
+    /// Reflect server signatures and timestamps in the local Propose
     /// - Parameters:
     ///   - proposeID: ID of the target Propose
-    ///   - counterpartySignSignature: Counterparty's signature string (Base64 DER)
-    func execute(proposeID: UUID, counterpartySignSignature: String) throws
+    ///   - serverPropose: Server's HashedPropose containing all signatures and timestamps
+    func execute(proposeID: UUID, serverPropose: HashedPropose) throws
 }
 
 struct AppendServerSignaturesToLocalProposeUseCaseImpl {
@@ -24,10 +24,12 @@ struct AppendServerSignaturesToLocalProposeUseCaseImpl {
 }
 
 extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignaturesToLocalProposeUseCase {
-    func execute(proposeID: UUID, counterpartySignSignature: String) throws {
+    func execute(proposeID: UUID, serverPropose: HashedPropose) throws {
         let localPropose = try proposeRepository.fetch(by: proposeID)
 
-        // Update Propose with the counterpartySignSignature set (preserve existing finalStatus)
+        let counterparty = serverPropose.counterparties.first
+
+        // Reflect all server-side signatures and timestamps into the local Propose
         let updatedPropose = Propose(
             id: localPropose.id,
             spaceID: localPropose.spaceID,
@@ -35,7 +37,17 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
             creatorPublicKey: localPropose.creatorPublicKey,
             creatorSignature: localPropose.creatorSignature,
             counterpartyPublicKey: localPropose.counterpartyPublicKey,
-            counterpartySignSignature: counterpartySignSignature,
+            counterpartySignSignature: counterparty?.signSignature ?? localPropose.counterpartySignSignature,
+            counterpartySignTimestamp: counterparty?.signTimestamp ?? localPropose.counterpartySignTimestamp,
+            counterpartyHonorSignature: counterparty?.honorSignature,
+            counterpartyHonorTimestamp: counterparty?.honorTimestamp,
+            counterpartyPartSignature: counterparty?.partSignature,
+            counterpartyPartTimestamp: counterparty?.partTimestamp,
+            creatorHonorSignature: serverPropose.honorCreatorSignature,
+            creatorHonorTimestamp: serverPropose.honorCreatorTimestamp,
+            creatorPartSignature: serverPropose.partCreatorSignature,
+            creatorPartTimestamp: serverPropose.partCreatorTimestamp,
+            dissolvedAt: serverPropose.dissolvedAt,
             finalStatus: localPropose.finalStatus,
             createdAt: localPropose.createdAt,
             updatedAt: Date()
@@ -43,6 +55,6 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
 
         // Save locally
         try proposeRepository.update(updatedPropose)
-        print("✅ Reflected Counterparty signature locally: \(localPropose.id)")
+        print("✅ Reflected server signatures locally: \(localPropose.id)")
     }
 }

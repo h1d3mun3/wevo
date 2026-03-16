@@ -11,8 +11,8 @@ import Foundation
 struct ProposeServerCheckResult {
     /// Status returned by the server
     let serverStatus: ProposeStatus
-    /// Signature string when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
-    let pendingCounterpartySignSignature: String?
+    /// Full server HashedPropose when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
+    let pendingServerPropose: HashedPropose?
     /// Terminal status (honored/parted/dissolved) that the server has reached but has not yet been reflected locally (nil means no pending transition)
     let pendingStatusTransition: ProposeStatus?
     /// Whether the current user has already sent their honor signature to the server
@@ -49,11 +49,11 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         print("📊 Server status: \(hashedPropose.status.rawValue)")
 
         // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
-        var pendingSignSignature: String? = nil
+        var pendingServerPropose: HashedPropose? = nil
         if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
-           let serverSignSignature = counterparty.signSignature,
+           counterparty.signSignature != nil,
            propose.counterpartySignSignature == nil {
-            pendingSignSignature = serverSignSignature
+            pendingServerPropose = hashedPropose
             print("🔄 Detected Counterparty signature from server: not yet reflected locally")
         }
 
@@ -81,7 +81,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
 
         return ProposeServerCheckResult(
             serverStatus: hashedPropose.status,
-            pendingCounterpartySignSignature: pendingSignSignature,
+            pendingServerPropose: pendingServerPropose,
             pendingStatusTransition: pendingStatusTransition,
             myHonorSigned: myHonorSigned,
             myPartSigned: myPartSigned
