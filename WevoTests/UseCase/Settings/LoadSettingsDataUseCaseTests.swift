@@ -14,7 +14,6 @@ struct LoadSettingsDataUseCaseTests {
 
     let mockProposeRepository = MockProposeRepository()
     let mockSpaceRepository = MockSpaceRepository()
-    let mockSignatureRepository = MockSignatureRepository()
 
     @Test("Can fetch all data at once")
     func executeSuccess() throws {
@@ -30,41 +29,34 @@ struct LoadSettingsDataUseCaseTests {
             updatedAt: .now
         )
         let space = Space(id: UUID(), name: "Space", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
-        let signature = Signature(id: UUID(), publicKey: "PK", signature: "Sig", createdAt: .now)
 
         mockProposeRepository.fetchAllNoFilterResult = [propose]
         mockSpaceRepository.fetchAllResult = [space]
-        mockSignatureRepository.fetchAllResult = [signature]
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository,
-            signatureRepository: mockSignatureRepository
+            spaceRepository: mockSpaceRepository
         )
 
         let data = try useCase.execute()
 
         #expect(data.proposes.count == 1)
         #expect(data.spaces.count == 1)
-        #expect(data.signatures.count == 1)
         #expect(data.proposes[0].id == propose.id)
         #expect(data.spaces[0].id == space.id)
-        #expect(data.signatures[0].id == signature.id)
     }
 
     @Test("Works correctly even when data is empty")
     func executeWithEmptyData() throws {
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository,
-            signatureRepository: mockSignatureRepository
+            spaceRepository: mockSpaceRepository
         )
 
         let data = try useCase.execute()
 
         #expect(data.proposes.isEmpty)
         #expect(data.spaces.isEmpty)
-        #expect(data.signatures.isEmpty)
     }
 
     @Test("Returns error when Propose fetch fails")
@@ -73,8 +65,7 @@ struct LoadSettingsDataUseCaseTests {
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository,
-            signatureRepository: mockSignatureRepository
+            spaceRepository: mockSpaceRepository
         )
 
         #expect(throws: ProposeRepositoryError.self) {
@@ -88,26 +79,10 @@ struct LoadSettingsDataUseCaseTests {
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository,
-            signatureRepository: mockSignatureRepository
+            spaceRepository: mockSpaceRepository
         )
 
         #expect(throws: SpaceRepositoryError.self) {
-            _ = try useCase.execute()
-        }
-    }
-
-    @Test("Returns error when Signature fetch fails")
-    func executeFailsWhenSignatureFetchFails() {
-        mockSignatureRepository.fetchAllError = SignatureRepositoryError.fetchError(NSError(domain: "", code: -1))
-
-        let useCase = LoadSettingsDataUseCaseImpl(
-            proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository,
-            signatureRepository: mockSignatureRepository
-        )
-
-        #expect(throws: SignatureRepositoryError.self) {
             _ = try useCase.execute()
         }
     }
