@@ -84,7 +84,8 @@ struct SignProposeServerOnlyUseCaseTests {
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
         let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
-        #expect(signedMessage.hasPrefix(proposeID.uuidString))
+        #expect(signedMessage.hasPrefix("signed."))
+        #expect(signedMessage.contains(proposeID.uuidString))
         #expect(signedMessage.contains(propose.payloadHash))
         #expect(signedMessage.contains("counterpartyKey"))
     }
