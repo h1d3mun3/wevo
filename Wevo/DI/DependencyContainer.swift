@@ -15,7 +15,6 @@ protocol DependencyContainer {
     var keychainRepository: KeychainRepository { get }
     var spaceRepository: SpaceRepository { get }
     var proposeRepository: ProposeRepository { get }
-    var signatureRepository: SignatureRepository { get }
     var contactRepository: ContactRepository { get }
 }
 
@@ -28,7 +27,6 @@ final class AppDependencyContainer: DependencyContainer {
     private(set) lazy var keychainRepository: KeychainRepository = KeychainRepositoryImpl()
     private(set) lazy var spaceRepository: SpaceRepository = SpaceRepositoryImpl(modelContext: modelContext)
     private(set) lazy var proposeRepository: ProposeRepository = ProposeRepositoryImpl(modelContext: modelContext)
-    private(set) lazy var signatureRepository: SignatureRepository = SignatureRepositoryImpl(modelContext: modelContext)
     private(set) lazy var contactRepository: ContactRepository = ContactRepositoryImpl(modelContext: modelContext)
 
     init(modelContext: ModelContext) {
@@ -60,9 +58,6 @@ private final class PlaceholderDependencyContainer: DependencyContainer {
         fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
     }
     var proposeRepository: ProposeRepository {
-        fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
-    }
-    var signatureRepository: SignatureRepository {
         fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
     }
     var contactRepository: ContactRepository {
