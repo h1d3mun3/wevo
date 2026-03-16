@@ -30,8 +30,8 @@ struct ProposeRowView: View {
     @State private var showProposeDetail = false
     @State private var contactNicknames: [String: String] = [:]
 
-    /// Counterparty signature retrieved from server (not yet reflected locally)
-    @State private var pendingCounterpartySignSignature: String? = nil
+    /// Server HashedPropose when Counterparty has signed on server but not yet reflected locally
+    @State private var pendingServerPropose: HashedPropose? = nil
     /// Whether signature acceptance is in progress
     @State private var isAcceptingSignature = false
 
@@ -93,7 +93,7 @@ struct ProposeRowView: View {
             statusMessages
 
             // Pending signature banner for Counterparty approval
-            if let pendingSig = pendingCounterpartySignSignature {
+            if let serverPropose = pendingServerPropose {
                 let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
                     ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
                 let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
@@ -103,12 +103,12 @@ struct ProposeRowView: View {
                     isAccepting: isAcceptingSignature
                 ) {
                     Task {
-                        await acceptCounterpartySignature(signature: pendingSig)
+                        await acceptServerPropose(serverPropose)
                         onSigned()
                     }
                 } onIgnore: {
                     // Ignore: just hide the banner (do not reflect locally)
-                    pendingCounterpartySignSignature = nil
+                    pendingServerPropose = nil
                 }
             }
 
@@ -187,7 +187,7 @@ struct ProposeRowView: View {
         guard let identity = defaultIdentity else { return false }
         return identity.publicKey == propose.counterpartyPublicKey
             && propose.localStatus == .proposed
-            && pendingCounterpartySignSignature == nil
+            && pendingServerPropose == nil
             && signSuccess != true
     }
 
@@ -507,7 +507,7 @@ struct ProposeRowView: View {
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                pendingCounterpartySignSignature = result.pendingCounterpartySignSignature
+                pendingServerPropose = result.pendingServerPropose
                 if pendingStatusTransition == nil {
                     pendingStatusTransition = result.pendingStatusTransition
                 }
@@ -594,10 +594,9 @@ struct ProposeRowView: View {
             await MainActor.run {
                 isSigning = false
                 signSuccess = true
-                // Show confirmation banner instead of auto-saving locally
-                pendingCounterpartySignSignature = signature
             }
 
+            // checkServerStatus will detect the pending signature and set pendingServerPropose
             await checkServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
@@ -708,8 +707,8 @@ struct ProposeRowView: View {
         }
     }
 
-    /// Accept the Counterparty's server signature and reflect it locally
-    private func acceptCounterpartySignature(signature: String) async {
+    /// Accept the server HashedPropose and reflect all signatures locally
+    private func acceptServerPropose(_ serverPropose: HashedPropose) async {
         await MainActor.run { isAcceptingSignature = true }
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
@@ -717,15 +716,15 @@ struct ProposeRowView: View {
         )
 
         do {
-            try useCase.execute(proposeID: propose.id, counterpartySignSignature: signature)
+            try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
 
             await MainActor.run {
                 isAcceptingSignature = false
-                pendingCounterpartySignSignature = nil
+                pendingServerPropose = nil
             }
-            print("✅ Accepted Counterparty signature and reflected it locally")
+            print("✅ Accepted server signatures and reflected them locally")
         } catch {
-            print("❌ Failed to reflect Counterparty signature locally: \(error)")
+            print("❌ Failed to reflect server signatures locally: \(error)")
             await MainActor.run { isAcceptingSignature = false }
         }
     }
