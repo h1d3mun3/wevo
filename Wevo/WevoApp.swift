@@ -14,7 +14,6 @@ struct WevoApp: App {
         let schema = Schema([
             SpaceSwiftData.self,
             ProposeSwiftData.self,
-            SignatureSwiftData.self,
             ContactSwiftData.self
         ])
         let modelConfiguration = ModelConfiguration(

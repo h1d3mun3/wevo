@@ -15,7 +15,7 @@ struct SpaceRepositoryTests {
     private func makeRepository() throws -> (SpaceRepositoryImpl, ModelContainer) {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
-            for: SpaceSwiftData.self, ProposeSwiftData.self, SignatureSwiftData.self,
+            for: SpaceSwiftData.self, ProposeSwiftData.self,
             configurations: config
         )
         return (SpaceRepositoryImpl(modelContext: container.mainContext), container)
