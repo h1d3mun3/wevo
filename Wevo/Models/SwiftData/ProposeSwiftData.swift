@@ -36,6 +36,33 @@ final class ProposeSwiftData {
     /// Timestamp used in the Counterparty's sign message (ISO8601, nil = unsigned)
     var counterpartySignTimestamp: String? = nil
 
+    /// Counterparty's honor signature (nil = not yet executed)
+    var counterpartyHonorSignature: String? = nil
+
+    /// Timestamp used in the Counterparty's honor message (ISO8601, nil = not yet executed)
+    var counterpartyHonorTimestamp: String? = nil
+
+    /// Counterparty's part signature (nil = not yet executed)
+    var counterpartyPartSignature: String? = nil
+
+    /// Timestamp used in the Counterparty's part message (ISO8601, nil = not yet executed)
+    var counterpartyPartTimestamp: String? = nil
+
+    /// Creator's honor signature (nil = not yet executed)
+    var creatorHonorSignature: String? = nil
+
+    /// Timestamp used in the Creator's honor message (ISO8601, nil = not yet executed)
+    var creatorHonorTimestamp: String? = nil
+
+    /// Creator's part signature (nil = not yet executed)
+    var creatorPartSignature: String? = nil
+
+    /// Timestamp used in the Creator's part message (ISO8601, nil = not yet executed)
+    var creatorPartTimestamp: String? = nil
+
+    /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
+    var dissolvedAt: String? = nil
+
     /// Terminal server status reflected locally (honored/parted/dissolved raw value; nil = not yet finalized)
     var finalStatus: String? = nil
 
@@ -49,6 +76,15 @@ final class ProposeSwiftData {
         counterpartyPublicKey: String,
         counterpartySignSignature: String? = nil,
         counterpartySignTimestamp: String? = nil,
+        counterpartyHonorSignature: String? = nil,
+        counterpartyHonorTimestamp: String? = nil,
+        counterpartyPartSignature: String? = nil,
+        counterpartyPartTimestamp: String? = nil,
+        creatorHonorSignature: String? = nil,
+        creatorHonorTimestamp: String? = nil,
+        creatorPartSignature: String? = nil,
+        creatorPartTimestamp: String? = nil,
+        dissolvedAt: String? = nil,
         finalStatus: String? = nil,
         createdAt: Date,
         updatedAt: Date
@@ -62,6 +98,15 @@ final class ProposeSwiftData {
         self.counterpartyPublicKey = counterpartyPublicKey
         self.counterpartySignSignature = counterpartySignSignature
         self.counterpartySignTimestamp = counterpartySignTimestamp
+        self.counterpartyHonorSignature = counterpartyHonorSignature
+        self.counterpartyHonorTimestamp = counterpartyHonorTimestamp
+        self.counterpartyPartSignature = counterpartyPartSignature
+        self.counterpartyPartTimestamp = counterpartyPartTimestamp
+        self.creatorHonorSignature = creatorHonorSignature
+        self.creatorHonorTimestamp = creatorHonorTimestamp
+        self.creatorPartSignature = creatorPartSignature
+        self.creatorPartTimestamp = creatorPartTimestamp
+        self.dissolvedAt = dissolvedAt
         self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt

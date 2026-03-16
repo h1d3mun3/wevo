@@ -22,6 +22,15 @@ struct ProposeConverter {
             counterpartyPublicKey: propose.counterpartyPublicKey,
             counterpartySignSignature: propose.counterpartySignSignature,
             counterpartySignTimestamp: propose.counterpartySignTimestamp,
+            counterpartyHonorSignature: propose.counterpartyHonorSignature,
+            counterpartyHonorTimestamp: propose.counterpartyHonorTimestamp,
+            counterpartyPartSignature: propose.counterpartyPartSignature,
+            counterpartyPartTimestamp: propose.counterpartyPartTimestamp,
+            creatorHonorSignature: propose.creatorHonorSignature,
+            creatorHonorTimestamp: propose.creatorHonorTimestamp,
+            creatorPartSignature: propose.creatorPartSignature,
+            creatorPartTimestamp: propose.creatorPartTimestamp,
+            dissolvedAt: propose.dissolvedAt,
             finalStatus: propose.finalStatus?.rawValue,
             createdAt: propose.createdAt,
             updatedAt: propose.updatedAt
@@ -39,6 +48,15 @@ struct ProposeConverter {
             counterpartyPublicKey: model.counterpartyPublicKey,
             counterpartySignSignature: model.counterpartySignSignature,
             counterpartySignTimestamp: model.counterpartySignTimestamp,
+            counterpartyHonorSignature: model.counterpartyHonorSignature,
+            counterpartyHonorTimestamp: model.counterpartyHonorTimestamp,
+            counterpartyPartSignature: model.counterpartyPartSignature,
+            counterpartyPartTimestamp: model.counterpartyPartTimestamp,
+            creatorHonorSignature: model.creatorHonorSignature,
+            creatorHonorTimestamp: model.creatorHonorTimestamp,
+            creatorPartSignature: model.creatorPartSignature,
+            creatorPartTimestamp: model.creatorPartTimestamp,
+            dissolvedAt: model.dissolvedAt,
             finalStatus: model.finalStatus.flatMap { ProposeStatus(rawValue: $0) },
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
@@ -61,6 +79,15 @@ struct ProposeConverter {
         model.counterpartyPublicKey = propose.counterpartyPublicKey
         model.counterpartySignSignature = propose.counterpartySignSignature
         model.counterpartySignTimestamp = propose.counterpartySignTimestamp
+        model.counterpartyHonorSignature = propose.counterpartyHonorSignature
+        model.counterpartyHonorTimestamp = propose.counterpartyHonorTimestamp
+        model.counterpartyPartSignature = propose.counterpartyPartSignature
+        model.counterpartyPartTimestamp = propose.counterpartyPartTimestamp
+        model.creatorHonorSignature = propose.creatorHonorSignature
+        model.creatorHonorTimestamp = propose.creatorHonorTimestamp
+        model.creatorPartSignature = propose.creatorPartSignature
+        model.creatorPartTimestamp = propose.creatorPartTimestamp
+        model.dissolvedAt = propose.dissolvedAt
         model.finalStatus = propose.finalStatus?.rawValue
         model.updatedAt = Date()
 
