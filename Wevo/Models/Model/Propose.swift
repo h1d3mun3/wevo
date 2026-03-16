@@ -32,6 +32,9 @@ struct Propose: Codable, Identifiable {
     /// Counterparty's signature (nil means not yet signed)
     let counterpartySignSignature: String?
 
+    /// Timestamp used in the Counterparty's sign message (ISO8601, nil means not yet signed)
+    let counterpartySignTimestamp: String?
+
     /// Terminal server status reflected locally (honored/parted/dissolved; nil = not yet finalized)
     let finalStatus: ProposeStatus?
 
@@ -57,6 +60,7 @@ struct Propose: Codable, Identifiable {
         creatorSignature: String,
         counterpartyPublicKey: String,
         counterpartySignSignature: String? = nil,
+        counterpartySignTimestamp: String? = nil,
         finalStatus: ProposeStatus? = nil,
         createdAt: Date,
         updatedAt: Date
@@ -70,6 +74,7 @@ struct Propose: Codable, Identifiable {
         self.creatorSignature = creatorSignature
         self.counterpartyPublicKey = counterpartyPublicKey
         self.counterpartySignSignature = counterpartySignSignature
+        self.counterpartySignTimestamp = counterpartySignTimestamp
         self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt

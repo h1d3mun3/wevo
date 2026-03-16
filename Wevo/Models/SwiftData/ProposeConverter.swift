@@ -21,6 +21,7 @@ struct ProposeConverter {
             creatorSignature: propose.creatorSignature,
             counterpartyPublicKey: propose.counterpartyPublicKey,
             counterpartySignSignature: propose.counterpartySignSignature,
+            counterpartySignTimestamp: propose.counterpartySignTimestamp,
             finalStatus: propose.finalStatus?.rawValue,
             createdAt: propose.createdAt,
             updatedAt: propose.updatedAt
@@ -37,6 +38,7 @@ struct ProposeConverter {
             creatorSignature: model.creatorSignature,
             counterpartyPublicKey: model.counterpartyPublicKey,
             counterpartySignSignature: model.counterpartySignSignature,
+            counterpartySignTimestamp: model.counterpartySignTimestamp,
             finalStatus: model.finalStatus.flatMap { ProposeStatus(rawValue: $0) },
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
@@ -58,6 +60,7 @@ struct ProposeConverter {
         model.creatorSignature = propose.creatorSignature
         model.counterpartyPublicKey = propose.counterpartyPublicKey
         model.counterpartySignSignature = propose.counterpartySignSignature
+        model.counterpartySignTimestamp = propose.counterpartySignTimestamp
         model.finalStatus = propose.finalStatus?.rawValue
         model.updatedAt = Date()
 
