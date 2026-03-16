@@ -221,8 +221,37 @@ struct WevoApp: App {
     
     private func importPropose(_ propose: Propose, to space: Space) {
         do {
-            try container.proposeRepository.create(propose, spaceID: space.id)
-            print("✅ Propose imported successfully to space: \(space.name)")
+            if let existing = try? container.proposeRepository.fetch(by: propose.id) {
+                // Already have this Propose locally — merge incoming signatures into existing.
+                // Keeps local spaceID and message; incoming non-nil fields win.
+                let merged = Propose(
+                    id: existing.id,
+                    spaceID: existing.spaceID,
+                    message: existing.message,
+                    creatorPublicKey: existing.creatorPublicKey,
+                    creatorSignature: existing.creatorSignature,
+                    counterpartyPublicKey: existing.counterpartyPublicKey,
+                    counterpartySignSignature: propose.counterpartySignSignature ?? existing.counterpartySignSignature,
+                    counterpartySignTimestamp: propose.counterpartySignTimestamp ?? existing.counterpartySignTimestamp,
+                    counterpartyHonorSignature: propose.counterpartyHonorSignature ?? existing.counterpartyHonorSignature,
+                    counterpartyHonorTimestamp: propose.counterpartyHonorTimestamp ?? existing.counterpartyHonorTimestamp,
+                    counterpartyPartSignature: propose.counterpartyPartSignature ?? existing.counterpartyPartSignature,
+                    counterpartyPartTimestamp: propose.counterpartyPartTimestamp ?? existing.counterpartyPartTimestamp,
+                    creatorHonorSignature: propose.creatorHonorSignature ?? existing.creatorHonorSignature,
+                    creatorHonorTimestamp: propose.creatorHonorTimestamp ?? existing.creatorHonorTimestamp,
+                    creatorPartSignature: propose.creatorPartSignature ?? existing.creatorPartSignature,
+                    creatorPartTimestamp: propose.creatorPartTimestamp ?? existing.creatorPartTimestamp,
+                    dissolvedAt: propose.dissolvedAt ?? existing.dissolvedAt,
+                    finalStatus: propose.finalStatus ?? existing.finalStatus,
+                    createdAt: existing.createdAt,
+                    updatedAt: Date()
+                )
+                try container.proposeRepository.update(merged)
+                print("✅ Propose updated with incoming signatures in space: \(space.name)")
+            } else {
+                try container.proposeRepository.create(propose, spaceID: space.id)
+                print("✅ Propose imported successfully to space: \(space.name)")
+            }
         } catch {
             print("❌ Error importing propose: \(error)")
         }
