@@ -38,9 +38,9 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             throw SignProposeUseCaseError.notCounterparty
         }
 
-        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
-        let signatureMessage = propose.id.uuidString + propose.payloadHash + identity.publicKey + iso8601String
+        // Build signature message (sign: "signed." + proposeId + contentHash + signerPublicKey + timestamp)
+        let signTimestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
+        let signatureMessage = "signed." + propose.id.uuidString + propose.payloadHash + identity.publicKey + signTimestamp
 
         // Sign
         let signatureData = try keychainRepository.signMessage(

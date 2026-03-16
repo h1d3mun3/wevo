@@ -41,14 +41,14 @@ extension SignProposeServerOnlyUseCaseImpl: SignProposeServerOnlyUseCase {
             throw SignProposeServerOnlyUseCaseError.notCounterparty
         }
 
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
-        let message = propose.id.uuidString + propose.payloadHash + identity.publicKey + iso8601String
+        let signTimestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
+        let message = "signed." + propose.id.uuidString + propose.payloadHash + identity.publicKey + signTimestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
         let input = ProposeAPIClient.SignInput(
             signerPublicKey: identity.publicKey,
             signature: signature,
-            createdAt: iso8601String
+            timestamp: signTimestamp
         )
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
