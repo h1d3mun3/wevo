@@ -71,8 +71,8 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         let signerPublicKey: String
         /// Signature data (Base64 DER)
         let signature: String
-        /// Propose creation timestamp (ISO8601, must exactly match the Propose's createdAt)
-        let createdAt: String
+        /// Sign operation timestamp (ISO8601, client-generated and included in the signed message)
+        let timestamp: String
     }
 
     /// Common input data for dissolve / honor / part
