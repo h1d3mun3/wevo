@@ -32,6 +32,36 @@ struct Propose: Codable, Identifiable {
     /// Counterparty's signature (nil means not yet signed)
     let counterpartySignSignature: String?
 
+    /// Timestamp used in the Counterparty's sign message (ISO8601, nil means not yet signed)
+    let counterpartySignTimestamp: String?
+
+    /// Counterparty's honor signature (nil = not yet executed)
+    let counterpartyHonorSignature: String?
+
+    /// Timestamp used in the Counterparty's honor message (ISO8601, nil = not yet executed)
+    let counterpartyHonorTimestamp: String?
+
+    /// Counterparty's part signature (nil = not yet executed)
+    let counterpartyPartSignature: String?
+
+    /// Timestamp used in the Counterparty's part message (ISO8601, nil = not yet executed)
+    let counterpartyPartTimestamp: String?
+
+    /// Creator's honor signature (nil = not yet executed)
+    let creatorHonorSignature: String?
+
+    /// Timestamp used in the Creator's honor message (ISO8601, nil = not yet executed)
+    let creatorHonorTimestamp: String?
+
+    /// Creator's part signature (nil = not yet executed)
+    let creatorPartSignature: String?
+
+    /// Timestamp used in the Creator's part message (ISO8601, nil = not yet executed)
+    let creatorPartTimestamp: String?
+
+    /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
+    let dissolvedAt: String?
+
     /// Terminal server status reflected locally (honored/parted/dissolved; nil = not yet finalized)
     let finalStatus: ProposeStatus?
 
@@ -57,6 +87,16 @@ struct Propose: Codable, Identifiable {
         creatorSignature: String,
         counterpartyPublicKey: String,
         counterpartySignSignature: String? = nil,
+        counterpartySignTimestamp: String? = nil,
+        counterpartyHonorSignature: String? = nil,
+        counterpartyHonorTimestamp: String? = nil,
+        counterpartyPartSignature: String? = nil,
+        counterpartyPartTimestamp: String? = nil,
+        creatorHonorSignature: String? = nil,
+        creatorHonorTimestamp: String? = nil,
+        creatorPartSignature: String? = nil,
+        creatorPartTimestamp: String? = nil,
+        dissolvedAt: String? = nil,
         finalStatus: ProposeStatus? = nil,
         createdAt: Date,
         updatedAt: Date
@@ -70,6 +110,16 @@ struct Propose: Codable, Identifiable {
         self.creatorSignature = creatorSignature
         self.counterpartyPublicKey = counterpartyPublicKey
         self.counterpartySignSignature = counterpartySignSignature
+        self.counterpartySignTimestamp = counterpartySignTimestamp
+        self.counterpartyHonorSignature = counterpartyHonorSignature
+        self.counterpartyHonorTimestamp = counterpartyHonorTimestamp
+        self.counterpartyPartSignature = counterpartyPartSignature
+        self.counterpartyPartTimestamp = counterpartyPartTimestamp
+        self.creatorHonorSignature = creatorHonorSignature
+        self.creatorHonorTimestamp = creatorHonorTimestamp
+        self.creatorPartSignature = creatorPartSignature
+        self.creatorPartTimestamp = creatorPartTimestamp
+        self.dissolvedAt = dissolvedAt
         self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt

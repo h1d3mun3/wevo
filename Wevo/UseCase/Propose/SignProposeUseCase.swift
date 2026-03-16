@@ -38,9 +38,9 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             throw SignProposeUseCaseError.notCounterparty
         }
 
-        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
-        let signatureMessage = propose.id.uuidString + propose.payloadHash + identity.publicKey + iso8601String
+        // Build signature message (sign: "signed." + proposeId + contentHash + signerPublicKey + timestamp)
+        let signTimestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
+        let signatureMessage = "signed." + propose.id.uuidString + propose.payloadHash + identity.publicKey + signTimestamp
 
         // Sign
         let signatureData = try keychainRepository.signMessage(
@@ -48,7 +48,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             withIdentityId: identity.id
         )
 
-        // Update Propose with counterpartySignSignature set
+        // Update Propose with counterpartySignSignature and signTimestamp set (preserve existing fields)
         let updatedPropose = Propose(
             id: propose.id,
             spaceID: propose.spaceID,
@@ -57,6 +57,17 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             creatorSignature: propose.creatorSignature,
             counterpartyPublicKey: propose.counterpartyPublicKey,
             counterpartySignSignature: signatureData,
+            counterpartySignTimestamp: signTimestamp,
+            counterpartyHonorSignature: propose.counterpartyHonorSignature,
+            counterpartyHonorTimestamp: propose.counterpartyHonorTimestamp,
+            counterpartyPartSignature: propose.counterpartyPartSignature,
+            counterpartyPartTimestamp: propose.counterpartyPartTimestamp,
+            creatorHonorSignature: propose.creatorHonorSignature,
+            creatorHonorTimestamp: propose.creatorHonorTimestamp,
+            creatorPartSignature: propose.creatorPartSignature,
+            creatorPartTimestamp: propose.creatorPartTimestamp,
+            dissolvedAt: propose.dissolvedAt,
+            finalStatus: propose.finalStatus,
             createdAt: propose.createdAt,
             updatedAt: Date()
         )

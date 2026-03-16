@@ -46,13 +46,14 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
             throw SendLocalSignaturesToServerUseCaseError.noSignatureFound
         }
 
-        // Build signature message (sign: proposeId + contentHash + signerPublicKey + ISO8601(propose.createdAt))
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
+        guard let signTimestamp = propose.counterpartySignTimestamp else {
+            throw SendLocalSignaturesToServerUseCaseError.noSignatureFound
+        }
 
         let input = ProposeAPIClient.SignInput(
             signerPublicKey: identityPublicKey,
             signature: counterpartySignSignature,
-            createdAt: iso8601String
+            timestamp: signTimestamp
         )
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)

@@ -42,8 +42,11 @@ struct CheckProposeServerStatusUseCaseTests {
         let counterparty = ProposeCounterparty(
             publicKey: counterpartyPublicKey,
             signSignature: counterpartySignSignature,
+            signTimestamp: counterpartySignSignature != nil ? "2026-01-02T00:00:00Z" : nil,
             honorSignature: nil,
-            partSignature: nil
+            honorTimestamp: nil,
+            partSignature: nil,
+            partTimestamp: nil
         )
         return HashedPropose(
             id: proposeID,
@@ -83,7 +86,8 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingCounterpartySignSignature == "serverCounterpartySig")
+        #expect(result.pendingServerPropose != nil)
+        #expect(result.pendingServerPropose?.counterparties.first?.signSignature == "serverCounterpartySig")
         #expect(result.serverStatus == .signed)
     }
 
@@ -100,7 +104,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingCounterpartySignSignature == nil)
+        #expect(result.pendingServerPropose == nil)
     }
 
     @Test func testNoPendingSignatureWhenCounterpartyNotSignedOnServer() async throws {
@@ -116,7 +120,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingCounterpartySignSignature == nil)
+        #expect(result.pendingServerPropose == nil)
         #expect(result.serverStatus == .proposed)
     }
 
@@ -247,7 +251,7 @@ struct CheckProposeServerStatusUseCaseTests {
             contentHash: "hash",
             creatorPublicKey: creatorPublicKey,
             creatorSignature: "creatorSig",
-            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", honorSignature: nil, partSignature: nil)],
+            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", signTimestamp: "2026-01-02T00:00:00Z", honorSignature: nil, honorTimestamp: nil, partSignature: nil, partTimestamp: nil)],
             honorCreatorSignature: "honorSig",
             status: .signed,
             createdAt: .now,
@@ -270,7 +274,7 @@ struct CheckProposeServerStatusUseCaseTests {
             contentHash: "hash",
             creatorPublicKey: creatorPublicKey,
             creatorSignature: "creatorSig",
-            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", honorSignature: "honorSig", partSignature: nil)],
+            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", signTimestamp: "2026-01-02T00:00:00Z", honorSignature: "honorSig", honorTimestamp: "2026-01-03T00:00:00Z", partSignature: nil, partTimestamp: nil)],
             honorCreatorSignature: nil,
             status: .signed,
             createdAt: .now,

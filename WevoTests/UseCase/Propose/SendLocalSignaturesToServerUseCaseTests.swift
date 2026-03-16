@@ -18,7 +18,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
     private func makePropose(
         id: UUID = UUID(),
         counterpartyPublicKey: String = "counterpartyKey",
-        counterpartySignSignature: String? = "counterpartySig"
+        counterpartySignSignature: String? = "counterpartySig",
+        counterpartySignTimestamp: String? = "2026-01-02T00:00:00Z"
     ) -> Propose {
         Propose(
             id: id,
@@ -28,6 +29,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
             creatorSignature: "creatorSig",
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
+            counterpartySignTimestamp: counterpartySignTimestamp,
             createdAt: .now,
             updatedAt: .now
         )
