@@ -48,7 +48,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             withIdentityId: identity.id
         )
 
-        // Update Propose with counterpartySignSignature set
+        // Update Propose with counterpartySignSignature and signTimestamp set
         let updatedPropose = Propose(
             id: propose.id,
             spaceID: propose.spaceID,
@@ -57,6 +57,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             creatorSignature: propose.creatorSignature,
             counterpartyPublicKey: propose.counterpartyPublicKey,
             counterpartySignSignature: signatureData,
+            counterpartySignTimestamp: signTimestamp,
             createdAt: propose.createdAt,
             updatedAt: Date()
         )
