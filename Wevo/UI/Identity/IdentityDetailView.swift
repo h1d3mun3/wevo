@@ -7,7 +7,6 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
-import LocalAuthentication
 
 struct IdentityDetailView: View {
     let identity: Identity
@@ -159,28 +158,9 @@ struct IdentityDetailView: View {
         isAuthenticating = true
         defer { isAuthenticating = false }
 
-        let context = LAContext()
-        var error: NSError?
-
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            await MainActor.run {
-                exportError = "Biometric authentication not available: \(error?.localizedDescription ?? "Unknown")"
-            }
-            return
-        }
-
+        let useCase = AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let success = try await context.evaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: "Authenticate to export private key"
-            )
-            guard success else {
-                await MainActor.run { exportError = "Authentication failed" }
-                return
-            }
-
-            let useCase = ExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-            let url = try useCase.execute(identity: identity)
+            let url = try await useCase.execute(identity: identity)
             await MainActor.run { shareURL = url }
         } catch {
             await MainActor.run {

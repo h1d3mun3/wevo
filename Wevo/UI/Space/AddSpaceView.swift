@@ -84,14 +84,13 @@ struct AddSpaceView: View {
     }
 
     private func loadIdentities() async {
-        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = LoadIdentitiesWithDefaultSelectionUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let loadedIdentities = try getAllIdentitiesUseCase.execute()
+            let (loadedIdentities, defaultSelectedID) = try useCase.execute()
             await MainActor.run {
                 identities = loadedIdentities
-                // Select the first Identity by default
-                if selectedIdentityID == nil, let first = loadedIdentities.first {
-                    selectedIdentityID = first.id
+                if selectedIdentityID == nil {
+                    selectedIdentityID = defaultSelectedID
                 }
             }
         } catch {
