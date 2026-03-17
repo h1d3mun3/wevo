@@ -27,6 +27,7 @@ protocol CheckProposeServerStatusUseCase {
 
 enum CheckProposeServerStatusUseCaseError: Error {
     case invalidServerURL
+    case proposeNotFound
 }
 
 struct CheckProposeServerStatusUseCaseImpl {
@@ -44,7 +45,15 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         }
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
-        let hashedPropose = try await client.getPropose(proposeID: propose.id)
+        let hashedPropose: HashedPropose
+        do {
+            hashedPropose = try await client.getPropose(proposeID: propose.id)
+        } catch let error as ProposeAPIClient.APIError {
+            if case .httpError(let statusCode) = error, statusCode == 404 {
+                throw CheckProposeServerStatusUseCaseError.proposeNotFound
+            }
+            throw error
+        }
 
         print("📊 Server status: \(hashedPropose.status.rawValue)")
 

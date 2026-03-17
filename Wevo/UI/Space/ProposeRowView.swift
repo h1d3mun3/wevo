@@ -185,8 +185,8 @@ struct ProposeRowView: View {
     /// Only shown when the identity is the Counterparty and the state is proposed
     private var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
-        return identity.publicKey == propose.counterpartyPublicKey
-            && propose.localStatus == .proposed
+        let canSign = CanSignProposeUseCaseImpl().execute(identity: identity, propose: propose)
+        return canSign
             && pendingServerPropose == nil
             && signSuccess != true
     }
@@ -442,15 +442,10 @@ struct ProposeRowView: View {
     }
 
     private func sharePropose() {
-        let useCase = ExportProposeUseCaseImpl()
-        do {
-            shareURL = try useCase.execute(propose: propose, space: space)
-            showShareSheet = true
-            shareError = nil
-        } catch {
-            print("❌ Propose export error: \(error)")
-            shareError = "Export failed"
+        if shareURL == nil {
+            prepareShare()
         }
+        showShareSheet = true
     }
 
     private func resendToServer() async {
@@ -515,30 +510,15 @@ struct ProposeRowView: View {
                 myPartSigned = result.myPartSigned
             }
 
-        } catch let error as CheckProposeServerStatusUseCaseError {
+        } catch CheckProposeServerStatusUseCaseError.proposeNotFound {
+            print("ℹ️ Propose not found on server: \(propose.id)")
             await MainActor.run {
-                serverStatus = .error(error.localizedDescription)
-                isCheckingServer = false
-            }
-
-        } catch let error as ProposeAPIClient.APIError {
-            if case .httpError(let statusCode) = error, statusCode == 404 {
-                print("ℹ️ Propose not found on server: \(propose.id)")
-                await MainActor.run {
-                    serverStatus = .notFound
-                    isCheckingServer = false
-                }
-                return
-            }
-
-            print("⚠️ Server status check error: \(error)")
-            await MainActor.run {
-                serverStatus = .error(error.localizedDescription)
+                serverStatus = .notFound
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ Unexpected error: \(error)")
+            print("⚠️ Server status check error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
@@ -548,28 +528,23 @@ struct ProposeRowView: View {
 
     /// Check server status and automatically apply pending changes after own actions
     private func checkAndAutoApplyServerStatus() async {
-        await checkServerStatus()
-        if let serverPropose = pendingServerPropose {
-            await acceptServerPropose(serverPropose)
-        }
-        if let status = pendingStatusTransition {
-            await applyServerStatus(status)
+        let useCase = AutoApplyServerChangesUseCaseImpl(proposeRepository: deps.proposeRepository)
+        let myPublicKey = defaultIdentity?.publicKey
+        do {
+            try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
+            onSigned()
+        } catch {
+            print("⚠️ AutoApplyServerChanges error: \(error)")
+            // Fall back to a manual server check so the banner can appear as a recovery path.
+            await checkServerStatus()
         }
     }
 
     private func loadDefaultIdentity() async {
-        guard let defaultIdentityID = space.defaultIdentityID else {
-            await MainActor.run { self.defaultIdentity = nil }
-            return
-        }
-
-        let getAllIdentitiesUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
-
+        let useCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let identities = try getAllIdentitiesUseCase.execute()
-            await MainActor.run {
-                self.defaultIdentity = identities.first { $0.id == defaultIdentityID }
-            }
+            let identity = try useCase.execute(space: space)
+            await MainActor.run { self.defaultIdentity = identity }
         } catch {
             print("❌ Error loading default Identity: \(error)")
             await MainActor.run { self.defaultIdentity = nil }
@@ -577,10 +552,9 @@ struct ProposeRowView: View {
     }
 
     private func loadContactNicknames() {
-        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
+        let useCase = GetContactNicknamesMapUseCaseImpl(contactRepository: deps.contactRepository)
         do {
-            let contacts = try useCase.execute()
-            contactNicknames = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
+            contactNicknames = try useCase.execute()
         } catch {
             print("❌ Error loading contact nicknames: \(error)")
         }

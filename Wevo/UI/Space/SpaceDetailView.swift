@@ -145,16 +145,10 @@ struct SpaceDetailView: View {
     }
 
     private func loadDefaultIdentity() async {
-        guard let defaultIdentityID = space.defaultIdentityID else {
-            await MainActor.run {
-                self.defaultIdentity = nil
-            }
-            return
-        }
-
+        let useCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let getIdentityUseCase = GetIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-            self.defaultIdentity = try getIdentityUseCase.execute(id: defaultIdentityID)
+            let identity = try useCase.execute(space: space)
+            self.defaultIdentity = identity
         } catch {
             print("❌ Error loading default Identity: \(error)")
             await MainActor.run {

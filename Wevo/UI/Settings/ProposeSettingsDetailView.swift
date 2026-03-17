@@ -155,10 +155,9 @@ struct ProposeSettingsDetailView: View {
     }
 
     private func loadContactNicknames() async {
-        let useCase = GetAllContactsUseCaseImpl(contactRepository: deps.contactRepository)
+        let useCase = GetContactNicknamesMapUseCaseImpl(contactRepository: deps.contactRepository)
         do {
-            let contacts = try useCase.execute()
-            let dict = Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
+            let dict = try useCase.execute()
             await MainActor.run {
                 contactNicknames = dict
             }
