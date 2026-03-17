@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct SpaceDetailSettingsView: View {
     let space: Space
@@ -87,7 +88,7 @@ struct SpaceDetailSettingsView: View {
         } catch SpaceRepositoryError.spaceNotFound {
             dismiss()
         } catch {
-            print("Failed to reload space: \(error)")
+            Logger.space.error("Failed to reload space: \(error, privacy: .public)")
         }
     }
 }

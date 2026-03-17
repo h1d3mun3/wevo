@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct CreateContactView: View {
     @Environment(\.dismiss) private var dismiss
@@ -70,7 +71,7 @@ struct CreateContactView: View {
             try useCase.execute(nickname: nickname, publicKey: publicKey)
             dismiss()
         } catch {
-            print("❌ Error creating contact: \(error)")
+            Logger.contact.error("Error creating contact: \(error, privacy: .public)")
             errorMessage = "Failed to save: \(error.localizedDescription)"
             isSaving = false
         }

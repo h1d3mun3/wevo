@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ContactListView: View {
     @Environment(\.dependencies) private var deps
@@ -64,7 +65,7 @@ struct ContactListView: View {
         do {
             contacts = try useCase.execute()
         } catch {
-            print("❌ Error loading contacts: \(error)")
+            Logger.contact.error("Error loading contacts: \(error, privacy: .public)")
             contacts = []
         }
     }
@@ -77,7 +78,7 @@ struct ContactListView: View {
             }
             loadContacts()
         } catch {
-            print("❌ Error deleting contact: \(error)")
+            Logger.contact.error("Error deleting contact: \(error, privacy: .public)")
         }
     }
 }

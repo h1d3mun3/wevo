@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol SendLocalSignaturesToServerUseCase {
     /// Send the local Counterparty signature to the server
@@ -37,7 +38,7 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
 
         // Only Counterparty can send Sign
         guard identityPublicKey == propose.counterpartyPublicKey else {
-            print("ℹ️ Not the Counterparty; skipping signature send")
+            Logger.propose.info("Not the Counterparty; skipping signature send")
             return
         }
 
@@ -59,6 +60,6 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.signPropose(proposeID: propose.id, input: input)
 
-        print("✅ Sent Counterparty signature to server: \(propose.id)")
+        Logger.propose.info("Sent Counterparty signature to server: \(propose.id, privacy: .private)")
     }
 }

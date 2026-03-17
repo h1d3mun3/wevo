@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 enum SignProposeUseCaseError: Error {
     case failedToSavePropose
@@ -34,7 +35,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
 
         // Only Counterparty can sign
         guard identity.publicKey == propose.counterpartyPublicKey else {
-            print("⚠️ Signer is not the Counterparty: \(identity.publicKey)")
+            Logger.propose.warning("Signer is not the Counterparty")
             throw SignProposeUseCaseError.notCounterparty
         }
 
@@ -75,14 +76,13 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         // Save locally
         do {
             try proposeRepository.update(updatedPropose)
-            print("✅ Saved Counterparty signature locally: \(propose.id)")
+            Logger.propose.info("Saved Counterparty signature locally: \(propose.id, privacy: .private)")
         } catch {
-            print("❌ Failed to update Propose: \(error)")
+            Logger.propose.error("Failed to update Propose: \(error, privacy: .public)")
             throw SignProposeUseCaseError.failedToSavePropose
         }
 
-        // API submission (only a warning if it fails since already saved locally)
         // API submission is handled by SendLocalSignaturesToServerUseCase
-        print("ℹ️ Please use SendLocalSignaturesToServerUseCase to submit to the API")
+        Logger.propose.debug("Use SendLocalSignaturesToServerUseCase to submit to the API")
     }
 }

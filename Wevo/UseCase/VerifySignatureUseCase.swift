@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 enum VerifySignatureUseCaseError: Error {
     case verificationFailed
@@ -40,14 +41,14 @@ extension VerifySignatureUseCaseImpl: VerifySignatureUseCase {
             )
             
             if isValid {
-                print("✅ Signature verification succeeded")
+                Logger.propose.info("Signature verification succeeded")
             } else {
-                print("⚠️ Signature verification failed - invalid signature")
+                Logger.propose.warning("Signature verification failed - invalid signature")
             }
-            
+
             return isValid
         } catch {
-            print("❌ Failed to verify signature: \(error)")
+            Logger.propose.error("Failed to verify signature: \(error, privacy: .public)")
             throw VerifySignatureUseCaseError.verificationFailed
         }
     }

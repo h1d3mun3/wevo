@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol EditSpaceUseCase {
     func execute(id: UUID, name: String, urlString: String) throws
@@ -41,6 +42,6 @@ extension EditSpaceUseCaseImpl: EditSpaceUseCase {
 
         // Update in repository
         try spaceRepository.update(updatedSpace)
-        print("✅ Space updated successfully: \(updatedSpace.name)")
+        Logger.space.info("Space updated successfully: \(updatedSpace.name, privacy: .private)")
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct EditSpaceView: View {
     let space: Space
@@ -130,7 +131,7 @@ struct EditSpaceView: View {
             onUpdate()
             dismiss()
         } catch {
-            print("❌ Failed to update space: \(error)")
+            Logger.space.error("Failed to update space: \(error, privacy: .public)")
             errorMessage = "Failed to save: \(error.localizedDescription)"
             isSaving = false
         }

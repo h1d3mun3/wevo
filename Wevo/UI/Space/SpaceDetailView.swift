@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct SpaceDetailView: View {
     let space: Space
@@ -150,7 +151,7 @@ struct SpaceDetailView: View {
             let identity = try useCase.execute(space: space)
             self.defaultIdentity = identity
         } catch {
-            print("❌ Error loading default Identity: \(error)")
+            Logger.identity.error("Error loading default Identity: \(error, privacy: .public)")
             await MainActor.run {
                 self.defaultIdentity = nil
             }
@@ -169,12 +170,12 @@ struct SpaceDetailView: View {
             isLoading = false
 
             if loadedProposes.isEmpty {
-                print("ℹ️ No proposes found locally: \(currentSpace.name)")
+                Logger.propose.info("No proposes found locally: \(currentSpace.name, privacy: .private)")
             } else {
-                print("✅ Loaded \(loadedProposes.count) propose(s) from local storage")
+                Logger.propose.info("Loaded \(loadedProposes.count) propose(s) from local storage")
             }
         } catch {
-            print("❌ Error loading proposes from local storage: \(error)")
+            Logger.propose.error("Error loading proposes from local storage: \(error, privacy: .public)")
             isLoading = false
             errorMessage = "Failed to load proposes: \(error.localizedDescription)"
             proposes = []
@@ -187,11 +188,11 @@ struct SpaceDetailView: View {
             do {
                 let updatedSpace = try getSpaceUseCase.execute(id: space.id)
                 currentSpace = updatedSpace
-                print("✅ Space reload complete: \(updatedSpace.name)")
+                Logger.space.info("Space reload complete: \(updatedSpace.name, privacy: .private)")
             } catch SpaceRepositoryError.spaceNotFound {
                 dismiss()
             } catch {
-                print("Failed to reload Space: \(error)")
+                Logger.space.error("Failed to reload Space: \(error, privacy: .public)")
             }
         }
     }

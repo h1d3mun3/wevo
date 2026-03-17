@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
@@ -130,7 +131,7 @@ struct ContentView: View {
                 orphanedProposeGroups = groups
             }
         } catch {
-            print("❌ Error loading spaces: \(error)")
+            Logger.space.error("Error loading spaces: \(error, privacy: .public)")
             await MainActor.run {
                 spaces = []
                 orphanedProposeGroups = []
@@ -148,7 +149,7 @@ struct ContentView: View {
                 }
                 await loadSpaces()
             } catch {
-                print("❌ Error deleting space: \(error)")
+                Logger.space.error("Error deleting space: \(error, privacy: .public)")
                 // TODO: Show error to user
             }
         }

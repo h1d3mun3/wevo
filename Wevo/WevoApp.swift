@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import os
 
 @main
 struct WevoApp: App {
@@ -140,7 +141,7 @@ struct WevoApp: App {
     }
     
     private func handleIncomingURL(_ url: URL) {
-        print("📥 Received URL: \(url)")
+        Logger.app.debug("Received URL: \(url, privacy: .private)")
         let ext = url.pathExtension
         if ext == "wevo-propose" {
             importedProposeURL = url
@@ -152,7 +153,7 @@ struct WevoApp: App {
             importedContactURL = url
             showContactImportAlert = true
         } else {
-            print("⚠️ Unknown file type: \(ext)")
+            Logger.app.warning("Unknown file type: \(ext, privacy: .public)")
         }
     }
     
@@ -163,7 +164,7 @@ struct WevoApp: App {
             let spaces = try container.spaceRepository.fetchAll()
             
             guard !spaces.isEmpty else {
-                print("❌ No spaces found. Cannot import propose.")
+                Logger.app.error("No spaces found. Cannot import propose.")
                 cleanup()
                 return
             }
@@ -173,18 +174,18 @@ struct WevoApp: App {
             showSpaceSelector = true
             
         } catch {
-            print("❌ Error preparing import: \(error)")
+            Logger.app.error("Error preparing import: \(error, privacy: .public)")
             cleanup()
         }
     }
-    
+
     private func prepareIdentityImport(from url: URL) {
         do {
             let plain = try IdentityPlainTransfer.importPlainFromFile(url: url)
             pendingIdentityPlain = plain
             showIdentityImportSheet = true
         } catch {
-            print("❌ Error preparing identity import: \(error)")
+            Logger.app.error("Error preparing identity import: \(error, privacy: .public)")
             cleanupIdentityImport()
         }
     }
@@ -204,7 +205,7 @@ struct WevoApp: App {
             pendingContactExport = try ContactTransfer.importFromFile(url: url)
             showContactImportSheet = true
         } catch {
-            print("❌ Error preparing contact import: \(error)")
+            Logger.app.error("Error preparing contact import: \(error, privacy: .public)")
             cleanupContactImport()
         }
     }
@@ -223,9 +224,9 @@ struct WevoApp: App {
         do {
             let useCase = ImportProposeUseCaseImpl(proposeRepository: container.proposeRepository)
             try useCase.execute(propose: propose, spaceID: space.id)
-            print("✅ Propose imported successfully to space: \(space.name)")
+            Logger.app.info("Propose imported successfully to space: \(space.name, privacy: .private)")
         } catch {
-            print("❌ Error importing propose: \(error)")
+            Logger.app.error("Error importing propose: \(error, privacy: .public)")
         }
     }
     
@@ -251,7 +252,7 @@ struct WevoApp: App {
         for file in files {
             if sensitiveExtensions.contains(file.pathExtension) {
                 try? FileManager.default.removeItem(at: file)
-                print("🧹 Cleaned up temporary file: \(file.lastPathComponent)")
+                Logger.app.debug("Cleaned up temporary file: \(file.lastPathComponent, privacy: .private)")
             }
         }
     }

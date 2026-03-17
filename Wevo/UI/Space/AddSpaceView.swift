@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct AddSpaceView: View {
     @Environment(\.dismiss) private var dismiss
@@ -94,7 +95,7 @@ struct AddSpaceView: View {
                 }
             }
         } catch {
-            print("❌ Error loading identities: \(error)")
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
             await MainActor.run {
                 identities = []
             }
@@ -114,7 +115,7 @@ struct AddSpaceView: View {
             isSaving = false
             dismiss()
         } catch {
-            print("❌ Error saving space: \(error)")
+            Logger.space.error("Error saving space: \(error, privacy: .public)")
             isSaving = false
             // TODO: Show error alert
         }

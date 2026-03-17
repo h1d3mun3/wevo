@@ -7,6 +7,7 @@
 
 import Foundation
 import CryptoKit
+import os
 
 protocol CreateIdentityUseCase {
     func execute(nickname: String) throws
@@ -38,9 +39,7 @@ extension CreateIdentityUseCaseImpl: CreateIdentityUseCase {
         // Log the public key (for debugging)
         let publicKeyData = privateKey.publicKey.rawRepresentation
         
-        print("✅ Identity Key saved successfully")
-        print("ID: \(id)")
-        print("Nickname: \(trimmedNickname)")
-        print("Public Key: \(publicKeyData.base64EncodedString())")
+        Logger.identity.info("Identity Key saved successfully")
+        Logger.identity.debug("ID: \(id, privacy: .private), Nickname: \(trimmedNickname, privacy: .private), PublicKey: \(publicKeyData.base64EncodedString(), privacy: .private)")
     }
 }

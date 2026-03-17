@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ProposeListView: View {
     let proposes: [Propose]
@@ -81,10 +82,10 @@ struct ProposeListView: View {
         let deleteProposeUseCase = DeleteProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try deleteProposeUseCase.execute(id: propose.id)
-            print("✅ Propose deleted: \(propose.id)")
+            Logger.propose.info("Propose deleted: \(propose.id, privacy: .private)")
             onDelete()
         } catch {
-            print("❌ Error deleting propose: \(error)")
+            Logger.propose.error("Error deleting propose: \(error, privacy: .public)")
         }
     }
 }

@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import os
 
 struct DataBrowserView: View {
     @Environment(\.dependencies) private var deps
@@ -61,7 +62,7 @@ struct DataBrowserView: View {
             proposes = data.proposes
             spaces = data.spaces
         } catch {
-            print("❌ Error loading settings data: \(error)")
+            Logger.app.error("Error loading settings data: \(error, privacy: .public)")
             proposes = []
             spaces = []
         }

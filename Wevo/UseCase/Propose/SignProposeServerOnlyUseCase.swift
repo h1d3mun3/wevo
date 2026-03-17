@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol SignProposeServerOnlyUseCase {
     /// Sign a Propose and send the signature to the server only (does not save locally)
@@ -54,7 +55,7 @@ extension SignProposeServerOnlyUseCaseImpl: SignProposeServerOnlyUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.signPropose(proposeID: propose.id, input: input)
 
-        print("✅ Sent Counterparty signature to server (pending local confirmation): \(propose.id)")
+        Logger.propose.info("Sent Counterparty signature to server (pending local confirmation): \(propose.id, privacy: .private)")
         return signature
     }
 }

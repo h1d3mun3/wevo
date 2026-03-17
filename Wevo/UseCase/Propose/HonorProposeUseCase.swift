@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol HonorProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
@@ -47,6 +48,6 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.honorPropose(proposeID: propose.id, input: input)
-        print("✅ Sent Honor to server: \(propose.id)")
+        Logger.propose.info("Sent Honor to server: \(propose.id, privacy: .private)")
     }
 }

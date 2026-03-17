@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 #if os(iOS)
 struct ShareSheetView: UIViewControllerRepresentable {
@@ -13,7 +14,7 @@ struct ShareSheetView: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        print("📤 ShareSheetView: Creating UIActivityViewController with items: \(items)")
+        Logger.ui.debug("ShareSheetView: Creating UIActivityViewController")
         return controller
     }
 
@@ -25,17 +26,17 @@ struct ShareSheetView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        print("📤 ShareSheetView: Creating NSView with items: \(items)")
+        Logger.ui.debug("ShareSheetView: Creating NSView")
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let window = nsView.window else {
-            print("⚠️ ShareSheetView: No window available")
+            Logger.ui.warning("ShareSheetView: No window available")
             return
         }
 
-        print("📤 ShareSheetView: Showing NSSharingServicePicker")
+        Logger.ui.debug("ShareSheetView: Showing NSSharingServicePicker")
         let picker = NSSharingServicePicker(items: items)
         picker.show(relativeTo: .zero, of: nsView, preferredEdge: .minY)
     }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct IdentityListView: View {
     @Environment(\.dependencies) private var deps
@@ -61,7 +62,7 @@ struct IdentityListView: View {
                 identities = loadedIdentities
             }
         } catch {
-            print("❌ Error loading identities: \(error)")
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
             await MainActor.run {
                 identities = []
             }
@@ -78,7 +79,7 @@ struct IdentityListView: View {
                 }
                 await loadIdentities()
             } catch {
-                print("❌ Error deleting identity: \(error)")
+                Logger.identity.error("Error deleting identity: \(error, privacy: .public)")
                 // TODO: Show error to user
             }
         }

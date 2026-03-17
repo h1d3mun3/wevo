@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol PartProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
@@ -47,6 +48,6 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.partPropose(proposeID: propose.id, input: input)
-        print("✅ Sent Part to server: \(propose.id)")
+        Logger.propose.info("Sent Part to server: \(propose.id, privacy: .private)")
     }
 }
