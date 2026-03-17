@@ -27,8 +27,6 @@
 			<array>
 				<string>com.h1d3mun3.Wevo.identity</string>
 			</array>
-			<key>NSDocumentClass</key>
-			<string></string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
