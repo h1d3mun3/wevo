@@ -547,9 +547,7 @@ struct ProposeRowView: View {
         let myPublicKey = defaultIdentity?.publicKey
         do {
             try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
-            // On success, onSigned() inside applyServerStatus/acceptServerPropose triggers
-            // loadProposesFromLocal() in the parent, which refreshes the propose prop.
-            // .task(id: propose.localStatus) then fires checkServerStatus() with the fresh value.
+            onSigned()
         } catch {
             print("⚠️ AutoApplyServerChanges error: \(error)")
             // Fall back to a manual server check so the banner can appear as a recovery path.
