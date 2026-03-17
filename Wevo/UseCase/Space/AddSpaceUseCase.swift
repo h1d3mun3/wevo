@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol AddSpaceUseCase {
     func execute(name: String, urlString: String, defaultIdentityID: UUID?) throws
@@ -30,7 +31,7 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
             let existingSpaces = try spaceRepository.fetchAll()
             orderIndex = existingSpaces.count
         } catch {
-            print("❌ Error fetching spaces: \(error)")
+            Logger.space.error("Error fetching spaces: \(error, privacy: .public)")
             orderIndex = 0
         }
 
@@ -47,6 +48,6 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
 
         // Save to SwiftData
         try spaceRepository.create(space)
-        print("✅ Space saved: \(space.name)")
+        Logger.space.info("Space saved: \(space.name, privacy: .private)")
     }
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CryptoKit
+import os
 
 struct CreateProposeView: View {
     let space: Space
@@ -187,7 +188,7 @@ struct CreateProposeView: View {
             }
 
         } catch {
-            print("❌ Error creating propose: \(error)")
+            Logger.propose.error("Error creating propose: \(error, privacy: .public)")
             await MainActor.run {
                 errorMessage = "Failed to create propose: \(error.localizedDescription)"
                 isSaving = false
@@ -263,7 +264,7 @@ struct ContactPickerSheet: View {
         do {
             contacts = try useCase.execute()
         } catch {
-            print("❌ Error loading contacts: \(error)")
+            Logger.contact.error("Error loading contacts: \(error, privacy: .public)")
             errorMessage = "Failed to load contacts"
         }
     }

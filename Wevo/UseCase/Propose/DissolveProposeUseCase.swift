@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol DissolveProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
@@ -57,6 +58,6 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
 
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.dissolvePropose(proposeID: propose.id, input: input)
-        print("✅ Sent Dissolve to server: \(propose.id)")
+        Logger.propose.info("Sent Dissolve to server: \(propose.id, privacy: .private)")
     }
 }

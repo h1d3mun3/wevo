@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct EditContactView: View {
     @Environment(\.dismiss) private var dismiss
@@ -83,7 +84,7 @@ struct EditContactView: View {
             try useCase.execute(id: contact.id, nickname: nickname, publicKey: publicKey)
             dismiss()
         } catch {
-            print("❌ Error editing contact: \(error)")
+            Logger.contact.error("Error editing contact: \(error, privacy: .public)")
             errorMessage = "Failed to update: \(error.localizedDescription)"
             isSaving = false
         }

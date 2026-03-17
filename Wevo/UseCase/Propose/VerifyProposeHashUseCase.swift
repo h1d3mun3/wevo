@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol VerifyProposeHashUseCase {
     func execute(message: String, payloadHash: String) -> Bool
@@ -22,9 +23,9 @@ extension VerifyProposeHashUseCaseImpl: VerifyProposeHashUseCase {
         let isValid = messageHash == payloadHash
 
         if isValid {
-            print("✅ Hash valid: message hash matches payloadHash")
+            Logger.propose.info("Hash valid: message hash matches payloadHash")
         } else {
-            print("❌ Hash invalid: message hash (\(messageHash)) does not match payloadHash (\(payloadHash))")
+            Logger.propose.warning("Hash invalid: message hash does not match payloadHash")
         }
 
         return isValid

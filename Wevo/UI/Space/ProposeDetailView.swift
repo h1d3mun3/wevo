@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ProposeDetailView: View {
     let propose: Propose
@@ -38,7 +39,7 @@ struct ProposeDetailView: View {
         } catch ProposeRepositoryError.proposeNotFound {
             dismiss()
         } catch {
-            print("Failed to reload propose: \(error)")
+            Logger.propose.error("Failed to reload propose: \(error, privacy: .public)")
         }
     }
 }

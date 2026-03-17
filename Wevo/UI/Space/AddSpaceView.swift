@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct AddSpaceView: View {
     @Environment(\.dismiss) private var dismiss
@@ -23,6 +24,7 @@ struct AddSpaceView: View {
         !isSaving
     }
     @State private var isSaving: Bool = false
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -81,6 +83,14 @@ struct AddSpaceView: View {
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
+        .alert("Error", isPresented: .init(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private func loadIdentities() async {
@@ -94,7 +104,7 @@ struct AddSpaceView: View {
                 }
             }
         } catch {
-            print("❌ Error loading identities: \(error)")
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
             await MainActor.run {
                 identities = []
             }
@@ -114,9 +124,9 @@ struct AddSpaceView: View {
             isSaving = false
             dismiss()
         } catch {
-            print("❌ Error saving space: \(error)")
+            Logger.space.error("Error saving space: \(error, privacy: .public)")
             isSaving = false
-            // TODO: Show error alert
+            saveError = error.localizedDescription
         }
     }
 }

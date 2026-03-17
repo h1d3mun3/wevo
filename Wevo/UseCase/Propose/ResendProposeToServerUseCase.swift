@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol ResendProposeToServerUseCase {
     func execute(propose: Propose, serverURL: String) async throws
@@ -51,6 +52,6 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
         let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
         try await client.createPropose(input: input)
 
-        print("✅ Resent Propose to server: \(propose.id)")
+        Logger.propose.info("Resent Propose to server: \(propose.id, privacy: .private)")
     }
 }

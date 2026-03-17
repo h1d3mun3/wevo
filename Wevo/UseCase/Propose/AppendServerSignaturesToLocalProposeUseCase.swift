@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol AppendServerSignaturesToLocalProposeUseCase {
     /// Reflect server signatures and timestamps in the local Propose
@@ -55,6 +56,6 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
 
         // Save locally
         try proposeRepository.update(updatedPropose)
-        print("✅ Reflected server signatures locally: \(localPropose.id)")
+        Logger.propose.info("Reflected server signatures locally: \(localPropose.id, privacy: .private)")
     }
 }

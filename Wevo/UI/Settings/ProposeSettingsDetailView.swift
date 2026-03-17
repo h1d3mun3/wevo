@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ProposeSettingsDetailView: View {
     let propose: Propose
@@ -162,7 +163,7 @@ struct ProposeSettingsDetailView: View {
                 contactNicknames = dict
             }
         } catch {
-            print("❌ Error loading contact nicknames: \(error)")
+            Logger.contact.error("Error loading contact nicknames: \(error, privacy: .public)")
         }
     }
 }

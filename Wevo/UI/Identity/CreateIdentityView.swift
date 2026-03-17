@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct CreateIdentityView: View {
     @Environment(\.dismiss) private var dismiss
@@ -55,7 +56,7 @@ struct CreateIdentityView: View {
                     dismiss()
                 }
             } catch {
-                print("❌ Error saving identity key: \(error)")
+                Logger.identity.error("Error saving identity key: \(error, privacy: .public)")
                 await MainActor.run {
                     isSaving = false
                 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ContactDetailView: View {
     let contact: Contact
@@ -73,7 +74,7 @@ struct ContactDetailView: View {
         } catch ContactRepositoryError.contactNotFound {
             dismiss()
         } catch {
-            print("Failed to reload contact: \(error)")
+            Logger.contact.error("Failed to reload contact: \(error, privacy: .public)")
         }
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ContentView: View {
     @State private var shouldShowIdentityList = false
@@ -14,6 +15,7 @@ struct ContentView: View {
     @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
     @State private var orphanedProposeGroups: [OrphanedProposeGroup] = []
+    @State private var deleteSpaceError: String?
     @Environment(\.dependencies) private var deps
 
     var body: some View {
@@ -114,6 +116,14 @@ struct ContentView: View {
         }) {
             AddSpaceView()
         }
+        .alert("Error", isPresented: .init(
+            get: { deleteSpaceError != nil },
+            set: { if !$0 { deleteSpaceError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteSpaceError ?? "")
+        }
     }
 
     private func loadSpaces() async {
@@ -130,7 +140,7 @@ struct ContentView: View {
                 orphanedProposeGroups = groups
             }
         } catch {
-            print("❌ Error loading spaces: \(error)")
+            Logger.space.error("Error loading spaces: \(error, privacy: .public)")
             await MainActor.run {
                 spaces = []
                 orphanedProposeGroups = []
@@ -148,8 +158,10 @@ struct ContentView: View {
                 }
                 await loadSpaces()
             } catch {
-                print("❌ Error deleting space: \(error)")
-                // TODO: Show error to user
+                Logger.space.error("Error deleting space: \(error, privacy: .public)")
+                await MainActor.run {
+                    deleteSpaceError = error.localizedDescription
+                }
             }
         }
     }

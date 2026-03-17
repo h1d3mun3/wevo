@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct SpaceListView: View {
     let spaces: [Space]
@@ -64,10 +65,10 @@ struct SpaceListView: View {
         let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
         do {
             try deleteSpaceUseCase.execute(id: space.id)
-            print("✅ Space deleted: \(space.id)")
+            Logger.space.info("Space deleted: \(space.id, privacy: .private)")
             onDelete()
         } catch {
-            print("❌ Error deleting space: \(error)")
+            Logger.space.error("Error deleting space: \(error, privacy: .public)")
         }
     }
 }

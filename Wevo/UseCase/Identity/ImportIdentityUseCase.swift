@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol ImportIdentityUseCase {
     func execute(id: UUID, nickname: String, privateKey: Data) throws
@@ -26,8 +27,7 @@ extension ImportIdentityUseCaseImpl: ImportIdentityUseCase {
             nickname: nickname,
             privateKey: privateKey
         )
-        print("✅ Identity imported successfully")
-        print("ID: \(id)")
-        print("Nickname: \(nickname)")
+        Logger.identity.info("Identity imported successfully")
+        Logger.identity.debug("ID: \(id, privacy: .private), Nickname: \(nickname, privacy: .private)")
     }
 }

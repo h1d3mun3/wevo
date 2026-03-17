@@ -7,6 +7,7 @@
 
 import Foundation
 import CryptoKit
+import os
 
 protocol CreateProposeUseCase {
     func execute(identityID: UUID, spaceID: UUID, message: String, counterpartyPublicKey: String) async throws
@@ -64,13 +65,12 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
 
         // Save locally
         try proposeRepository.create(propose, spaceID: space.id)
-        print("✅ Saved Propose locally: \(proposeID)")
-        print("   Message: \(trimmedMessage)")
-        print("   contentHash: \(contentHash)")
+        Logger.propose.info("Saved Propose locally: \(proposeID, privacy: .private)")
+        Logger.propose.debug("Message: \(trimmedMessage, privacy: .private), contentHash: \(contentHash, privacy: .private)")
 
         // Send to API (only warn if it fails since it's already saved locally)
         guard let baseURL = URL(string: space.url) else {
-            print("⚠️ Invalid server URL: \(space.url)")
+            Logger.propose.warning("Invalid server URL: \(space.url, privacy: .private)")
             return
         }
 
@@ -86,10 +86,9 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         do {
             let client = ProposeAPIClient(baseURL: baseURL)
             try await client.createPropose(input: input)
-            print("✅ Sent Propose to API: \(proposeID)")
+            Logger.propose.info("Sent Propose to API: \(proposeID, privacy: .private)")
         } catch {
-            // Only warn if API send fails since it's already saved locally
-            print("⚠️ Failed to send to API (already saved locally): \(error)")
+            Logger.propose.warning("Failed to send to API (already saved locally): \(error, privacy: .public)")
         }
     }
 }

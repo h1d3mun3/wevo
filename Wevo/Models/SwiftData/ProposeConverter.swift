@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 /// Handles bidirectional conversion between the Propose struct and ProposeSwiftData
 struct ProposeConverter {
@@ -91,6 +92,6 @@ struct ProposeConverter {
         model.finalStatus = propose.finalStatus?.rawValue
         model.updatedAt = Date()
 
-        print("📝 ProposeSwiftData update complete: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil"), finalStatus=\(propose.finalStatus?.rawValue ?? "nil")")
+        Logger.propose.debug("ProposeSwiftData update complete: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil", privacy: .private), finalStatus=\(propose.finalStatus?.rawValue ?? "nil", privacy: .public)")
     }
 }

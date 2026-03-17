@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import os
 
 struct IdentityListView: View {
     @Environment(\.dependencies) private var deps
 
     @State private var shouldShowCreateIdentity = false
     @State private var identities: [Identity] = []
+    @State private var deleteIdentityError: String?
 
     var body: some View {
         NavigationStack {
@@ -48,6 +50,14 @@ struct IdentityListView: View {
         }) {
             CreateIdentityView()
         }
+        .alert("Error", isPresented: .init(
+            get: { deleteIdentityError != nil },
+            set: { if !$0 { deleteIdentityError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteIdentityError ?? "")
+        }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
@@ -61,7 +71,7 @@ struct IdentityListView: View {
                 identities = loadedIdentities
             }
         } catch {
-            print("❌ Error loading identities: \(error)")
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
             await MainActor.run {
                 identities = []
             }
@@ -78,8 +88,10 @@ struct IdentityListView: View {
                 }
                 await loadIdentities()
             } catch {
-                print("❌ Error deleting identity: \(error)")
-                // TODO: Show error to user
+                Logger.identity.error("Error deleting identity: \(error, privacy: .public)")
+                await MainActor.run {
+                    deleteIdentityError = error.localizedDescription
+                }
             }
         }
     }

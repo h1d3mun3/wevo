@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct ProposeRowView: View {
     let propose: Propose
@@ -436,7 +437,7 @@ struct ProposeRowView: View {
             shareURL = try useCase.execute(propose: propose, space: space)
             shareError = nil
         } catch {
-            print("❌ Propose export error: \(error)")
+            Logger.propose.error("Propose export error: \(error, privacy: .public)")
             shareError = "Export failed"
         }
     }
@@ -470,7 +471,7 @@ struct ProposeRowView: View {
             await MainActor.run { resendSuccess = nil }
 
         } catch {
-            print("❌ Propose resend error: \(error)")
+            Logger.propose.error("Propose resend error: \(error, privacy: .public)")
             await MainActor.run {
                 isResending = false
                 resendSuccess = false
@@ -511,14 +512,14 @@ struct ProposeRowView: View {
             }
 
         } catch CheckProposeServerStatusUseCaseError.proposeNotFound {
-            print("ℹ️ Propose not found on server: \(propose.id)")
+            Logger.propose.info("Propose not found on server: \(propose.id, privacy: .private)")
             await MainActor.run {
                 serverStatus = .notFound
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ Server status check error: \(error)")
+            Logger.propose.warning("Server status check error: \(error, privacy: .public)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
@@ -534,7 +535,7 @@ struct ProposeRowView: View {
             try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
             onSigned()
         } catch {
-            print("⚠️ AutoApplyServerChanges error: \(error)")
+            Logger.propose.warning("AutoApplyServerChanges error: \(error, privacy: .public)")
             // Fall back to a manual server check so the banner can appear as a recovery path.
             await checkServerStatus()
         }
@@ -546,7 +547,7 @@ struct ProposeRowView: View {
             let identity = try useCase.execute(space: space)
             await MainActor.run { self.defaultIdentity = identity }
         } catch {
-            print("❌ Error loading default Identity: \(error)")
+            Logger.identity.error("Error loading default Identity: \(error, privacy: .public)")
             await MainActor.run { self.defaultIdentity = nil }
         }
     }
@@ -556,7 +557,7 @@ struct ProposeRowView: View {
         do {
             contactNicknames = try useCase.execute()
         } catch {
-            print("❌ Error loading contact nicknames: \(error)")
+            Logger.contact.error("Error loading contact nicknames: \(error, privacy: .public)")
         }
     }
 
@@ -586,7 +587,7 @@ struct ProposeRowView: View {
             await MainActor.run { signSuccess = nil }
 
         } catch SignProposeServerOnlyUseCaseError.notCounterparty {
-            print("⚠️ This identity is not the Counterparty and cannot sign")
+            Logger.propose.warning("This identity is not the Counterparty and cannot sign")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
@@ -600,7 +601,7 @@ struct ProposeRowView: View {
             }
 
         } catch {
-            print("❌ Signing error: \(error)")
+            Logger.propose.error("Signing error: \(error, privacy: .public)")
             await MainActor.run {
                 isSigning = false
                 signSuccess = false
@@ -626,7 +627,7 @@ struct ProposeRowView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { dissolveSuccess = nil }
         } catch {
-            print("❌ Dissolve error: \(error)")
+            Logger.propose.error("Dissolve error: \(error, privacy: .public)")
             await MainActor.run { isDissolving = false; dissolveSuccess = false; dissolveErrorMessage = error.localizedDescription }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run { dissolveSuccess = nil; dissolveErrorMessage = nil }
@@ -644,7 +645,7 @@ struct ProposeRowView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { honorSuccess = nil }
         } catch {
-            print("❌ Honor error: \(error)")
+            Logger.propose.error("Honor error: \(error, privacy: .public)")
             await MainActor.run { isHonoring = false; honorSuccess = false; honorErrorMessage = error.localizedDescription }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run { honorSuccess = nil; honorErrorMessage = nil }
@@ -662,7 +663,7 @@ struct ProposeRowView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
         } catch {
-            print("❌ Part error: \(error)")
+            Logger.propose.error("Part error: \(error, privacy: .public)")
             await MainActor.run { isParting = false; partSuccess = false; partErrorMessage = error.localizedDescription }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run { partSuccess = nil; partErrorMessage = nil }
@@ -683,10 +684,10 @@ struct ProposeRowView: View {
                 isApplyingServerStatus = false
                 pendingStatusTransition = nil
             }
-            print("✅ Applied server status (\(status.rawValue)) locally")
+            Logger.propose.info("Applied server status (\(status.rawValue, privacy: .public)) locally")
             onSigned()
         } catch {
-            print("❌ Failed to apply server status locally: \(error)")
+            Logger.propose.error("Failed to apply server status locally: \(error, privacy: .public)")
             await MainActor.run { isApplyingServerStatus = false }
         }
     }
@@ -706,9 +707,9 @@ struct ProposeRowView: View {
                 isAcceptingSignature = false
                 pendingServerPropose = nil
             }
-            print("✅ Accepted server signatures and reflected them locally")
+            Logger.propose.info("Accepted server signatures and reflected them locally")
         } catch {
-            print("❌ Failed to reflect server signatures locally: \(error)")
+            Logger.propose.error("Failed to reflect server signatures locally: \(error, privacy: .public)")
             await MainActor.run { isAcceptingSignature = false }
         }
     }

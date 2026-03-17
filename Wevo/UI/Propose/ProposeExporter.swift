@@ -7,6 +7,7 @@
 
 import Foundation
 import UniformTypeIdentifiers
+import os
 
 /// Wrapper for exporting a Propose
 struct ProposeExportData: Codable {
@@ -51,7 +52,7 @@ struct ProposeExporter {
         
         try jsonData.write(to: tempURL)
         
-        print("✅ Propose exported to: \(tempURL.path)")
+        Logger.propose.debug("Propose exported to: \(tempURL.path, privacy: .private)")
         
         return tempURL
     }
@@ -73,7 +74,7 @@ struct ProposeExporter {
         
         let exportData = try decoder.decode(ProposeExportData.self, from: jsonData)
         
-        print("✅ Propose imported from: \(url.path)")
+        Logger.propose.debug("Propose imported from: \(url.path, privacy: .private)")
         
         return exportData
     }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 /// Server status check result (new API specification)
 struct ProposeServerCheckResult {
@@ -55,7 +56,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
             throw error
         }
 
-        print("📊 Server status: \(hashedPropose.status.rawValue)")
+        Logger.propose.debug("Server status: \(hashedPropose.status.rawValue, privacy: .public)")
 
         // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
         var pendingServerPropose: HashedPropose? = nil
@@ -63,7 +64,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
            counterparty.signSignature != nil,
            propose.counterpartySignSignature == nil {
             pendingServerPropose = hashedPropose
-            print("🔄 Detected Counterparty signature from server: not yet reflected locally")
+            Logger.propose.info("Detected Counterparty signature from server: not yet reflected locally")
         }
 
         // Check if the server has reached a terminal state (honored/parted/dissolved) not yet reflected locally
@@ -72,7 +73,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         if terminalStatuses.contains(hashedPropose.status),
            propose.localStatus != hashedPropose.status {
             pendingStatusTransition = hashedPropose.status
-            print("🔄 Detected terminal status from server: \(hashedPropose.status.rawValue), not yet reflected locally")
+            Logger.propose.info("Detected terminal status from server: \(hashedPropose.status.rawValue, privacy: .public), not yet reflected locally")
         }
 
         // Check if the current user has already sent their honor/part signature

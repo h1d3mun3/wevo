@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol ApplyServerStatusToLocalProposeUseCase {
     /// Reflect a terminal server status (honored/parted/dissolved) in the local Propose
@@ -51,6 +52,6 @@ extension ApplyServerStatusToLocalProposeUseCaseImpl: ApplyServerStatusToLocalPr
         )
 
         try proposeRepository.update(updated)
-        print("✅ Applied server status locally: \(status.rawValue) for \(proposeID)")
+        Logger.propose.info("Applied server status locally: \(status.rawValue, privacy: .public) for \(proposeID, privacy: .private)")
     }
 }
