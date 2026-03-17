@@ -546,6 +546,17 @@ struct ProposeRowView: View {
         }
     }
 
+    /// Check server status and automatically apply pending changes after own actions
+    private func checkAndAutoApplyServerStatus() async {
+        await checkServerStatus()
+        if let serverPropose = pendingServerPropose {
+            await acceptServerPropose(serverPropose)
+        }
+        if let status = pendingStatusTransition {
+            await applyServerStatus(status)
+        }
+    }
+
     private func loadDefaultIdentity() async {
         guard let defaultIdentityID = space.defaultIdentityID else {
             await MainActor.run { self.defaultIdentity = nil }
@@ -596,8 +607,7 @@ struct ProposeRowView: View {
                 signSuccess = true
             }
 
-            // checkServerStatus will detect the pending signature and set pendingServerPropose
-            await checkServerStatus()
+            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
 
@@ -638,7 +648,7 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
-            await checkServerStatus()
+            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { dissolveSuccess = nil }
         } catch {
@@ -656,7 +666,7 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
-            await checkServerStatus()
+            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { honorSuccess = nil }
         } catch {
@@ -674,7 +684,7 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
-            await checkServerStatus()
+            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
         } catch {
