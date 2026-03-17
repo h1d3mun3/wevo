@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var shouldShowSettings = false
     @State private var spaces: [Space] = []
     @State private var orphanedProposeGroups: [OrphanedProposeGroup] = []
+    @State private var deleteSpaceError: String?
     @Environment(\.dependencies) private var deps
 
     var body: some View {
@@ -115,6 +116,14 @@ struct ContentView: View {
         }) {
             AddSpaceView()
         }
+        .alert("Error", isPresented: .init(
+            get: { deleteSpaceError != nil },
+            set: { if !$0 { deleteSpaceError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteSpaceError ?? "")
+        }
     }
 
     private func loadSpaces() async {
@@ -150,7 +159,9 @@ struct ContentView: View {
                 await loadSpaces()
             } catch {
                 Logger.space.error("Error deleting space: \(error, privacy: .public)")
-                // TODO: Show error to user
+                await MainActor.run {
+                    deleteSpaceError = error.localizedDescription
+                }
             }
         }
     }

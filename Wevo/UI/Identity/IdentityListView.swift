@@ -13,6 +13,7 @@ struct IdentityListView: View {
 
     @State private var shouldShowCreateIdentity = false
     @State private var identities: [Identity] = []
+    @State private var deleteIdentityError: String?
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,14 @@ struct IdentityListView: View {
         }) {
             CreateIdentityView()
         }
+        .alert("Error", isPresented: .init(
+            get: { deleteIdentityError != nil },
+            set: { if !$0 { deleteIdentityError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteIdentityError ?? "")
+        }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
@@ -80,7 +89,9 @@ struct IdentityListView: View {
                 await loadIdentities()
             } catch {
                 Logger.identity.error("Error deleting identity: \(error, privacy: .public)")
-                // TODO: Show error to user
+                await MainActor.run {
+                    deleteIdentityError = error.localizedDescription
+                }
             }
         }
     }
