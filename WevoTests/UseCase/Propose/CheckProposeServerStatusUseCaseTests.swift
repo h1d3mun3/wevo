@@ -135,9 +135,21 @@ struct CheckProposeServerStatusUseCaseTests {
         }
     }
 
-    @Test func testPropagatesAPIError() async throws {
+    @Test func testThrowsProposeNotFoundOn404() async throws {
         let mockAPI = MockProposeAPIClient()
         mockAPI.getProposeError = ProposeAPIClient.APIError.httpError(statusCode: 404)
+        let propose = makePropose()
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        await #expect(throws: CheckProposeServerStatusUseCaseError.proposeNotFound) {
+            try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        }
+    }
+
+    @Test func testPropagatesNon404APIError() async throws {
+        let mockAPI = MockProposeAPIClient()
+        mockAPI.getProposeError = ProposeAPIClient.APIError.httpError(statusCode: 500)
         let propose = makePropose()
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)

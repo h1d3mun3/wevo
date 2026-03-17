@@ -510,30 +510,15 @@ struct ProposeRowView: View {
                 myPartSigned = result.myPartSigned
             }
 
-        } catch let error as CheckProposeServerStatusUseCaseError {
+        } catch CheckProposeServerStatusUseCaseError.proposeNotFound {
+            print("ℹ️ Propose not found on server: \(propose.id)")
             await MainActor.run {
-                serverStatus = .error(error.localizedDescription)
-                isCheckingServer = false
-            }
-
-        } catch let error as ProposeAPIClient.APIError {
-            if case .httpError(let statusCode) = error, statusCode == 404 {
-                print("ℹ️ Propose not found on server: \(propose.id)")
-                await MainActor.run {
-                    serverStatus = .notFound
-                    isCheckingServer = false
-                }
-                return
-            }
-
-            print("⚠️ Server status check error: \(error)")
-            await MainActor.run {
-                serverStatus = .error(error.localizedDescription)
+                serverStatus = .notFound
                 isCheckingServer = false
             }
 
         } catch {
-            print("⚠️ Unexpected error: \(error)")
+            print("⚠️ Server status check error: \(error)")
             await MainActor.run {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
