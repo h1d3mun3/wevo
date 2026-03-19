@@ -54,7 +54,7 @@ struct EditSpaceUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(id: spaceID, name: "  Updated  ", urlString: "  new-url  ")
+        try await useCase.execute(id: spaceID, name: "  Updated  ", urlString: "  new-url  ", defaultIdentityID: nil)
 
         // Assert
         #expect(mockSpaceRepository.updateCalled == true)
@@ -88,7 +88,7 @@ struct EditSpaceUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url")
+        try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url", defaultIdentityID: defaultIdentityID)
 
         // Assert
         let updatedSpace = mockSpaceRepository.updatedSpace
@@ -111,7 +111,7 @@ struct EditSpaceUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID(), name: "New", urlString: "new-url")
+            try await useCase.execute(id: UUID(), name: "New", urlString: "new-url", defaultIdentityID: nil)
         }
     }
 
@@ -140,7 +140,7 @@ struct EditSpaceUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url")
+            try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url", defaultIdentityID: nil)
         }
     }
 }
