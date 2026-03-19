@@ -112,7 +112,6 @@ struct SpaceDetailView: View {
                 } label: {
                     Label("Create Propose", systemImage: "plus")
                 }
-                .disabled(defaultIdentity == nil)
             }
         }
         .task(id: space.id) {
@@ -128,11 +127,9 @@ struct SpaceDetailView: View {
             Task { await reloadSpace() }
         }
         .sheet(isPresented: $shouldShowCreatePropose) {
-            if let identity = defaultIdentity {
-                CreateProposeView(space: currentSpace, identity: identity) {
-                    Task {
-                        loadProposesFromLocal()
-                    }
+            CreateProposeView(space: currentSpace) {
+                Task {
+                    loadProposesFromLocal()
                 }
             }
         }

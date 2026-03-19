@@ -11,7 +11,6 @@ import os
 
 struct CreateProposeView: View {
     let space: Space
-    let identity: Identity
     let onSuccess: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -22,11 +21,15 @@ struct CreateProposeView: View {
     @State private var errorMessage: String?
     @State private var selectedContact: Contact?
     @State private var showContactPicker = false
+    @State private var identities: [Identity] = []
+    @State private var selectedIdentity: Identity?
+    @State private var showIdentityPicker = false
 
     private var canSave: Bool {
         !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !isSaving
             && selectedContact != nil
+            && selectedIdentity != nil
     }
 
     var body: some View {
@@ -42,16 +45,31 @@ struct CreateProposeView: View {
                             .font(.body)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Identity")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    if let identity = selectedIdentity {
                         HStack {
                             Image(systemName: "key.fill")
                                 .foregroundStyle(.blue)
                             Text(identity.nickname)
                                 .font(.body)
+                            Spacer()
+                            if identities.count > 1 {
+                                Button("Change") { showIdentityPicker = true }
+                                    .buttonStyle(.borderless)
+                                    .foregroundStyle(.blue)
+                            }
                         }
+                    } else {
+                        Button {
+                            showIdentityPicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "key.fill")
+                                    .foregroundStyle(.blue)
+                                Text("Select an Identity...")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Information")
@@ -146,10 +164,36 @@ struct CreateProposeView: View {
             .sheet(isPresented: $showContactPicker) {
                 ContactPickerSheet(selectedContact: $selectedContact)
             }
+            .sheet(isPresented: $showIdentityPicker) {
+                IdentityPickerSheet(
+                    identities: identities,
+                    selectedIdentity: $selectedIdentity
+                )
+            }
+            .task {
+                loadIdentities()
+            }
         }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
+    }
+
+    private func loadIdentities() {
+        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            let all = try useCase.execute()
+            identities = all
+            // Default to the space's default identity, fall back to the first available
+            if let defaultID = space.defaultIdentityID,
+               let defaultIdentity = all.first(where: { $0.id == defaultID }) {
+                selectedIdentity = defaultIdentity
+            } else {
+                selectedIdentity = all.first
+            }
+        } catch {
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
+        }
     }
 
     private func createPropose() async {
@@ -158,9 +202,9 @@ struct CreateProposeView: View {
             errorMessage = nil
         }
 
-        guard let contact = selectedContact else {
+        guard let contact = selectedContact, let identity = selectedIdentity else {
             await MainActor.run {
-                errorMessage = "No Counterparty selected"
+                errorMessage = "No Counterparty or Identity selected"
                 isSaving = false
             }
             return
@@ -270,6 +314,67 @@ struct ContactPickerSheet: View {
     }
 }
 
+// MARK: - IdentityPickerSheet
+
+struct IdentityPickerSheet: View {
+    let identities: [Identity]
+    @Binding var selectedIdentity: Identity?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if identities.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "key.slash")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("No identities found")
+                            .foregroundStyle(.secondary)
+                        Text("Please create an identity first.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                } else {
+                    List(identities) { identity in
+                        Button {
+                            selectedIdentity = identity
+                            dismiss()
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(identity.nickname)
+                                        .font(.body)
+                                    Text(identity.fingerprintDisplay)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fontDesign(.monospaced)
+                                }
+                                Spacer()
+                                if identity.id == selectedIdentity?.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Select Identity")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
@@ -282,11 +387,6 @@ struct ContactPickerSheet: View {
             orderIndex: 0,
             createdAt: .now,
             updatedAt: .now
-        ),
-        identity: Identity(
-            id: UUID(),
-            nickname: "My Key",
-            publicKey: "SOME PUBLIC KEY"
         ),
         onSuccess: {}
     )
