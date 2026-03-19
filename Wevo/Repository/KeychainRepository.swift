@@ -408,26 +408,74 @@ extension KeychainRepositoryImpl {
 
 extension KeychainRepositoryImpl {
     func migrateKey(id: UUID) throws {
-        /// Retrieve old Identity and private key
-        let oldMetadata = try getIdentity(id: id)
-        let oldPrivateKey = try getPrivateKey(id: id)
+        let oldMetadata = try getIdentityMetadata(id: id)
 
-        // Derive public key from private key (using P256 signing key)
-        let key = try P256.Signing.PrivateKey(rawRepresentation: oldPrivateKey)
-        // Save in JWK format
-        let oldPublicKey = key.publicKey.jwkString
+        // Read raw bytes from Keychain without JSON decoding
+        let storedData = try readRawKeychainData(service: servicePrivateKey, account: id.uuidString)
 
+        // Convert to raw representation (32 bytes) regardless of X963 or raw format
+        let rawPrivateKey = try resolveToRawPrivateKey(storedData)
+
+        // Re-derive JWK public key from raw representation
+        let key = try P256.Signing.PrivateKey(rawRepresentation: rawPrivateKey)
+        let newPublicKey = key.publicKey.jwkString
 
         try deleteIdentityKey(id: id)
-
         try saveIdentityKey(
             .init(
                 id: oldMetadata.id,
                 nickname: oldMetadata.nickname,
-                privateKey: oldPrivateKey,
-                publicKey: oldPublicKey
+                privateKey: rawPrivateKey,
+                publicKey: newPublicKey
             )
         )
+    }
+
+    /// Reads raw bytes from Keychain without JSON decoding
+    private func readRawKeychainData(service: String, account: String) throws -> Data {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound { throw KeychainError.itemNotFound }
+            throw KeychainError.unhandledError(status: status)
+        }
+        guard let data = result as? Data else { throw KeychainError.invalidData }
+        return data
+    }
+
+    /// Extracts the raw representation (32 bytes) from stored data in any format (X963, raw, JSON-wrapped)
+    private func resolveToRawPrivateKey(_ storedData: Data) throws -> Data {
+        // 1. Try JSON-wrapped format (handles both old and new formats)
+        if let wrapper = try? JSONDecoder().decode(PrivateKeyData.self, from: storedData) {
+            // 1a. Inner data is already raw (32 bytes)
+            if (try? P256.Signing.PrivateKey(rawRepresentation: wrapper.privateKey)) != nil {
+                return wrapper.privateKey
+            }
+            // 1b. Inner data is X963 (97 bytes)
+            if let key = try? P256.Signing.PrivateKey(x963Representation: wrapper.privateKey) {
+                return key.rawRepresentation
+            }
+        }
+
+        // 2. Plain X963 bytes without JSON wrapper (legacy format)
+        if let key = try? P256.Signing.PrivateKey(x963Representation: storedData) {
+            return key.rawRepresentation
+        }
+
+        // 3. Plain raw bytes without JSON wrapper
+        if (try? P256.Signing.PrivateKey(rawRepresentation: storedData)) != nil {
+            return storedData
+        }
+
+        throw KeychainError.invalidData
     }
 }
 
