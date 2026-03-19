@@ -71,14 +71,12 @@ struct ProposeRowView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // Show Counterparty nickname in header
-                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
-                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
+                // Show other participants in header
                 HStack(spacing: 4) {
                     Image(systemName: "person.fill")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text("To: \(counterpartyName)")
+                    Text("To: \(otherParticipantNames)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -95,8 +93,7 @@ struct ProposeRowView: View {
 
             // Pending signature banner for Counterparty approval
             if let serverPropose = pendingServerPropose {
-                let counterpartyName = contactNicknames[propose.counterpartyPublicKey]
-                    ?? String(propose.counterpartyPublicKey.prefix(12)) + "..."
+                let counterpartyName = otherParticipantNames
                 let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
                 PendingSignatureBannerView(
                     counterpartyNickname: counterpartyName,
@@ -181,6 +178,18 @@ struct ProposeRowView: View {
     }
 
     // MARK: - Computed Properties
+
+    /// Names of all participants other than the current user, joined by ", "
+    /// Extracts all public keys from the Propose and filters out self,
+    /// making it forward-compatible with future 1:n proposes
+    private var otherParticipantNames: String {
+        let myKey = defaultIdentity?.publicKey
+        let otherKeys = propose.allParticipantPublicKeys.filter { $0 != myKey }
+        if otherKeys.isEmpty { return "..." }
+        return otherKeys
+            .map { contactNicknames[$0] ?? String($0.prefix(12)) + "..." }
+            .joined(separator: ", ")
+    }
 
     /// Whether to show the Sign button
     /// Only shown when the identity is the Counterparty and the state is proposed
