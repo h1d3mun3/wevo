@@ -9,7 +9,7 @@ import Foundation
 
 /// Struct representing counterparty information (corresponds to the counterparties field in API responses)
 struct ProposeCounterparty: Codable {
-    /// Counterparty's public key in Base64 x963 format
+    /// Counterparty's public key (JWK format)
     let publicKey: String
     /// Counterparty's sign signature (nil = unsigned)
     let signSignature: String?
@@ -32,7 +32,7 @@ struct HashedPropose: Codable, Identifiable {
     let id: UUID
     /// SHA256 hash (received as contentHash from API, treated internally as payloadHash)
     let contentHash: String
-    /// Creator's public key (Base64 x963)
+    /// Creator's public key (JWK format)
     let creatorPublicKey: String
     /// Signature attached by the Creator at creation time (Base64 DER)
     let creatorSignature: String

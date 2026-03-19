@@ -20,13 +20,13 @@ struct Propose: Codable, Identifiable {
 
     // MARK: - Participants (1:1 PoC)
 
-    /// Public key of the user who created the Propose (Base64 x963)
+    /// Public key of the user who created the Propose (JWK format)
     let creatorPublicKey: String
 
     /// Signature attached by the Creator at creation time (Base64 DER)
     let creatorSignature: String
 
-    /// Counterparty's public key (Base64 x963)
+    /// Counterparty's public key (JWK format)
     let counterpartyPublicKey: String
 
     /// Counterparty's signature (nil means not yet signed)

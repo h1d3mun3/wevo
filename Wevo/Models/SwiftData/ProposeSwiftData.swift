@@ -21,13 +21,13 @@ final class ProposeSwiftData {
 
     // MARK: - Participant Fields (1:1 PoC)
 
-    /// Creator's public key (Base64 x963)
+    /// Creator's public key (JWK format)
     var creatorPublicKey: String = ""
 
     /// Signature attached by the Creator at creation time (Base64 DER)
     var creatorSignature: String = ""
 
-    /// Counterparty's public key (Base64 x963)
+    /// Counterparty's public key (JWK format)
     var counterpartyPublicKey: String = ""
 
     /// Counterparty's signature (nil = unsigned)
