@@ -194,7 +194,7 @@ struct ProposeSettingsDetailView: View {
     }
 
     /// Returns the fingerprint of a JWK public key in the same format as Contact.fingerprintDisplay:
-    /// SHA256(rawRepresentation) の先頭8バイトをコロン区切り16進数で表示
+    /// first 8 bytes of SHA256(rawRepresentation) as colon-separated hex
     private func fingerprintDisplay(for jwkPublicKey: String) -> String {
         guard let key = P256.Signing.PublicKey.fromJWKString(jwkPublicKey) else {
             return String(jwkPublicKey.prefix(16)) + "..."

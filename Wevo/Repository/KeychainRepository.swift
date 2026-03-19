@@ -487,15 +487,15 @@ private struct JWKPublicKeyFields: Decodable {
 }
 
 extension P256.Signing.PublicKey {
-    /// P-256公開鍵をJWK JSON文字列に変換する
+    /// Converts a P-256 public key to a JWK JSON string
     var jwkString: String {
-        let raw = rawRepresentation // 64バイト: x (32) + y (32)
+        let raw = rawRepresentation // 64 bytes: x (32) + y (32)
         let x = raw.prefix(32).base64URLEncodedString()
         let y = raw.suffix(32).base64URLEncodedString()
         return #"{"crv":"P-256","kty":"EC","x":"\#(x)","y":"\#(y)"}"#
     }
 
-    /// JWK JSON文字列からP-256公開鍵を生成する
+    /// Creates a P-256 public key from a JWK JSON string
     static func fromJWKString(_ string: String) -> P256.Signing.PublicKey? {
         guard let jsonData = string.data(using: .utf8),
               let jwk = try? JSONDecoder().decode(JWKPublicKeyFields.self, from: jsonData),
@@ -507,7 +507,7 @@ extension P256.Signing.PublicKey {
 }
 
 extension Data {
-    /// Base64URL エンコード ('+' → '-', '/' → '_', パディングなし)
+    /// Base64URL encoding ('+' → '-', '/' → '_', no padding)
     func base64URLEncodedString() -> String {
         base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
@@ -515,7 +515,7 @@ extension Data {
             .replacingOccurrences(of: "=", with: "")
     }
 
-    /// Base64URL デコード ('-' → '+', '_' → '/', パディング補完)
+    /// Base64URL decoding ('-' → '+', '_' → '/', restores padding)
     init?(base64URLEncoded string: String) {
         var s = string
             .replacingOccurrences(of: "-", with: "+")
