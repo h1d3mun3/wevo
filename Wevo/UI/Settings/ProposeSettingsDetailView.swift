@@ -73,9 +73,26 @@ struct ProposeSettingsDetailView: View {
                 LabeledContent("Created At") {
                     Text(propose.createdAt, format: .dateTime)
                 }
-
                 LabeledContent("Updated At") {
                     Text(propose.updatedAt, format: .dateTime)
+                }
+                if let ts = propose.counterpartySignTimestamp {
+                    timestampRow("Counterparty Signed At", iso8601: ts)
+                }
+                if let ts = propose.creatorHonorTimestamp {
+                    timestampRow("Creator Honored At", iso8601: ts)
+                }
+                if let ts = propose.counterpartyHonorTimestamp {
+                    timestampRow("Counterparty Honored At", iso8601: ts)
+                }
+                if let ts = propose.creatorPartTimestamp {
+                    timestampRow("Creator Parted At", iso8601: ts)
+                }
+                if let ts = propose.counterpartyPartTimestamp {
+                    timestampRow("Counterparty Parted At", iso8601: ts)
+                }
+                if let ts = propose.dissolvedAt {
+                    timestampRow("Dissolved At", iso8601: ts)
                 }
             }
 
@@ -117,6 +134,20 @@ struct ProposeSettingsDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+    }
+
+    /// Renders a LabeledContent row for an ISO8601 timestamp string
+    @ViewBuilder
+    private func timestampRow(_ label: String, iso8601: String) -> some View {
+        LabeledContent(label) {
+            if let date = ISO8601DateFormatter().date(from: iso8601) {
+                Text(date, format: .dateTime)
+            } else {
+                Text(iso8601)
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+            }
+        }
     }
 
     /// Participant row (Creator / Counterparty)
