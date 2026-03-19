@@ -148,7 +148,7 @@ struct SpaceDetailView: View {
     private func loadDefaultIdentity() async {
         let useCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let identity = try useCase.execute(space: space)
+            let identity = try useCase.execute(space: currentSpace)
             self.defaultIdentity = identity
         } catch {
             Logger.identity.error("Error loading default Identity: \(error, privacy: .public)")
@@ -195,6 +195,7 @@ struct SpaceDetailView: View {
                 Logger.space.error("Failed to reload Space: \(error, privacy: .public)")
             }
         }
+        await loadDefaultIdentity()
     }
 }
 
