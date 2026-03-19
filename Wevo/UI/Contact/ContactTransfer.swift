@@ -8,13 +8,15 @@
 import Foundation
 
 struct ContactExportData: Codable {
-    let publicKey: String
+    let version: Int
+    let publicKey: String // JWK format
     let exportedAt: Date
 }
 
 enum ContactTransfer {
     static func exportToFile(identity: Identity) throws -> URL {
         let exportData = ContactExportData(
+            version: 1,
             publicKey: identity.publicKey,
             exportedAt: Date()
         )

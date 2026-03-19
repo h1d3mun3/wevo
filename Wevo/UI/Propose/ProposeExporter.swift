@@ -11,12 +11,14 @@ import os
 
 /// Wrapper for exporting a Propose
 struct ProposeExportData: Codable {
+    let version: Int
     let propose: Propose
     let spaceID: UUID
     let spaceName: String
     let exportedAt: Date
-    
+
     enum CodingKeys: String, CodingKey {
+        case version
         case propose
         case spaceID = "spaceId"
         case spaceName = "spaceName"
@@ -30,6 +32,7 @@ struct ProposeExporter {
     /// Exports a Propose in JSON format and returns a shareable URL
     static func exportPropose(_ propose: Propose, space: Space) throws -> URL {
         let exportData = ProposeExportData(
+            version: 1,
             propose: propose,
             spaceID: space.id,
             spaceName: space.name,
