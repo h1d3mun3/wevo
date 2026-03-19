@@ -9,7 +9,7 @@ import Foundation
 import os
 
 protocol EditSpaceUseCase {
-    func execute(id: UUID, name: String, urlString: String) throws
+    func execute(id: UUID, name: String, urlString: String, defaultIdentityID: UUID?) throws
 }
 
 struct EditSpaceUseCaseImpl {
@@ -23,24 +23,22 @@ struct EditSpaceUseCaseImpl {
 }
 
 extension EditSpaceUseCaseImpl: EditSpaceUseCase {
-    func execute(id: UUID, name: String, urlString: String) throws {
+    func execute(id: UUID, name: String, urlString: String, defaultIdentityID: UUID?) throws {
         let space = try getSpaceUseCase.execute(id: id)
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Create updated Space
         let updatedSpace = Space(
             id: space.id,
             name: trimmedName,
             url: trimmedURL,
-            defaultIdentityID: space.defaultIdentityID,
+            defaultIdentityID: defaultIdentityID,
             orderIndex: space.orderIndex,
             createdAt: space.createdAt,
             updatedAt: .now
         )
 
-        // Update in repository
         try spaceRepository.update(updatedSpace)
         Logger.space.info("Space updated successfully: \(updatedSpace.name, privacy: .private)")
     }
