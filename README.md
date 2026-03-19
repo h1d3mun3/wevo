@@ -38,7 +38,9 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 ## Design Notes
 
 - Biometric authentication (Face ID / Touch ID) gates Keychain access where available, via `LAContext`
-- Signatures use P-256 (CryptoKit), compatible with server-side verification
+- Signatures use P-256 ECDSA (CryptoKit); public keys are represented as JWK (JSON Web Key) for interoperability with other implementations
+- Public keys are displayed as a short fingerprint (SHA-256 of the raw key bytes, first 8 bytes in hex) rather than the raw key string
+- Export formats (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) include a `version` field to support future format migrations
 - SwiftData with optional CloudKit sync keeps data on-device by default
 - File-based transfer (`.wevo-propose`, `.wevo-identity`) allows sharing without a server
 
@@ -109,7 +111,9 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 ## 設計メモ
 
 - Face ID / Touch ID（`LAContext` 経由）で Keychain アクセスを保護
-- P-256 署名（CryptoKit）を使用。サーバー側での検証と互換
+- P-256 ECDSA 署名（CryptoKit）を使用。公開鍵は JWK（JSON Web Key）形式で表現され、他の実装との相互運用性を確保
+- 公開鍵はUIに生の文字列ではなく、短いフィンガープリント（鍵バイト列の SHA-256 先頭8バイトを16進表示）として表示
+- エクスポートフォーマット（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）は将来のフォーマット移行に備えた `version` フィールドを含む
 - SwiftData とオプションの CloudKit 同期でデータをデバイス上に保持
 - ファイルベースの転送（`.wevo-propose`、`.wevo-identity`）でサーバーなしの共有が可能
 

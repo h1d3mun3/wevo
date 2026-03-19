@@ -200,8 +200,8 @@ struct KeychainRepositoryTests {
         let message = "Hello, World!"
         let signature = try repo.signMessage(message, withIdentityId: id)
 
-        // Verify using public key string
-        let publicKeyString = key.publicKey.x963Representation.base64EncodedString()
+        // Verify using JWK public key string
+        let publicKeyString = key.publicKey.jwkString
         let isValid = try repo.verifySignature(signature, for: message, withPublicKeyString: publicKeyString)
 
         #expect(isValid)
@@ -218,7 +218,7 @@ struct KeychainRepositoryTests {
 
         let signature = try repo.signMessage("original", withIdentityId: id)
 
-        let publicKeyString = key.publicKey.x963Representation.base64EncodedString()
+        let publicKeyString = key.publicKey.jwkString
         let isValid = try repo.verifySignature(signature, for: "tampered", withPublicKeyString: publicKeyString)
 
         #expect(!isValid)
@@ -237,7 +237,7 @@ struct KeychainRepositoryTests {
         let message = "Hello"
         let signature = try repo.signMessage(message, withIdentityId: id)
 
-        let wrongPublicKeyString = wrongKey.publicKey.x963Representation.base64EncodedString()
+        let wrongPublicKeyString = wrongKey.publicKey.jwkString
         let isValid = try repo.verifySignature(signature, for: message, withPublicKeyString: wrongPublicKeyString)
 
         #expect(!isValid)

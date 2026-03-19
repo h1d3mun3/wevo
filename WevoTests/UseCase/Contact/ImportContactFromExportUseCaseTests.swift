@@ -16,7 +16,8 @@ struct ImportContactFromExportUseCaseTests {
         // Arrange
         let mockRepository = MockContactRepository()
         let exportData = ContactExportData(
-            publicKey:"SOME_PUBLIC_KEY",
+            version: 1,
+            publicKey: "SOME_PUBLIC_KEY",
             exportedAt: .now
         )
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
@@ -33,7 +34,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testTrimsNickname() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(version: 1, publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -46,7 +47,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testAssignsNewUUIDToImportedContact() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(version: 1, publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -59,7 +60,7 @@ struct ImportContactFromExportUseCaseTests {
     @Test func testTwoImportsOfSameExportGetDifferentIDs() throws {
         // Arrange
         let mockRepository = MockContactRepository()
-        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(version: 1, publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act
@@ -77,7 +78,7 @@ struct ImportContactFromExportUseCaseTests {
         // Arrange
         let mockRepository = MockContactRepository()
         mockRepository.createError = NSError(domain: "Test", code: -1)
-        let exportData = ContactExportData(publicKey: "pk", exportedAt: .now)
+        let exportData = ContactExportData(version: 1, publicKey: "pk", exportedAt: .now)
         let useCase = ImportContactFromExportUseCaseImpl(contactRepository: mockRepository)
 
         // Act & Assert

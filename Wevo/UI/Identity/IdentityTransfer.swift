@@ -1,12 +1,14 @@
 import Foundation
 
 struct IdentityExportData: Codable {
+    let version: Int
     let id: UUID
     let nickname: String
-    let publicKey: String
+    let publicKey: String // JWK format
     let exportedAt: Date
 
-    init(id: UUID, nickname: String, publicKey: String, exportedAt: Date) {
+    init(version: Int, id: UUID, nickname: String, publicKey: String, exportedAt: Date) {
+        self.version = version
         self.id = id
         self.nickname = nickname
         self.publicKey = publicKey
@@ -17,6 +19,7 @@ struct IdentityExportData: Codable {
 enum IdentityTransfer {
     static func exportToFile(identity: Identity) throws -> URL {
         let exportData = IdentityExportData(
+            version: 1,
             id: identity.id,
             nickname: identity.nickname,
             publicKey: identity.publicKey,
