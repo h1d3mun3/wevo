@@ -94,6 +94,7 @@ struct ContactImportView: View {
 #Preview("Contact Import") {
     ContactImportView(
         exportData: ContactExportData(
+            version: 1,
             publicKey: "SOME_PUBLIC_KEY",
             exportedAt: .now
         ),

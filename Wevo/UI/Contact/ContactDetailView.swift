@@ -30,9 +30,8 @@ struct ContactDetailView: View {
 
             Section("Public Key") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(currentContact.publicKey)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
+                    Text(currentContact.fingerprintDisplay)
+                        .font(.system(.body, design: .monospaced))
 
                     Button {
                         #if os(iOS)

@@ -33,10 +33,9 @@ struct IdentityDetailView: View {
             
             Section("Public Key") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(identity.publicKey)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                    
+                    Text(identity.fingerprintDisplay)
+                        .font(.system(.body, design: .monospaced))
+
                     Button(action: {
                         #if os(iOS)
                         UIPasteboard.general.string = identity.publicKey
