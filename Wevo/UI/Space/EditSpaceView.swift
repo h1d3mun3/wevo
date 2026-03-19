@@ -19,19 +19,22 @@ struct EditSpaceView: View {
     @State private var url: String
     @State private var isSaving: Bool = false
     @State private var errorMessage: String?
-    
+    @State private var identities: [Identity] = []
+    @State private var selectedIdentity: Identity?
+    @State private var showIdentityPicker = false
+
     init(space: Space, onUpdate: @escaping () -> Void) {
         self.space = space
         self.onUpdate = onUpdate
         _name = State(initialValue: space.name)
         _url = State(initialValue: space.url)
     }
-    
+
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isSaving &&
-        (name != space.name || url != space.url)
+        (name != space.name || url != space.url || selectedIdentity?.id != space.defaultIdentityID)
     }
     
     var body: some View {
@@ -59,19 +62,20 @@ struct EditSpaceView: View {
                 
                 Section {
                     HStack {
-                        Text("Default Key")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if let defaultIdentityID = space.defaultIdentityID {
-                            Text(getIdentityNickname(for: defaultIdentityID))
-                                .foregroundStyle(.primary)
+                        if let identity = selectedIdentity {
+                            Text(identity.nickname)
+                                .font(.body)
                         } else {
                             Text("None")
                                 .foregroundStyle(.tertiary)
                         }
+                        Spacer()
+                        Button("Change") { showIdentityPicker = true }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.blue)
                     }
-                } footer: {
-                    Text("The default key is set when creating the space and cannot be changed here")
+                } header: {
+                    Text("Default Key")
                 }
                 
                 if let errorMessage = errorMessage {
@@ -108,9 +112,29 @@ struct EditSpaceView: View {
                 }
             }
             .disabled(isSaving)
+            .sheet(isPresented: $showIdentityPicker) {
+                IdentityPickerSheet(
+                    identities: identities,
+                    selectedIdentity: $selectedIdentity
+                )
+            }
+            .task {
+                loadIdentities()
+            }
         }
     }
-    
+
+    private func loadIdentities() {
+        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        do {
+            let all = try useCase.execute()
+            identities = all
+            selectedIdentity = all.first { $0.id == space.defaultIdentityID }
+        } catch {
+            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
+        }
+    }
+
     private func saveChanges() async {
         let editSpaceUseCase = EditSpaceUseCaseImpl(
             spaceRepository: deps.spaceRepository,
@@ -125,7 +149,12 @@ struct EditSpaceView: View {
         }
 
         do {
-            try editSpaceUseCase.execute(id: space.id, name: name, urlString: url)
+            try editSpaceUseCase.execute(
+                id: space.id,
+                name: name,
+                urlString: url,
+                defaultIdentityID: selectedIdentity?.id
+            )
 
             isSaving = false
             onUpdate()
@@ -135,11 +164,6 @@ struct EditSpaceView: View {
             errorMessage = "Failed to save: \(error.localizedDescription)"
             isSaving = false
         }
-    }
-
-    private func getIdentityNickname(for id: UUID) -> String {
-        let useCase = GetIdentityNicknameUseCaseImpl(keychainRepository: deps.keychainRepository)
-        return useCase.execute(id: id)
     }
 }
 

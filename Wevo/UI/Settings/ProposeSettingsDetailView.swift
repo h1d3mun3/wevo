@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CryptoKit
 import os
 
 struct ProposeSettingsDetailView: View {
@@ -68,13 +69,45 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            Section("Timestamps") {
-                LabeledContent("Created At") {
+            Section {
+                LabeledContent("Created") {
                     Text(propose.createdAt, format: .dateTime)
                 }
-
-                LabeledContent("Updated At") {
+                LabeledContent("Last Modified") {
                     Text(propose.updatedAt, format: .dateTime)
+                }
+            } header: {
+                Text("Local Record")
+            } footer: {
+                Text("Dates when this record was created or last modified on this device.")
+            }
+
+            let hasEventTimestamps = propose.counterpartySignTimestamp != nil
+                || propose.creatorHonorTimestamp != nil
+                || propose.counterpartyHonorTimestamp != nil
+                || propose.creatorPartTimestamp != nil
+                || propose.counterpartyPartTimestamp != nil
+                || propose.dissolvedAt != nil
+            if hasEventTimestamps {
+                Section("Event Timestamps") {
+                    if let ts = propose.counterpartySignTimestamp {
+                        timestampRow("Counterparty Signed At", iso8601: ts)
+                    }
+                    if let ts = propose.creatorHonorTimestamp {
+                        timestampRow("Creator Honored At", iso8601: ts)
+                    }
+                    if let ts = propose.counterpartyHonorTimestamp {
+                        timestampRow("Counterparty Honored At", iso8601: ts)
+                    }
+                    if let ts = propose.creatorPartTimestamp {
+                        timestampRow("Creator Parted At", iso8601: ts)
+                    }
+                    if let ts = propose.counterpartyPartTimestamp {
+                        timestampRow("Counterparty Parted At", iso8601: ts)
+                    }
+                    if let ts = propose.dissolvedAt {
+                        timestampRow("Dissolved At", iso8601: ts)
+                    }
                 }
             }
 
@@ -118,6 +151,20 @@ struct ProposeSettingsDetailView: View {
         #endif
     }
 
+    /// Renders a LabeledContent row for an ISO8601 timestamp string
+    @ViewBuilder
+    private func timestampRow(_ label: String, iso8601: String) -> some View {
+        LabeledContent(label) {
+            if let date = ISO8601DateFormatter().date(from: iso8601) {
+                Text(date, format: .dateTime)
+            } else {
+                Text(iso8601)
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+            }
+        }
+    }
+
     /// Participant row (Creator / Counterparty)
     @ViewBuilder
     private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
@@ -136,7 +183,7 @@ struct ProposeSettingsDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(publicKey.prefix(24) + "...")
+                Text(fingerprintDisplay(for: publicKey))
                     .font(.caption2)
                     .fontDesign(.monospaced)
                     .foregroundStyle(.tertiary)
@@ -144,6 +191,18 @@ struct ProposeSettingsDetailView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    /// Returns the fingerprint of a JWK public key in the same format as Contact.fingerprintDisplay:
+    /// SHA256(rawRepresentation) の先頭8バイトをコロン区切り16進数で表示
+    private func fingerprintDisplay(for jwkPublicKey: String) -> String {
+        guard let key = P256.Signing.PublicKey.fromJWKString(jwkPublicKey) else {
+            return String(jwkPublicKey.prefix(16)) + "..."
+        }
+        let hash = SHA256.hash(data: key.rawRepresentation)
+        return Array(hash.prefix(8))
+            .map { String(format: "%02X", $0) }
+            .joined(separator: ":")
     }
 
     private func verifyHash() async {

@@ -112,7 +112,6 @@ struct SpaceDetailView: View {
                 } label: {
                     Label("Create Propose", systemImage: "plus")
                 }
-                .disabled(defaultIdentity == nil)
             }
         }
         .task(id: space.id) {
@@ -128,11 +127,9 @@ struct SpaceDetailView: View {
             Task { await reloadSpace() }
         }
         .sheet(isPresented: $shouldShowCreatePropose) {
-            if let identity = defaultIdentity {
-                CreateProposeView(space: currentSpace, identity: identity) {
-                    Task {
-                        loadProposesFromLocal()
-                    }
+            CreateProposeView(space: currentSpace) {
+                Task {
+                    loadProposesFromLocal()
                 }
             }
         }
@@ -148,7 +145,7 @@ struct SpaceDetailView: View {
     private func loadDefaultIdentity() async {
         let useCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let identity = try useCase.execute(space: space)
+            let identity = try useCase.execute(space: currentSpace)
             self.defaultIdentity = identity
         } catch {
             Logger.identity.error("Error loading default Identity: \(error, privacy: .public)")
@@ -195,6 +192,7 @@ struct SpaceDetailView: View {
                 Logger.space.error("Failed to reload Space: \(error, privacy: .public)")
             }
         }
+        await loadDefaultIdentity()
     }
 }
 
