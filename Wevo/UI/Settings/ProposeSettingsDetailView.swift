@@ -69,30 +69,45 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            Section("Timestamps") {
-                LabeledContent("Created At") {
+            Section {
+                LabeledContent("Created") {
                     Text(propose.createdAt, format: .dateTime)
                 }
-                LabeledContent("Updated At") {
+                LabeledContent("Last Modified") {
                     Text(propose.updatedAt, format: .dateTime)
                 }
-                if let ts = propose.counterpartySignTimestamp {
-                    timestampRow("Counterparty Signed At", iso8601: ts)
-                }
-                if let ts = propose.creatorHonorTimestamp {
-                    timestampRow("Creator Honored At", iso8601: ts)
-                }
-                if let ts = propose.counterpartyHonorTimestamp {
-                    timestampRow("Counterparty Honored At", iso8601: ts)
-                }
-                if let ts = propose.creatorPartTimestamp {
-                    timestampRow("Creator Parted At", iso8601: ts)
-                }
-                if let ts = propose.counterpartyPartTimestamp {
-                    timestampRow("Counterparty Parted At", iso8601: ts)
-                }
-                if let ts = propose.dissolvedAt {
-                    timestampRow("Dissolved At", iso8601: ts)
+            } header: {
+                Text("Local Record")
+            } footer: {
+                Text("Dates when this record was created or last modified on this device.")
+            }
+
+            let hasEventTimestamps = propose.counterpartySignTimestamp != nil
+                || propose.creatorHonorTimestamp != nil
+                || propose.counterpartyHonorTimestamp != nil
+                || propose.creatorPartTimestamp != nil
+                || propose.counterpartyPartTimestamp != nil
+                || propose.dissolvedAt != nil
+            if hasEventTimestamps {
+                Section("Event Timestamps") {
+                    if let ts = propose.counterpartySignTimestamp {
+                        timestampRow("Counterparty Signed At", iso8601: ts)
+                    }
+                    if let ts = propose.creatorHonorTimestamp {
+                        timestampRow("Creator Honored At", iso8601: ts)
+                    }
+                    if let ts = propose.counterpartyHonorTimestamp {
+                        timestampRow("Counterparty Honored At", iso8601: ts)
+                    }
+                    if let ts = propose.creatorPartTimestamp {
+                        timestampRow("Creator Parted At", iso8601: ts)
+                    }
+                    if let ts = propose.counterpartyPartTimestamp {
+                        timestampRow("Counterparty Parted At", iso8601: ts)
+                    }
+                    if let ts = propose.dissolvedAt {
+                        timestampRow("Dissolved At", iso8601: ts)
+                    }
                 }
             }
 
