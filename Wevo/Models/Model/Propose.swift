@@ -65,6 +65,14 @@ struct Propose: Codable, Identifiable {
     /// Terminal server status reflected locally (honored/parted/dissolved; nil = not yet finalized)
     let finalStatus: ProposeStatus?
 
+    // MARK: - Participants
+
+    /// All public keys recorded in this Propose
+    /// Extend this list when 1:n support is added
+    var allParticipantPublicKeys: [String] {
+        [creatorPublicKey, counterpartyPublicKey]
+    }
+
     // MARK: - Local Status (computed property)
 
     /// Status derived from the presence of local signatures and finalized server status
