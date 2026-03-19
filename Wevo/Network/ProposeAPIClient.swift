@@ -55,7 +55,7 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         let proposeId: String
         /// SHA256 hash (Base64)
         let contentHash: String
-        /// Creator's public key in Base64 x963 format
+        /// Creator's public key in JWK format
         let creatorPublicKey: String
         /// Creator's signature (Base64 DER)
         let creatorSignature: String
@@ -67,7 +67,7 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
 
     /// Input data when the Counterparty signs (PATCH /v1/proposes/:id/sign)
     struct SignInput: Codable {
-        /// Signer's public key (Base64 x963)
+        /// Signer's public key (JWK format)
         let signerPublicKey: String
         /// Signature data (Base64 DER)
         let signature: String
@@ -77,7 +77,7 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
 
     /// Common input data for dissolve / honor / part
     struct TransitionInput: Codable {
-        /// Operator's public key (Base64 x963)
+        /// Operator's public key (JWK format)
         let publicKey: String
         /// Signature data (Base64 DER)
         let signature: String

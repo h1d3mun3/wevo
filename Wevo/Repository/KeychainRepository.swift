@@ -14,14 +14,14 @@ private struct IdentityKeyChainItem {
     let id: UUID
     let nickname: String
     let privateKey: Data
-    let publicKey: Data
+    let publicKey: String // JWK string
 }
 
 /// Metadata only
 private struct IdentityMetadataKeychainItem: Codable {
     let id: UUID
     let nickname: String
-    let publicKey: Data
+    let publicKey: String // JWK string
 }
 
 enum KeychainError: Error, Equatable {
@@ -58,8 +58,8 @@ final class KeychainRepositoryImpl: KeychainRepository {
     func createIdentity(id: UUID, nickname: String, privateKey: Data) throws {
         // Derive public key from private key (using P256 signing key)
         let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
-        // Save in x963Representation format (for server compatibility)
-        let publicKey = key.publicKey.x963Representation
+        // Save in JWK format
+        let publicKey = key.publicKey.jwkString
         
         let item = IdentityKeyChainItem(
             id: id,
@@ -167,7 +167,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
     func getAllIdentities() throws -> [Identity] {
         let metadataList = try getAllIdentityMetadata()
         return metadataList.map { metadata in
-            Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
+            Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
         }
     }
     
@@ -203,7 +203,7 @@ final class KeychainRepositoryImpl: KeychainRepository {
     func getIdentity(id: UUID) throws -> Identity {
         let metadata = try getIdentityMetadata(id: id)
 
-        return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey.base64EncodedString())
+        return Identity(id: metadata.id, nickname: metadata.nickname, publicKey: metadata.publicKey)
     }
 
     /// Retrieve the private key
@@ -380,54 +380,29 @@ extension KeychainRepositoryImpl {
     }
     
     /// Core signature verification logic (private)
-    private func verifySignatureData(_ signatureData: Data, for messageData: Data, withPublicKey publicKeyData: Data) throws -> Bool {
-        let publicKey = try P256.Signing.PublicKey(x963Representation: publicKeyData)
+    private func verifyCore(_ signatureData: Data, for messageData: Data, jwkString: String) throws -> Bool {
+        guard let publicKey = P256.Signing.PublicKey.fromJWKString(jwkString) else {
+            throw KeychainError.invalidData
+        }
         let signatureObject = try P256.Signing.ECDSASignature(derRepresentation: signatureData)
         return publicKey.isValidSignature(signatureObject, for: messageData)
     }
-    
-    /// Verify a signature (public key provided directly)
-    /// - Parameters:
-    ///   - signature: Base64-encoded signature string
-    ///   - message: The string that was signed
-    ///   - publicKey: Public key to use for verification (Data in x963Representation format)
-    /// - Returns: true if the signature is valid
-    func verifySignature(_ signature: String, for message: String, withPublicKey publicKey: Data) throws -> Bool {
-        // Base64-decode to get signature data
+
+    /// Verify a signature (public key retrieved from Identity ID)
+    func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
+        let metadata = try getIdentityMetadata(id: identityId)
+        return try verifySignature(signature, for: message, withPublicKeyString: metadata.publicKey)
+    }
+
+    /// Verify a signature (using a JWK public key string)
+    func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
         guard let signatureData = Data(base64Encoded: signature) else {
             throw KeychainError.invalidData
         }
-        // Convert message to Data
         guard let messageData = message.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
-        return try verifySignatureData(signatureData, for: messageData, withPublicKey: publicKey)
-    }
-    
-    /// Verify a signature (public key retrieved from Identity ID)
-    /// - Parameters:
-    ///   - signature: Base64-encoded signature string
-    ///   - message: The string that was signed
-    ///   - identityId: ID of the Identity to use for verification
-    /// - Returns: true if the signature is valid
-    func verifySignature(_ signature: String, for message: String, withIdentityId identityId: UUID) throws -> Bool {
-        // Retrieve public key from metadata
-        let metadata = try getIdentityMetadata(id: identityId)
-        return try verifySignature(signature, for: message, withPublicKey: metadata.publicKey)
-    }
-    
-    /// Verify a signature (using a Base64-encoded public key string)
-    /// - Parameters:
-    ///   - signature: Base64-encoded signature string
-    ///   - message: The string that was signed
-    ///   - publicKeyString: Base64-encoded public key string (x963Representation format)
-    /// - Returns: true if the signature is valid
-    func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
-        // Base64-decode to get public key Data
-        guard let publicKeyData = Data(base64Encoded: publicKeyString) else {
-            throw KeychainError.invalidData
-        }
-        return try verifySignature(signature, for: message, withPublicKey: publicKeyData)
+        return try verifyCore(signatureData, for: messageData, jwkString: publicKeyString)
     }
 }
 
@@ -439,8 +414,8 @@ extension KeychainRepositoryImpl {
 
         // Derive public key from private key (using P256 signing key)
         let key = try P256.Signing.PrivateKey(rawRepresentation: oldPrivateKey)
-        // Save in x963Representation format (for server compatibility)
-        let oldPublicKey = key.publicKey.x963Representation
+        // Save in JWK format
+        let oldPublicKey = key.publicKey.jwkString
 
 
         try deleteIdentityKey(id: id)
@@ -453,5 +428,52 @@ extension KeychainRepositoryImpl {
                 publicKey: oldPublicKey
             )
         )
+    }
+}
+
+// MARK: - JWK Helpers
+
+private struct JWKPublicKeyFields: Decodable {
+    let x: String
+    let y: String
+}
+
+extension P256.Signing.PublicKey {
+    /// P-256公開鍵をJWK JSON文字列に変換する
+    var jwkString: String {
+        let raw = rawRepresentation // 64バイト: x (32) + y (32)
+        let x = raw.prefix(32).base64URLEncodedString()
+        let y = raw.suffix(32).base64URLEncodedString()
+        return #"{"crv":"P-256","kty":"EC","x":"\#(x)","y":"\#(y)"}"#
+    }
+
+    /// JWK JSON文字列からP-256公開鍵を生成する
+    static func fromJWKString(_ string: String) -> P256.Signing.PublicKey? {
+        guard let jsonData = string.data(using: .utf8),
+              let jwk = try? JSONDecoder().decode(JWKPublicKeyFields.self, from: jsonData),
+              let xData = Data(base64URLEncoded: jwk.x),
+              let yData = Data(base64URLEncoded: jwk.y),
+              xData.count == 32, yData.count == 32 else { return nil }
+        return try? P256.Signing.PublicKey(rawRepresentation: xData + yData)
+    }
+}
+
+extension Data {
+    /// Base64URL エンコード ('+' → '-', '/' → '_', パディングなし)
+    func base64URLEncodedString() -> String {
+        base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    /// Base64URL デコード ('-' → '+', '_' → '/', パディング補完)
+    init?(base64URLEncoded string: String) {
+        var s = string
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let remainder = s.count % 4
+        if remainder > 0 { s += String(repeating: "=", count: 4 - remainder) }
+        self.init(base64Encoded: s)
     }
 }
