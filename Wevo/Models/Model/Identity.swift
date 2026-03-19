@@ -13,7 +13,7 @@ struct Identity: Identifiable {
     let nickname: String
     let publicKey: String // JWK format
 
-    /// SHA256(rawRepresentation) の先頭8バイトをコロン区切り16進数で表示
+    /// First 8 bytes of SHA256(rawRepresentation) displayed as colon-separated hex
     var fingerprintDisplay: String {
         guard let key = P256.Signing.PublicKey.fromJWKString(publicKey) else {
             return String(publicKey.prefix(16)) + "..."
