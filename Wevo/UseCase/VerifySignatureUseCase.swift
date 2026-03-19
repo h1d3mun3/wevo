@@ -30,7 +30,7 @@ extension VerifySignatureUseCaseImpl: VerifySignatureUseCase {
     /// - Parameters:
     ///   - signature: Base64-encoded signature string
     ///   - message: The message string that was signed
-    ///   - publicKey: Base64-encoded public key string (x963Representation format)
+    ///   - publicKey: Public key string (JWK format)
     /// - Returns: true if the signature is valid, false if invalid
     func execute(signature: String, message: String, publicKey: String) throws -> Bool {
         do {
