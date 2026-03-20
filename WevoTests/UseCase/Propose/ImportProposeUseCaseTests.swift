@@ -30,7 +30,8 @@ struct ImportProposeUseCaseTests {
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
-        finalStatus: ProposeStatus? = nil
+        finalStatus: ProposeStatus? = nil,
+        signatureVersion: Int = 1
     ) -> Propose {
         Propose(
             id: id,
@@ -51,6 +52,7 @@ struct ImportProposeUseCaseTests {
             creatorPartTimestamp: creatorPartTimestamp,
             dissolvedAt: dissolvedAt,
             finalStatus: finalStatus,
+            signatureVersion: signatureVersion,
             createdAt: Date(),
             updatedAt: Date()
         )
@@ -258,6 +260,163 @@ struct ImportProposeUseCaseTests {
 
         #expect(throws: ImportProposeUseCaseError.invalidSignature) {
             try useCase.execute(propose: makePropose(), spaceID: UUID())
+        }
+    }
+
+    // MARK: - signatureVersion preservation
+
+    @Test func testSignatureVersionPreservedInMerge() throws {
+        let mock = MockProposeRepository()
+        let proposeID = UUID()
+        mock.fetchByIDResult = makePropose(id: proposeID, signatureVersion: 2)
+        let useCase = makeUseCase(proposeRepository: mock)
+
+        try useCase.execute(propose: makePropose(id: proposeID), spaceID: UUID())
+
+        #expect(mock.updatedPropose?.signatureVersion == 2)
+    }
+
+    // MARK: - Counterparty honor/part signature verification
+
+    @Test func testInvalidCounterpartyHonorSignatureThrowsInvalidSignature() throws {
+        // creator: pass, counterparty sign: pass, counterparty honor: fail
+        let failingKeychain = MockKeychainRepositoryWithCallCount()
+        failingKeychain.resultsPerCall = [true, true, false]
+        let useCase = makeUseCase(keychainRepository: failingKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartySignSignature: "signSig",
+                    counterpartySignTimestamp: "2026-01-01T00:00:00Z",
+                    counterpartyHonorSignature: "fakeSig",
+                    counterpartyHonorTimestamp: "2026-01-02T00:00:00Z"
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testMissingCounterpartyHonorTimestampThrowsInvalidSignature() throws {
+        let mockKeychain = MockKeychainRepository()
+        mockKeychain.verifySignatureResult = true
+        let useCase = makeUseCase(keychainRepository: mockKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartyHonorSignature: "someSig",
+                    counterpartyHonorTimestamp: nil
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testInvalidCounterpartyPartSignatureThrowsInvalidSignature() throws {
+        // creator: pass, counterparty sign: pass, counterparty part: fail
+        let failingKeychain = MockKeychainRepositoryWithCallCount()
+        failingKeychain.resultsPerCall = [true, true, false]
+        let useCase = makeUseCase(keychainRepository: failingKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartySignSignature: "signSig",
+                    counterpartySignTimestamp: "2026-01-01T00:00:00Z",
+                    counterpartyPartSignature: "fakeSig",
+                    counterpartyPartTimestamp: "2026-01-02T00:00:00Z"
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testMissingCounterpartyPartTimestampThrowsInvalidSignature() throws {
+        let mockKeychain = MockKeychainRepository()
+        mockKeychain.verifySignatureResult = true
+        let useCase = makeUseCase(keychainRepository: mockKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartyPartSignature: "someSig",
+                    counterpartyPartTimestamp: nil
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    // MARK: - Creator honor/part signature verification
+
+    @Test func testInvalidCreatorHonorSignatureThrowsInvalidSignature() throws {
+        // creator: pass, counterparty sign: pass, creator honor: fail
+        let failingKeychain = MockKeychainRepositoryWithCallCount()
+        failingKeychain.resultsPerCall = [true, true, false]
+        let useCase = makeUseCase(keychainRepository: failingKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartySignSignature: "signSig",
+                    counterpartySignTimestamp: "2026-01-01T00:00:00Z",
+                    creatorHonorSignature: "fakeSig",
+                    creatorHonorTimestamp: "2026-01-02T00:00:00Z"
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testMissingCreatorHonorTimestampThrowsInvalidSignature() throws {
+        let mockKeychain = MockKeychainRepository()
+        mockKeychain.verifySignatureResult = true
+        let useCase = makeUseCase(keychainRepository: mockKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    creatorHonorSignature: "someSig",
+                    creatorHonorTimestamp: nil
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testInvalidCreatorPartSignatureThrowsInvalidSignature() throws {
+        // creator: pass, counterparty sign: pass, creator part: fail
+        let failingKeychain = MockKeychainRepositoryWithCallCount()
+        failingKeychain.resultsPerCall = [true, true, false]
+        let useCase = makeUseCase(keychainRepository: failingKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    counterpartySignSignature: "signSig",
+                    counterpartySignTimestamp: "2026-01-01T00:00:00Z",
+                    creatorPartSignature: "fakeSig",
+                    creatorPartTimestamp: "2026-01-02T00:00:00Z"
+                ),
+                spaceID: UUID()
+            )
+        }
+    }
+
+    @Test func testMissingCreatorPartTimestampThrowsInvalidSignature() throws {
+        let mockKeychain = MockKeychainRepository()
+        mockKeychain.verifySignatureResult = true
+        let useCase = makeUseCase(keychainRepository: mockKeychain)
+
+        #expect(throws: ImportProposeUseCaseError.invalidSignature) {
+            try useCase.execute(
+                propose: makePropose(
+                    creatorPartSignature: "someSig",
+                    creatorPartTimestamp: nil
+                ),
+                spaceID: UUID()
+            )
         }
     }
 }
