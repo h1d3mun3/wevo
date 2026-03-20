@@ -57,12 +57,12 @@ struct ImportProposeUseCaseTests {
     }
 
     private func makeUseCase(
-        proposeRepository: MockProposeRepository = MockProposeRepository(),
-        keychainRepository: MockKeychainRepository = MockKeychainRepository()
+        proposeRepository: MockProposeRepository? = nil,
+        keychainRepository: MockKeychainRepository? = nil
     ) -> ImportProposeUseCaseImpl {
         ImportProposeUseCaseImpl(
-            proposeRepository: proposeRepository,
-            keychainRepository: keychainRepository
+            proposeRepository: proposeRepository ?? MockProposeRepository(),
+            keychainRepository: keychainRepository ?? MockKeychainRepository()
         )
     }
 
