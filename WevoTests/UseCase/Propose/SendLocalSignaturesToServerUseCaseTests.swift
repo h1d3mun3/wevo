@@ -108,4 +108,18 @@ struct SendLocalSignaturesToServerUseCaseTests {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
         }
     }
+
+    @Test func testThrowsNoSignatureFoundWhenCounterpartySignTimestampIsNil() async throws {
+        // Arrange: signature exists but timestamp is nil
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "counterpartySig", counterpartySignTimestamp: nil)
+
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        // Act & Assert
+        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+        }
+        #expect(mockAPI.signProposeCalled == false)
+    }
 }

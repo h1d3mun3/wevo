@@ -46,8 +46,8 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
 
         let timestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
 
-        // Signature message: "dissolved." + proposeId + contentHash + timestamp
-        let message = "dissolved." + propose.id.uuidString + propose.payloadHash + timestamp
+        // Signature message (v1): "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
+        let message = "dissolved." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
         let input = ProposeAPIClient.TransitionInput(

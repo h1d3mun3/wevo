@@ -36,8 +36,8 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
         let identity = try keychainRepository.getIdentity(id: identityID)
         let timestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
 
-        // Signature message: "honored." + proposeId + contentHash + timestamp
-        let message = "honored." + propose.id.uuidString + propose.payloadHash + timestamp
+        // Signature message (v1): "honored." + proposeId + contentHash + signerPublicKey + timestamp
+        let message = "honored." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
         let input = ProposeAPIClient.TransitionInput(

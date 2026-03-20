@@ -157,4 +157,202 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
         }
     }
+
+    @Test func testPreservesLocalHonorSignaturesWhenServerReturnsNil() throws {
+        // Arrange: local propose already has honor signatures
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = Propose(
+            id: proposeID,
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: "signSig",
+            counterpartyHonorSignature: "localHonorSig",
+            counterpartyHonorTimestamp: "2026-03-01T00:00:00Z",
+            creatorHonorSignature: "localCreatorHonorSig",
+            creatorHonorTimestamp: "2026-03-01T00:00:01Z",
+            createdAt: .now,
+            updatedAt: .now
+        )
+        mockRepository.fetchByIDResult = existingPropose
+
+        // Server returns nil for honor signatures (e.g. delayed processing)
+        let serverPropose = HashedPropose(
+            id: proposeID,
+            contentHash: "hash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(
+                publicKey: "counterpartyKey",
+                signSignature: "signSig",
+                signTimestamp: "2026-02-01T00:00:00Z",
+                honorSignature: nil,
+                honorTimestamp: nil,
+                partSignature: nil,
+                partTimestamp: nil
+            )],
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+
+        // Act
+        try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
+
+        // Assert: local honor signatures are preserved
+        #expect(mockRepository.updatedPropose?.counterpartyHonorSignature == "localHonorSig")
+        #expect(mockRepository.updatedPropose?.counterpartyHonorTimestamp == "2026-03-01T00:00:00Z")
+        #expect(mockRepository.updatedPropose?.creatorHonorSignature == "localCreatorHonorSig")
+        #expect(mockRepository.updatedPropose?.creatorHonorTimestamp == "2026-03-01T00:00:01Z")
+    }
+
+    @Test func testPreservesLocalPartSignaturesWhenServerReturnsNil() throws {
+        // Arrange: local propose already has part signatures
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = Propose(
+            id: proposeID,
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: "signSig",
+            counterpartyPartSignature: "localPartSig",
+            counterpartyPartTimestamp: "2026-03-01T00:00:00Z",
+            creatorPartSignature: "localCreatorPartSig",
+            creatorPartTimestamp: "2026-03-01T00:00:01Z",
+            createdAt: .now,
+            updatedAt: .now
+        )
+        mockRepository.fetchByIDResult = existingPropose
+
+        // Server returns nil for part signatures
+        let serverPropose = HashedPropose(
+            id: proposeID,
+            contentHash: "hash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(
+                publicKey: "counterpartyKey",
+                signSignature: "signSig",
+                signTimestamp: "2026-02-01T00:00:00Z",
+                honorSignature: nil,
+                honorTimestamp: nil,
+                partSignature: nil,
+                partTimestamp: nil
+            )],
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+
+        // Act
+        try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
+
+        // Assert: local part signatures are preserved
+        #expect(mockRepository.updatedPropose?.counterpartyPartSignature == "localPartSig")
+        #expect(mockRepository.updatedPropose?.counterpartyPartTimestamp == "2026-03-01T00:00:00Z")
+        #expect(mockRepository.updatedPropose?.creatorPartSignature == "localCreatorPartSig")
+        #expect(mockRepository.updatedPropose?.creatorPartTimestamp == "2026-03-01T00:00:01Z")
+    }
+
+    @Test func testPreservesLocalDissolvedAtWhenServerReturnsNil() throws {
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = Propose(
+            id: proposeID,
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            dissolvedAt: "2026-03-01T00:00:00Z",
+            createdAt: .now,
+            updatedAt: .now
+        )
+        mockRepository.fetchByIDResult = existingPropose
+
+        let serverPropose = HashedPropose(
+            id: proposeID,
+            contentHash: "hash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [],
+            dissolvedAt: nil,
+            status: .proposed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
+
+        #expect(mockRepository.updatedPropose?.dissolvedAt == "2026-03-01T00:00:00Z")
+    }
+
+    @Test func testPreservesLocalSignatureVersion() throws {
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = Propose(
+            id: proposeID,
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            signatureVersion: 2,
+            createdAt: .now,
+            updatedAt: .now
+        )
+        mockRepository.fetchByIDResult = existingPropose
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
+
+        #expect(mockRepository.updatedPropose?.signatureVersion == 2)
+    }
+
+    @Test func testServerHonorSignatureOverridesNilLocal() throws {
+        // Arrange: local has no honor sig, server provides one
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        let existingPropose = makePropose(id: proposeID)
+        mockRepository.fetchByIDResult = existingPropose
+
+        let serverPropose = HashedPropose(
+            id: proposeID,
+            contentHash: "hash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(
+                publicKey: "counterpartyKey",
+                signSignature: "serverSig123",
+                signTimestamp: "2026-01-02T00:00:00Z",
+                honorSignature: "serverHonorSig",
+                honorTimestamp: "2026-03-10T00:00:00Z",
+                partSignature: nil,
+                partTimestamp: nil
+            )],
+            status: .honored,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+
+        // Act
+        try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
+
+        // Assert: server honor sig is applied
+        #expect(mockRepository.updatedPropose?.counterpartyHonorSignature == "serverHonorSig")
+        #expect(mockRepository.updatedPropose?.counterpartyHonorTimestamp == "2026-03-10T00:00:00Z")
+    }
 }

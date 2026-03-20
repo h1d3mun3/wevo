@@ -50,6 +50,8 @@ struct HashedPropose: Codable, Identifiable {
     let dissolvedAt: String?
     /// Status managed by the server (reference value only)
     let status: ProposeStatus
+    /// Signature scheme version (v1 = signerPublicKey embedded in every signed message)
+    let signatureVersion: Int
     let createdAt: Date
     let updatedAt: Date
 
@@ -65,6 +67,7 @@ struct HashedPropose: Codable, Identifiable {
         partCreatorTimestamp: String? = nil,
         dissolvedAt: String? = nil,
         status: ProposeStatus = .proposed,
+        signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -79,6 +82,7 @@ struct HashedPropose: Codable, Identifiable {
         self.partCreatorTimestamp = partCreatorTimestamp
         self.dissolvedAt = dissolvedAt
         self.status = status
+        self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
