@@ -65,6 +65,11 @@ struct Propose: Codable, Identifiable {
     /// Terminal server status reflected locally (honored/parted/dissolved; nil = not yet finalized)
     let finalStatus: ProposeStatus?
 
+    /// Signature scheme version applied to all signatures on this Propose
+    /// v1: all operations include a "proposed."/"signed."/"honored."/"parted."/"dissolved." prefix
+    ///     and embed the signer's public key in the signed message
+    let signatureVersion: Int
+
     // MARK: - Participants
 
     /// All public keys recorded in this Propose
@@ -106,6 +111,7 @@ struct Propose: Codable, Identifiable {
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
         finalStatus: ProposeStatus? = nil,
+        signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -128,6 +134,7 @@ struct Propose: Codable, Identifiable {
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
         self.dissolvedAt = dissolvedAt
+        self.signatureVersion = signatureVersion
         self.finalStatus = finalStatus
         self.createdAt = createdAt
         self.updatedAt = updatedAt

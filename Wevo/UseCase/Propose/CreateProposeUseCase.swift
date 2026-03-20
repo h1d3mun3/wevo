@@ -39,10 +39,10 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         // Calculate contentHash (SHA256)
         let contentHash = trimmedMessage.sha256HashedString
 
-        // Build signature message (create: proposeId + contentHash + counterpartyPublicKeys(sorted & joined) + createdAt)
+        // Build signature message (v1: "proposed." + proposeId + contentHash + creatorPublicKey + counterpartyPublicKeys(sorted & joined) + createdAt)
         let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: createdAt)
         let sortedCounterpartyKeys = [counterpartyPublicKey].sorted().joined()
-        let signatureMessage = proposeID.uuidString + contentHash + sortedCounterpartyKeys + iso8601String
+        let signatureMessage = "proposed." + proposeID.uuidString + contentHash + identity.publicKey + sortedCounterpartyKeys + iso8601String
 
         // Creator signs
         let creatorSignature = try keychainRepository.signMessage(
@@ -50,7 +50,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
             withIdentityId: identity.id
         )
 
-        // Create Propose entity (counterpartySignSignature initialized to nil)
+        // Create Propose entity (counterpartySignSignature initialized to nil, signatureVersion fixed to 1)
         let propose = Propose(
             id: proposeID,
             spaceID: spaceID,
@@ -59,6 +59,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
             creatorSignature: creatorSignature,
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: nil,
+            signatureVersion: 1,
             createdAt: createdAt,
             updatedAt: createdAt
         )

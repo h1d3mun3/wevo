@@ -36,8 +36,8 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
         let identity = try keychainRepository.getIdentity(id: identityID)
         let timestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
 
-        // Signature message: "parted." + proposeId + contentHash + timestamp
-        let message = "parted." + propose.id.uuidString + propose.payloadHash + timestamp
+        // Signature message (v1): "parted." + proposeId + contentHash + signerPublicKey + timestamp
+        let message = "parted." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
         let input = ProposeAPIClient.TransitionInput(

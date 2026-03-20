@@ -78,9 +78,12 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
 
     private func verifyAllSignatures(in propose: Propose) throws {
         // Creator signature (always present — establishes authenticity of the Propose itself)
+        // v1: "proposed." + proposeId + contentHash + creatorPublicKey + sortedCounterpartyKeys + createdAt
         let createdAtISO = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
-        let creatorMessage = propose.id.uuidString
+        let creatorMessage = "proposed."
+            + propose.id.uuidString
             + propose.payloadHash
+            + propose.creatorPublicKey
             + [propose.counterpartyPublicKey].sorted().joined()
             + createdAtISO
         guard verify(propose.creatorSignature, for: creatorMessage, publicKey: propose.creatorPublicKey) else {
@@ -89,6 +92,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         }
 
         // Counterparty sign signature
+        // v1: "signed." + proposeId + contentHash + signerPublicKey + timestamp (unchanged)
         if let sig = propose.counterpartySignSignature {
             guard let timestamp = propose.counterpartySignTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
@@ -101,11 +105,12 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         }
 
         // Counterparty honor signature
+        // v1: "honored." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.counterpartyHonorSignature {
             guard let timestamp = propose.counterpartyHonorTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
-            let message = "honored." + propose.id.uuidString + propose.payloadHash + timestamp
+            let message = "honored." + propose.id.uuidString + propose.payloadHash + propose.counterpartyPublicKey + timestamp
             guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
                 Logger.propose.warning("Import rejected: invalid counterparty honor signature \(propose.id, privacy: .private)")
                 throw ImportProposeUseCaseError.invalidSignature
@@ -113,11 +118,12 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         }
 
         // Counterparty part signature
+        // v1: "parted." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.counterpartyPartSignature {
             guard let timestamp = propose.counterpartyPartTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
-            let message = "parted." + propose.id.uuidString + propose.payloadHash + timestamp
+            let message = "parted." + propose.id.uuidString + propose.payloadHash + propose.counterpartyPublicKey + timestamp
             guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
                 Logger.propose.warning("Import rejected: invalid counterparty part signature \(propose.id, privacy: .private)")
                 throw ImportProposeUseCaseError.invalidSignature
@@ -125,11 +131,12 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         }
 
         // Creator honor signature
+        // v1: "honored." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.creatorHonorSignature {
             guard let timestamp = propose.creatorHonorTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
-            let message = "honored." + propose.id.uuidString + propose.payloadHash + timestamp
+            let message = "honored." + propose.id.uuidString + propose.payloadHash + propose.creatorPublicKey + timestamp
             guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
                 Logger.propose.warning("Import rejected: invalid creator honor signature \(propose.id, privacy: .private)")
                 throw ImportProposeUseCaseError.invalidSignature
@@ -137,11 +144,12 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         }
 
         // Creator part signature
+        // v1: "parted." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.creatorPartSignature {
             guard let timestamp = propose.creatorPartTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
-            let message = "parted." + propose.id.uuidString + propose.payloadHash + timestamp
+            let message = "parted." + propose.id.uuidString + propose.payloadHash + propose.creatorPublicKey + timestamp
             guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
                 Logger.propose.warning("Import rejected: invalid creator part signature \(propose.id, privacy: .private)")
                 throw ImportProposeUseCaseError.invalidSignature

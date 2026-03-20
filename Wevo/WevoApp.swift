@@ -57,6 +57,7 @@ struct WevoApp: App {
                 .frame(minWidth: 400, minHeight: 500)
 #endif
                 .task {
+                    migrateDataIfNeeded()
                     cleanupTemporaryFiles()
                 }
                 .sheet(isPresented: $showSpaceSelector) {
@@ -237,6 +238,28 @@ struct WevoApp: App {
         importedProposeURL = nil
         importedProposeData = nil
         availableSpaces = []
+    }
+
+    // Bump this value whenever a schema change requires existing Propose data to be cleared.
+    private static let currentDataVersion = 2
+    private static let dataVersionKey = "wevo_data_version"
+
+    /// Clears all Propose records when the data version has changed.
+    /// Spaces, Identities, and Contacts are preserved.
+    @MainActor
+    private func migrateDataIfNeeded() {
+        let stored = UserDefaults.standard.integer(forKey: Self.dataVersionKey)
+        guard stored < Self.currentDataVersion else { return }
+
+        let context = sharedModelContainer.mainContext
+        do {
+            try context.delete(model: ProposeSwiftData.self)
+            try context.save()
+            Logger.app.info("Data migration to v\(Self.currentDataVersion): all Proposes cleared")
+        } catch {
+            Logger.app.error("Data migration failed: \(error, privacy: .public)")
+        }
+        UserDefaults.standard.set(Self.currentDataVersion, forKey: Self.dataVersionKey)
     }
 
     /// Deletes private key and Propose export files in the temporary directory on app launch

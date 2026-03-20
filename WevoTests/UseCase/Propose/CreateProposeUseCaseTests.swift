@@ -128,9 +128,40 @@ struct CreateProposeUseCaseTests {
         // Act
         try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
 
-        // Assert: signMessage was called
+        // Assert: signMessage was called with v1 format
         #expect(mockKeychain.signMessageCalledWithIdentityID == identityID)
-        #expect(mockKeychain.signMessageCalledWithMessage != nil)
+        let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
+        #expect(signedMessage.hasPrefix("proposed."))
+        #expect(signedMessage.contains("pubkey123"))  // creatorPublicKey embedded in message
+        #expect(signedMessage.contains(counterpartyPublicKey))
+    }
+
+    @Test func testSignatureVersionIsOne() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockSpace = MockSpaceRepository()
+        let mockPropose = MockProposeRepository()
+
+        let identityID = UUID()
+        let spaceID = UUID()
+        let testIdentity = Identity(id: identityID, nickname: "Alice", publicKey: "pubkey123")
+        let testSpace = Space(id: spaceID, name: "Test", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+
+        mockKeychain.getIdentityResult = testIdentity
+        mockKeychain.signMessageResult = "signature123"
+        mockSpace.fetchByIDResult = testSpace
+
+        let useCase = CreateProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            spaceRepository: mockSpace,
+            proposeRepository: mockPropose
+        )
+
+        // Act
+        try await useCase.execute(identityID: identityID, spaceID: spaceID, message: "Test message", counterpartyPublicKey: counterpartyPublicKey)
+
+        // Assert: signatureVersion is 1
+        #expect(mockPropose.createdPropose?.signatureVersion == 1)
     }
 
     @Test func testThrowsWhenGetIdentityFails() async throws {

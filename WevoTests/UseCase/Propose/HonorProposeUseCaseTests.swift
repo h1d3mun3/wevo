@@ -69,6 +69,7 @@ struct HonorProposeUseCaseTests {
         let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
         #expect(signedMessage.hasPrefix("honored."))
         #expect(signedMessage.contains(proposeID.uuidString))
+        #expect(signedMessage.contains("creatorKey"))  // signerPublicKey embedded in v1 message
     }
 
     @Test func testThrowsInvalidServerURL() async throws {
