@@ -4,9 +4,11 @@
 //
 
 import Foundation
+import os
 
 enum ImportProposeUseCaseError: Error {
     case failedToSave
+    case invalidSignature
 }
 
 protocol ImportProposeUseCase {
@@ -15,9 +17,11 @@ protocol ImportProposeUseCase {
 
 struct ImportProposeUseCaseImpl {
     let proposeRepository: ProposeRepository
+    let keychainRepository: KeychainRepository
 
-    init(proposeRepository: ProposeRepository) {
+    init(proposeRepository: ProposeRepository, keychainRepository: KeychainRepository) {
         self.proposeRepository = proposeRepository
+        self.keychainRepository = keychainRepository
     }
 }
 
@@ -30,6 +34,9 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
     ///   Local `spaceID` and `message` are always preserved; incoming non-nil fields win for
     ///   all signature fields so that signatures are never lost in either direction.
     func execute(propose: Propose, spaceID: UUID) throws {
+        // Verify all signatures in the incoming Propose before touching local storage
+        try verifyAllSignatures(in: propose)
+
         if let existing = try? proposeRepository.fetch(by: propose.id) {
             let merged = Propose(
                 id: existing.id,
@@ -65,5 +72,85 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
                 throw ImportProposeUseCaseError.failedToSave
             }
         }
+    }
+
+    // MARK: - Signature Verification
+
+    private func verifyAllSignatures(in propose: Propose) throws {
+        // Creator signature (always present — establishes authenticity of the Propose itself)
+        let createdAtISO = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
+        let creatorMessage = propose.id.uuidString
+            + propose.payloadHash
+            + [propose.counterpartyPublicKey].sorted().joined()
+            + createdAtISO
+        guard verify(propose.creatorSignature, for: creatorMessage, publicKey: propose.creatorPublicKey) else {
+            Logger.propose.warning("Import rejected: invalid creator signature \(propose.id, privacy: .private)")
+            throw ImportProposeUseCaseError.invalidSignature
+        }
+
+        // Counterparty sign signature
+        if let sig = propose.counterpartySignSignature {
+            guard let timestamp = propose.counterpartySignTimestamp else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "signed." + propose.id.uuidString + propose.payloadHash + propose.counterpartyPublicKey + timestamp
+            guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid counterparty sign signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Counterparty honor signature
+        if let sig = propose.counterpartyHonorSignature {
+            guard let timestamp = propose.counterpartyHonorTimestamp else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "honored." + propose.id.uuidString + propose.payloadHash + timestamp
+            guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid counterparty honor signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Counterparty part signature
+        if let sig = propose.counterpartyPartSignature {
+            guard let timestamp = propose.counterpartyPartTimestamp else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "parted." + propose.id.uuidString + propose.payloadHash + timestamp
+            guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid counterparty part signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Creator honor signature
+        if let sig = propose.creatorHonorSignature {
+            guard let timestamp = propose.creatorHonorTimestamp else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "honored." + propose.id.uuidString + propose.payloadHash + timestamp
+            guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid creator honor signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Creator part signature
+        if let sig = propose.creatorPartSignature {
+            guard let timestamp = propose.creatorPartTimestamp else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "parted." + propose.id.uuidString + propose.payloadHash + timestamp
+            guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid creator part signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+    }
+
+    /// Returns true only if the signature is cryptographically valid. Any error (malformed data etc.) is treated as invalid.
+    private func verify(_ signature: String, for message: String, publicKey: String) -> Bool {
+        (try? keychainRepository.verifySignature(signature, for: message, withPublicKeyString: publicKey)) == true
     }
 }

@@ -222,7 +222,7 @@ struct WevoApp: App {
     
     private func importPropose(_ propose: Propose, to space: Space) {
         do {
-            let useCase = ImportProposeUseCaseImpl(proposeRepository: container.proposeRepository)
+            let useCase = ImportProposeUseCaseImpl(proposeRepository: container.proposeRepository, keychainRepository: container.keychainRepository)
             try useCase.execute(propose: propose, spaceID: space.id)
             Logger.app.info("Propose imported successfully to space: \(space.name, privacy: .private)")
         } catch {
