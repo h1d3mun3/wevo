@@ -334,4 +334,39 @@ struct CheckProposeServerStatusUseCaseTests {
         #expect(result.myHonorSigned == false)
         #expect(result.myPartSigned == false)
     }
+
+    @Test func testMyHonorSignedFalseWhenPublicKeyIsUnrelated() async throws {
+        // Arrange: server has honor/part sigs for both creator and counterparty,
+        // but the querying key belongs to neither.
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = HashedPropose(
+            id: propose.id,
+            contentHash: "hash",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(
+                publicKey: counterpartyPublicKey,
+                signSignature: "signSig",
+                signTimestamp: "2026-01-02T00:00:00Z",
+                honorSignature: "honorSig",
+                honorTimestamp: "2026-03-01T00:00:00Z",
+                partSignature: "partSig",
+                partTimestamp: "2026-03-02T00:00:00Z"
+            )],
+            honorCreatorSignature: "honorCreatorSig",
+            status: .honored,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
+
+        // Act: query with a key that is neither creator nor counterparty
+        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: "unrelatedKey")
+
+        // Assert: unrelated key reports unsigned
+        #expect(result.myHonorSigned == false)
+        #expect(result.myPartSigned == false)
+    }
 }
