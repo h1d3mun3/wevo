@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		831A97EC2F6CF083001F9F46 /* what-to-test.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E82F6CF083001F9F46 /* what-to-test.md */; };
+		831A97ED2F6CF083001F9F46 /* what-to-test-ja.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E92F6CF083001F9F46 /* what-to-test-ja.md */; };
 		83A545BE2F58957F00342AE7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 83A545BD2F58957F00342AE7 /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +30,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		831A97E82F6CF083001F9F46 /* what-to-test.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "what-to-test.md"; sourceTree = "<group>"; };
+		831A97E92F6CF083001F9F46 /* what-to-test-ja.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "what-to-test-ja.md"; sourceTree = "<group>"; };
 		839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Wevo.xctestplan; sourceTree = "<group>"; };
 		83A5458E2F5893F600342AE7 /* Wevo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wevo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A5459F2F5893F800342AE7 /* WevoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -91,10 +95,28 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		831A97EA2F6CF083001F9F46 /* testflight */ = {
+			isa = PBXGroup;
+			children = (
+				831A97E82F6CF083001F9F46 /* what-to-test.md */,
+				831A97E92F6CF083001F9F46 /* what-to-test-ja.md */,
+			);
+			path = testflight;
+			sourceTree = "<group>";
+		};
+		831A97EB2F6CF083001F9F46 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				831A97EA2F6CF083001F9F46 /* testflight */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		83A545852F5893F600342AE7 = {
 			isa = PBXGroup;
 			children = (
 				83A545BD2F58957F00342AE7 /* README.md */,
+				831A97EB2F6CF083001F9F46 /* docs */,
 				839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */,
 				83A545902F5893F600342AE7 /* Wevo */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
@@ -234,6 +256,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				83A545BE2F58957F00342AE7 /* README.md in Resources */,
+				831A97EC2F6CF083001F9F46 /* what-to-test.md in Resources */,
+				831A97ED2F6CF083001F9F46 /* what-to-test-ja.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
