@@ -66,9 +66,11 @@ struct PartProposeUseCaseTests {
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
+        // Verify v1 message format: "parted." + proposeId + contentHash + signerPublicKey + timestamp
         let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
         #expect(signedMessage.hasPrefix("parted."))
         #expect(signedMessage.contains(proposeID.uuidString))
+        #expect(signedMessage.contains("creatorKey"))  // signerPublicKey embedded in v1 message
     }
 
     @Test func testThrowsInvalidServerURL() async throws {

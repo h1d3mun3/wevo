@@ -101,10 +101,11 @@ struct DissolveProposeUseCaseTests {
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
-        // Verify message starts with "dissolved." prefix
+        // Verify v1 message format: "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
         let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
         #expect(signedMessage.hasPrefix("dissolved."))
         #expect(signedMessage.contains(proposeID.uuidString))
+        #expect(signedMessage.contains("creatorKey"))  // signerPublicKey embedded in v1 message
     }
 
     @Test func testThrowsInvalidServerURL() async throws {
