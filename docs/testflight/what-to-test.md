@@ -10,4 +10,6 @@ Core flow (2 devices recommended):
 5. Recipient imports, signs with their Identity
 6. Honor (complete) or Part (exit) to finalize
 
+Before step 5, either party can Dissolve the Propose to cancel it.
+
 Identity export requires biometric auth. Message body is local only.
