@@ -17,7 +17,7 @@ This is the iOS/macOS client application, built with SwiftUI and SwiftData. It h
 - Creating and managing cryptographic identities (P-256, stored in Keychain)
 - Composing, signing, and verifying proposals (`Propose`)
 - Organizing proposals into spaces (local contexts)
-- Exporting and importing proposals and identities via AirDrop and file sharing (`.wevo-propose`, `.wevo-identity`)
+- Exporting and importing proposals, identities, and contacts via AirDrop and file sharing (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`)
 - Optionally syncing with a WevoSpace server for multi-device or multi-party coordination
 
 This is one implementation of the Wevo approach. The underlying ideas — signed proposals, portable identities, locally-owned history — could be implemented on other platforms or in other languages.
@@ -39,10 +39,10 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 
 - Biometric authentication (Face ID / Touch ID) gates Keychain access where available, via `LAContext`
 - Signatures use P-256 ECDSA (CryptoKit); public keys are represented as JWK (JSON Web Key) for interoperability with other implementations
-- Public keys are displayed as a short fingerprint (SHA-256 of the raw key bytes, first 8 bytes in hex) rather than the raw key string
+- Public keys are displayed as a short fingerprint (SHA-256 of the raw key bytes, first 8 bytes as colon-separated hex, e.g. `AB:CD:EF:12:34:56:78:90`) rather than the raw key string
 - Export formats (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) include a `version` field to support future format migrations
 - SwiftData with optional CloudKit sync keeps data on-device by default
-- File-based transfer (`.wevo-propose`, `.wevo-identity`) allows sharing without a server
+- File-based transfer (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) allows sharing without a server
 
 ## Getting Started
 
@@ -90,7 +90,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - 暗号学的 Identity の作成・管理（P-256、Keychain に保存）
 - Propose の作成・署名・検証
 - Propose を Space（ローカルコンテキスト）で整理
-- AirDrop やファイル共有による Propose・Identity のエクスポート/インポート（`.wevo-propose`、`.wevo-identity`）
+- AirDrop やファイル共有による Propose・Identity・Contact のエクスポート/インポート（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）
 - WevoSpace サーバーとのオプションの同期（マルチデバイス・マルチパーティ連携）
 
 これは Wevo のアプローチを実装したものの一つです。署名付き提案、ポータブルな Identity、ローカル所有の履歴という考え方は、他のプラットフォームや言語でも実装できます。
@@ -112,10 +112,10 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 
 - Face ID / Touch ID（`LAContext` 経由）で Keychain アクセスを保護
 - P-256 ECDSA 署名（CryptoKit）を使用。公開鍵は JWK（JSON Web Key）形式で表現され、他の実装との相互運用性を確保
-- 公開鍵はUIに生の文字列ではなく、短いフィンガープリント（鍵バイト列の SHA-256 先頭8バイトを16進表示）として表示
+- 公開鍵はUIに生の文字列ではなく、短いフィンガープリント（鍵バイト列の SHA-256 先頭8バイトをコロン区切り16進表示、例: `AB:CD:EF:12:34:56:78:90`）として表示
 - エクスポートフォーマット（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）は将来のフォーマット移行に備えた `version` フィールドを含む
 - SwiftData とオプションの CloudKit 同期でデータをデバイス上に保持
-- ファイルベースの転送（`.wevo-propose`、`.wevo-identity`）でサーバーなしの共有が可能
+- ファイルベースの転送（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）でサーバーなしの共有が可能
 
 ## Getting Started
 
