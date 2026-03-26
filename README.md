@@ -1,5 +1,7 @@
 # Wevo
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 Trust, in most services, is stored inside the service itself. Your ratings, your agreements, your track record — they live in someone else's database. When the service shuts down, or changes its rules, or you simply move on, that history disappears with it.
 
 Wevo is an exploration of a different approach. Rather than computing a trust score, Wevo records *what happened*: proposals made, agreements reached, signatures given. Each event is cryptographically signed by the parties involved, stored locally on your device, and owned by you — not by a platform.
