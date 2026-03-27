@@ -67,8 +67,8 @@ TestFlight: https://testflight.apple.com/join/5SacJesr
 
 ## API / Documentation
 
-- WevoSpace REST API (English): [`wevo-space/docs/PROPOSE_API.md`](../wevo-space/docs/PROPOSE_API.md)
-- OpenAPI spec: [`wevo-space/api/`](../wevo-space/api/)
+- WevoSpace REST API (English): [`wevo-space/docs/PROPOSE_API.md`](https://github.com/h1d3mun3/wevo-space/blob/main/docs/PROPOSE_API.md)
+- OpenAPI spec: [`wevo-space/api/`](https://github.com/h1d3mun3/wevo-space/tree/main/api)
 
 ---
 
@@ -144,8 +144,8 @@ TestFlight: https://testflight.apple.com/join/5SacJesr
 
 ## API / ドキュメント
 
-- WevoSpace REST API（英語）：[`wevo-space/docs/PROPOSE_API.md`](../wevo-space/docs/PROPOSE_API.md)
-- OpenAPI 仕様：[`wevo-space/api/`](../wevo-space/api/)
+- WevoSpace REST API（英語）：[`wevo-space/docs/PROPOSE_API.md`](https://github.com/h1d3mun3/wevo-space/blob/main/docs/PROPOSE_API.md)
+- OpenAPI 仕様：[`wevo-space/api/`](https://github.com/h1d3mun3/wevo-space/tree/main/api)
 
 ---
 
