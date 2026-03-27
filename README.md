@@ -8,7 +8,7 @@ Wevo is an exploration of a different approach. Rather than computing a trust sc
 
 This repository is a **Swift reference implementation** of that idea, built for iOS and macOS. It is experimental and minimal.
 
-→ For the problem statement, core ideas, and design philosophy behind Wevo, see [`wevo-space`](../wevo-space).
+→ For the problem statement, core ideas, and design philosophy behind Wevo, see [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space).
 
 ---
 
@@ -59,7 +59,7 @@ No server is required to create identities, write proposals, or sign locally. To
 ### Optional: WevoSpace Server
 
 The companion server handles proposal storage and multi-party synchronization:
-→ [`wevo-space`](../wevo-space)
+→ [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
 
 ## Try it
 
@@ -85,7 +85,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 
 このリポジトリは、そのアイデアを Swift で実装した **reference implementation の一つ** です。iOS/macOS 向けです。実験的・最小限の実装です。
 
-→ Wevo の問題提起・コアとなる考え方・設計思想については [`wevo-space`](../wevo-space) を参照してください。
+→ Wevo の問題提起・コアとなる考え方・設計思想については [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space) を参照してください。
 
 ---
 
