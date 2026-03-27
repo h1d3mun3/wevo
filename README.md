@@ -61,6 +61,10 @@ No server is required to create identities, write proposals, or sign locally. To
 The companion server handles proposal storage and multi-party synchronization:
 → [`wevo-space`](../wevo-space)
 
+## Try it
+
+TestFlight: https://testflight.apple.com/join/5SacJesr
+
 ## API / Documentation
 
 - WevoSpace REST API (English): [`wevo-space/docs/PROPOSE_API.md`](../wevo-space/docs/PROPOSE_API.md)
@@ -133,6 +137,10 @@ Identity の作成・Propose の作成・ローカルでの署名に、サーバ
 
 Propose の保存とマルチパーティ同期を扱うコンパニオンサーバー：
 → [`wevo-space`](../wevo-space)
+
+## Try it
+
+TestFlight: https://testflight.apple.com/join/5SacJesr
 
 ## API / ドキュメント
 
