@@ -136,7 +136,7 @@ Identity の作成・Propose の作成・ローカルでの署名に、サーバ
 ### オプション：WevoSpace サーバー
 
 Propose の保存とマルチパーティ同期を扱うコンパニオンサーバー：
-→ [`wevo-space`](../wevo-space)
+→ [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
 
 ## Try it
 
