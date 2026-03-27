@@ -8,7 +8,7 @@ Wevo is an exploration of a different approach. Rather than computing a trust sc
 
 This repository is a **Swift reference implementation** of that idea, built for iOS and macOS. It is experimental and minimal.
 
-→ For the problem statement, core ideas, and design philosophy behind Wevo, see [`wevo-space`](../wevo-space).
+→ For the problem statement, core ideas, and design philosophy behind Wevo, see [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space).
 
 ---
 
@@ -59,12 +59,16 @@ No server is required to create identities, write proposals, or sign locally. To
 ### Optional: WevoSpace Server
 
 The companion server handles proposal storage and multi-party synchronization:
-→ [`wevo-space`](../wevo-space)
+→ [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
+
+## Try it
+
+TestFlight: https://testflight.apple.com/join/5SacJesr
 
 ## API / Documentation
 
-- WevoSpace REST API (English): [`wevo-space/docs/PROPOSE_API.md`](../wevo-space/docs/PROPOSE_API.md)
-- OpenAPI spec: [`wevo-space/api/`](../wevo-space/api/)
+- WevoSpace REST API (English): [`wevo-space/docs/PROPOSE_API.md`](https://github.com/h1d3mun3/wevo-space/blob/main/docs/PROPOSE_API.md)
+- OpenAPI spec: [`wevo-space/api/`](https://github.com/h1d3mun3/wevo-space/tree/main/api)
 
 ---
 
@@ -81,7 +85,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 
 このリポジトリは、そのアイデアを Swift で実装した **reference implementation の一つ** です。iOS/macOS 向けです。実験的・最小限の実装です。
 
-→ Wevo の問題提起・コアとなる考え方・設計思想については [`wevo-space`](../wevo-space) を参照してください。
+→ Wevo の問題提起・コアとなる考え方・設計思想については [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space) を参照してください。
 
 ---
 
@@ -132,12 +136,16 @@ Identity の作成・Propose の作成・ローカルでの署名に、サーバ
 ### オプション：WevoSpace サーバー
 
 Propose の保存とマルチパーティ同期を扱うコンパニオンサーバー：
-→ [`wevo-space`](../wevo-space)
+→ [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
+
+## Try it
+
+TestFlight: https://testflight.apple.com/join/5SacJesr
 
 ## API / ドキュメント
 
-- WevoSpace REST API（英語）：[`wevo-space/docs/PROPOSE_API.md`](../wevo-space/docs/PROPOSE_API.md)
-- OpenAPI 仕様：[`wevo-space/api/`](../wevo-space/api/)
+- WevoSpace REST API（英語）：[`wevo-space/docs/PROPOSE_API.md`](https://github.com/h1d3mun3/wevo-space/blob/main/docs/PROPOSE_API.md)
+- OpenAPI 仕様：[`wevo-space/api/`](https://github.com/h1d3mun3/wevo-space/tree/main/api)
 
 ---
 
