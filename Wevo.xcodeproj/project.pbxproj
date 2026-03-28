@@ -10,6 +10,7 @@
 		831A97EC2F6CF083001F9F46 /* what-to-test.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E82F6CF083001F9F46 /* what-to-test.md */; };
 		831A97ED2F6CF083001F9F46 /* what-to-test-ja.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E92F6CF083001F9F46 /* what-to-test-ja.md */; };
 		83A545BE2F58957F00342AE7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 83A545BD2F58957F00342AE7 /* README.md */; };
+		83B8E1ED2F77A8BF00A31963 /* WevoShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 83B8E1E32F77A8BF00A31963 /* WevoShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +28,28 @@
 			remoteGlobalIDString = 83A5458D2F5893F600342AE7;
 			remoteInfo = Wevo;
 		};
+		83B8E1EB2F77A8BF00A31963 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83A545862F5893F600342AE7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 83B8E1E22F77A8BF00A31963;
+			remoteInfo = WevoShareExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		83B8E1EE2F77A8BF00A31963 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				83B8E1ED2F77A8BF00A31963 /* WevoShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		831A97E82F6CF083001F9F46 /* what-to-test.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "what-to-test.md"; sourceTree = "<group>"; };
@@ -37,6 +59,7 @@
 		83A5459F2F5893F800342AE7 /* WevoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A545A92F5893F800342AE7 /* WevoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WevoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A545BD2F58957F00342AE7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		83B8E1E32F77A8BF00A31963 /* WevoShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WevoShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -46,6 +69,13 @@
 				Info.plist,
 			);
 			target = 83A5458D2F5893F600342AE7 /* Wevo */;
+		};
+		83B8E1F22F77A8C000A31963 /* Exceptions for "WevoShareExtension" folder in "WevoShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 83B8E1E22F77A8BF00A31963 /* WevoShareExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -68,6 +98,14 @@
 			path = WevoUITests;
 			sourceTree = "<group>";
 		};
+		83B8E1E42F77A8BF00A31963 /* WevoShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				83B8E1F22F77A8C000A31963 /* Exceptions for "WevoShareExtension" folder in "WevoShareExtension" target */,
+			);
+			path = WevoShareExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +124,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		83A545A62F5893F800342AE7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83B8E1E02F77A8BF00A31963 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -121,6 +166,7 @@
 				83A545902F5893F600342AE7 /* Wevo */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
 				83A545AC2F5893F800342AE7 /* WevoUITests */,
+				83B8E1E42F77A8BF00A31963 /* WevoShareExtension */,
 				83A5458F2F5893F600342AE7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,6 +177,7 @@
 				83A5458E2F5893F600342AE7 /* Wevo.app */,
 				83A5459F2F5893F800342AE7 /* WevoTests.xctest */,
 				83A545A92F5893F800342AE7 /* WevoUITests.xctest */,
+				83B8E1E32F77A8BF00A31963 /* WevoShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -145,10 +192,12 @@
 				83A5458A2F5893F600342AE7 /* Sources */,
 				83A5458B2F5893F600342AE7 /* Frameworks */,
 				83A5458C2F5893F600342AE7 /* Resources */,
+				83B8E1EE2F77A8BF00A31963 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				83B8E1EC2F77A8BF00A31963 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				83A545902F5893F600342AE7 /* Wevo */,
@@ -206,6 +255,28 @@
 			productReference = 83A545A92F5893F800342AE7 /* WevoUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		83B8E1E22F77A8BF00A31963 /* WevoShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 83B8E1F12F77A8C000A31963 /* Build configuration list for PBXNativeTarget "WevoShareExtension" */;
+			buildPhases = (
+				83B8E1DF2F77A8BF00A31963 /* Sources */,
+				83B8E1E02F77A8BF00A31963 /* Frameworks */,
+				83B8E1E12F77A8BF00A31963 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				83B8E1E42F77A8BF00A31963 /* WevoShareExtension */,
+			);
+			name = WevoShareExtension;
+			packageProductDependencies = (
+			);
+			productName = WevoShareExtension;
+			productReference = 83B8E1E32F77A8BF00A31963 /* WevoShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -213,7 +284,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2630;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					83A5458D2F5893F600342AE7 = {
@@ -226,6 +297,9 @@
 					83A545A82F5893F800342AE7 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = 83A5458D2F5893F600342AE7;
+					};
+					83B8E1E22F77A8BF00A31963 = {
+						CreatedOnToolsVersion = 26.4;
 					};
 				};
 			};
@@ -244,6 +318,7 @@
 			projectRoot = "";
 			targets = (
 				83A5458D2F5893F600342AE7 /* Wevo */,
+				83B8E1E22F77A8BF00A31963 /* WevoShareExtension */,
 				83A5459E2F5893F800342AE7 /* WevoTests */,
 				83A545A82F5893F800342AE7 /* WevoUITests */,
 			);
@@ -275,6 +350,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		83B8E1E12F77A8BF00A31963 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -299,6 +381,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		83B8E1DF2F77A8BF00A31963 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -311,6 +400,11 @@
 			isa = PBXTargetDependency;
 			target = 83A5458D2F5893F600342AE7 /* Wevo */;
 			targetProxy = 83A545AA2F5893F800342AE7 /* PBXContainerItemProxy */;
+		};
+		83B8E1EC2F77A8BF00A31963 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 83B8E1E22F77A8BF00A31963 /* WevoShareExtension */;
+			targetProxy = 83B8E1EB2F77A8BF00A31963 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -635,6 +729,69 @@
 			};
 			name = Release;
 		};
+		83B8E1EF2F77A8BF00A31963 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WevoShareExtension/WevoShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9UHBV5AP46;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WevoShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WevoShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.Wevo.WevoShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		83B8E1F02F77A8BF00A31963 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WevoShareExtension/WevoShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9UHBV5AP46;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WevoShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WevoShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.Wevo.WevoShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -670,6 +827,15 @@
 			buildConfigurations = (
 				83A545BB2F5893F800342AE7 /* Debug */,
 				83A545BC2F5893F800342AE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		83B8E1F12F77A8C000A31963 /* Build configuration list for PBXNativeTarget "WevoShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				83B8E1EF2F77A8BF00A31963 /* Debug */,
+				83B8E1F02F77A8BF00A31963 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
