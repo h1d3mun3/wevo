@@ -84,16 +84,32 @@ final class ShareViewController: NSViewController {
     }
 
     private func loadSharedText(completion: @escaping (String) -> Void) {
-        guard let item = extensionContext?.inputItems.first as? NSExtensionItem,
-              let provider = item.attachments?.first
-        else { completion(""); return }
+        guard let item = extensionContext?.inputItems.first as? NSExtensionItem else {
+            completion(""); return
+        }
+
+        // macOS often puts selected text directly in attributedContentText
+        if let attributed = item.attributedContentText {
+            completion(attributed.string)
+            return
+        }
+
+        guard let provider = item.attachments?.first else {
+            completion(""); return
+        }
 
         let identifiers = [UTType.plainText.identifier, "public.utf8-plain-text"]
         guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
             completion(""); return
         }
         provider.loadItem(forTypeIdentifier: identifier, options: nil) { data, _ in
-            completion(data as? String ?? "")
+            if let string = data as? String {
+                completion(string)
+            } else if let attributed = data as? NSAttributedString {
+                completion(attributed.string)
+            } else {
+                completion("")
+            }
         }
     }
 }
