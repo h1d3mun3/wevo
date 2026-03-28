@@ -123,7 +123,7 @@ struct SignView: View {
                                 Spacer()
                                 if selectedID == identity.id {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.tint)
+                                        .foregroundStyle(Color.accentColor)
                                 }
                             }
                         }
@@ -182,7 +182,7 @@ struct SignView: View {
                             copied ? "Copied!" : "Copy to Clipboard",
                             systemImage: copied ? "checkmark.circle" : "doc.on.clipboard"
                         )
-                        .foregroundStyle(copied ? .green : .tint)
+                        .foregroundStyle(copied ? Color.green : Color.accentColor)
                         Spacer()
                     }
                 }
