@@ -36,8 +36,8 @@ final class ShareViewController: UIViewController {
               let provider = item.attachments?.first
         else { completion(""); return }
 
-        let identifier = UTType.plainText.identifier
-        guard provider.hasItemConformingToTypeIdentifier(identifier) else {
+        let identifiers = [UTType.plainText.identifier, "public.utf8-plain-text"]
+        guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
             completion(""); return
         }
         provider.loadItem(forTypeIdentifier: identifier, options: nil) { data, _ in
@@ -78,8 +78,8 @@ final class ShareViewController: NSViewController {
               let provider = item.attachments?.first
         else { completion(""); return }
 
-        let identifier = UTType.plainText.identifier
-        guard provider.hasItemConformingToTypeIdentifier(identifier) else {
+        let identifiers = [UTType.plainText.identifier, "public.utf8-plain-text"]
+        guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
             completion(""); return
         }
         provider.loadItem(forTypeIdentifier: identifier, options: nil) { data, _ in
