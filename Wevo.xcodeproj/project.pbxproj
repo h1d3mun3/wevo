@@ -164,9 +164,9 @@
 				831A97EB2F6CF083001F9F46 /* docs */,
 				839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */,
 				83A545902F5893F600342AE7 /* Wevo */,
+				83B8E1E42F77A8BF00A31963 /* WevoShareExtension */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
 				83A545AC2F5893F800342AE7 /* WevoUITests */,
-				83B8E1E42F77A8BF00A31963 /* WevoShareExtension */,
 				83A5458F2F5893F600342AE7 /* Products */,
 			);
 			sourceTree = "<group>";
