@@ -24,4 +24,10 @@ struct Contact: Identifiable {
             .map { String(format: "%02X", $0) }
             .joined(separator: ":")
     }
+
+    /// Base64-encoded raw representation of the public key
+    var publicKeyBase64: String? {
+        guard let key = P256.Signing.PublicKey.fromJWKString(publicKey) else { return nil }
+        return key.rawRepresentation.base64EncodedString()
+    }
 }
