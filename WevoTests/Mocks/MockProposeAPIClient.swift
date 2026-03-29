@@ -43,10 +43,6 @@ class MockProposeAPIClient: ProposeAPIClientProtocol {
     var getProposeError: Error?
     var getProposeCalledWithID: UUID?
 
-    // MARK: - listProposes
-    var listProposesResult: ProposeAPIClient.Page<HashedPropose>?
-    var listProposesError: Error?
-
     // MARK: - Protocol Implementation
 
     func createPropose(input: ProposeAPIClient.CreateProposeInput) async throws {
@@ -110,13 +106,4 @@ class MockProposeAPIClient: ProposeAPIClientProtocol {
         return result
     }
 
-    func listProposes(publicKey: String, status: String?, page: Int, per: Int) async throws -> ProposeAPIClient.Page<HashedPropose> {
-        if let error = listProposesError {
-            throw error
-        }
-        guard let result = listProposesResult else {
-            throw NSError(domain: "MockProposeAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "listProposesResult is not set"])
-        }
-        return result
-    }
 }
