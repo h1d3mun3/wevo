@@ -97,11 +97,10 @@ final class ExtensionKeychainService {
         return pk.isValidSignature(sig, for: msgData)
     }
 
-    // MARK: Acquaintance Check
-    // Checks own identities stored in Keychain (your own keys).
-    // For full contact list checking, App Group access to SwiftData would be required.
+    // MARK: Signer Check
 
-    func isKnownPublicKey(rawBase64: String) throws -> Bool {
+    /// Returns true if the public key matches one of your own identities in Keychain.
+    func isSelfPublicKey(rawBase64: String) throws -> Bool {
         let identities = try getAllIdentities()
         return identities.contains { identity in
             guard let pk = P256.Signing.PublicKey(jwkString: identity.publicKeyJWK) else { return false }

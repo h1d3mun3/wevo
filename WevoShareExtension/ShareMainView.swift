@@ -235,9 +235,15 @@ struct VerifyView: View {
 
     enum VerificationResult {
         case loading
-        case valid(isKnown: Bool)
+        case valid(signer: SignerType)
         case invalid
         case error(String)
+    }
+
+    enum SignerType {
+        case selfSigned
+        case known
+        case unknown
     }
 
     var body: some View {
@@ -279,11 +285,15 @@ struct VerifyView: View {
                 Text("Verifying...")
                     .foregroundStyle(.secondary)
             }
-        case .valid(let isKnown):
-            if isKnown {
+        case .valid(let signer):
+            switch signer {
+            case .selfSigned:
+                Label("Not tampered (signed by you)", systemImage: "checkmark.seal.fill")
+                    .foregroundStyle(.green)
+            case .known:
                 Label("Not tampered (known signer)", systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green)
-            } else {
+            case .unknown:
                 Label("Not tampered (unknown signer)", systemImage: "exclamationmark.shield.fill")
                     .foregroundStyle(.orange)
             }
@@ -304,11 +314,20 @@ struct VerifyView: View {
                     publicKeyBase64: publicKeyBase64,
                     signatureBase64: signatureBase64
                 )
-                let isKnown = isValid
-                    ? (try? keychain.isKnownPublicKey(rawBase64: publicKeyBase64)) ?? false
-                    : false
+                let signer: SignerType
+                if isValid {
+                    if (try? keychain.isSelfPublicKey(rawBase64: publicKeyBase64)) ?? false {
+                        signer = .selfSigned
+                    } else if ExtensionContactStore().isKnownContact(rawPublicKeyBase64: publicKeyBase64) {
+                        signer = .known
+                    } else {
+                        signer = .unknown
+                    }
+                } else {
+                    signer = .unknown
+                }
                 await MainActor.run {
-                    result = isValid ? .valid(isKnown: isKnown) : .invalid
+                    result = isValid ? .valid(signer: signer) : .invalid
                 }
             } catch {
                 await MainActor.run {
