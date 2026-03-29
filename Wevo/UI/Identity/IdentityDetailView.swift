@@ -32,24 +32,11 @@ struct IdentityDetailView: View {
                     .font(.system(.caption, design: .monospaced))
             }
             
-            Section("Public Key") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(identity.fingerprintDisplay)
-                        .font(.system(.body, design: .monospaced))
+            Section("Fingerprint") {
+                Text(identity.fingerprintDisplay)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
 
-                    Button(action: {
-                        #if os(iOS)
-                        UIPasteboard.general.string = identity.publicKey
-                        #elseif os(macOS)
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(identity.publicKey, forType: .string)
-                        #endif
-                    }) {
-                        Label("Copy to Clipboard", systemImage: "doc.on.doc")
-                    }
-                    .buttonStyle(.bordered)
-                }
-                
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundStyle(.red)
@@ -57,6 +44,14 @@ struct IdentityDetailView: View {
                 }
             }
             
+            if let base64 = identity.publicKeyBase64 {
+                Section("Public Key (base64)") {
+                    Text(base64)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+            }
+
             Section {
                 Button(action: {
                     showingEditSheet = true
