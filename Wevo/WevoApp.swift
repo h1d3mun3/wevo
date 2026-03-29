@@ -19,6 +19,7 @@ struct WevoApp: App {
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
+            groupContainer: .identifier("group.com.h1d3mun3.Wevo"),
             cloudKitDatabase: .automatic
         )
 
