@@ -16,7 +16,6 @@ protocol ProposeAPIClientProtocol {
     func honorPropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
     func partPropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
     func getPropose(proposeID: UUID) async throws -> HashedPropose
-    func listProposes(publicKey: String, status: String?, page: Int, per: Int) async throws -> ProposeAPIClient.Page<HashedPropose>
 }
 
 /// API client for ProposeController (new backend API specification)
@@ -83,18 +82,6 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         let signature: String
         /// Timestamp (ISO8601)
         let timestamp: String
-    }
-
-    /// Paginated result
-    struct Page<T: Codable>: Codable {
-        let items: [T]
-        let metadata: Metadata
-
-        struct Metadata: Codable {
-            let page: Int
-            let per: Int
-            let total: Int
-        }
     }
 
     // MARK: - API Methods
@@ -277,72 +264,6 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         }
 
         return try decoder.decode(HashedPropose.self, from: data)
-    }
-
-    /// Retrieve a list of proposes by public key and status (GET /v1/proposes)
-    /// - Parameters:
-    ///   - publicKey: Signer's public key
-    ///   - status: Status to filter by (nil = no filter)
-    ///   - page: Page number (default: 1)
-    ///   - per: Number of items per page (default: 10)
-    /// - Returns: Paginated result
-    /// - Throws: APIError
-    func listProposes(publicKey: String, status: String? = nil, page: Int = 1, per: Int = 10) async throws -> Page<HashedPropose> {
-        var components = URLComponents(url: baseURL.appendingPathComponent("proposes"), resolvingAgainstBaseURL: true)
-
-        // Manual encoding using percentEncodedQueryItems
-        let encodedPublicKey = publicKey
-            .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? publicKey
-
-        var queryItems = [
-            URLQueryItem(name: "publicKey", value: encodedPublicKey),
-            URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "per", value: String(per))
-        ]
-
-        // Only append status filter when specified
-        if let status = status {
-            queryItems.append(URLQueryItem(name: "status", value: status))
-        }
-
-        components?.percentEncodedQueryItems = queryItems
-
-        guard let url = components?.url else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        let decoder = JSONDecoder()
-        // Custom decoding for ISO8601 (supports both with and without fractional seconds)
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
-            let dateString = try container.decode(String.self)
-            if let date = ProposeAPIClient.iso8601Formatter.date(from: dateString) {
-                return date
-            }
-            if let date = ProposeAPIClient.iso8601FormatterBasic.date(from: dateString) {
-                return date
-            }
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Failed to parse ISO8601 date: \(dateString)"
-            )
-        }
-
-        return try decoder.decode(Page<HashedPropose>.self, from: data)
     }
 
     // MARK: - Error Handling
