@@ -28,22 +28,17 @@ struct ContactDetailView: View {
                 LabeledContent("Added", value: currentContact.createdAt, format: .dateTime.year().month().day())
             }
 
-            Section("Public Key") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(currentContact.fingerprintDisplay)
-                        .font(.system(.body, design: .monospaced))
+            Section("Fingerprint") {
+                Text(currentContact.fingerprintDisplay)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
+            }
 
-                    Button {
-                        #if os(iOS)
-                        UIPasteboard.general.string = currentContact.publicKey
-                        #elseif os(macOS)
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(currentContact.publicKey, forType: .string)
-                        #endif
-                    } label: {
-                        Label("Copy to Clipboard", systemImage: "doc.on.doc")
-                    }
-                    .buttonStyle(.bordered)
+            if let base64 = currentContact.publicKeyBase64 {
+                Section("Public Key (base64)") {
+                    Text(base64)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
                 }
             }
 
