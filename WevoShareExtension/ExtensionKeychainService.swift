@@ -171,3 +171,7 @@ extension Data {
         self.init(base64Encoded: s)
     }
 }
+
+// MARK: - Protocol Conformance
+
+extension ExtensionKeychainService: SelfKeyChecking {}

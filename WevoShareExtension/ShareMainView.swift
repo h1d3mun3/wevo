@@ -228,22 +228,31 @@ struct VerifyView: View {
     let publicKeyBase64: String
     let signatureBase64: String
     let onDismiss: () -> Void
+    let signerChecker: any SignerResolving
 
     @State private var result: VerificationResult = .loading
 
     private let keychain = ExtensionKeychainService()
+
+    init(
+        originalText: String,
+        publicKeyBase64: String,
+        signatureBase64: String,
+        onDismiss: @escaping () -> Void,
+        signerChecker: any SignerResolving = SignerChecker()
+    ) {
+        self.originalText = originalText
+        self.publicKeyBase64 = publicKeyBase64
+        self.signatureBase64 = signatureBase64
+        self.onDismiss = onDismiss
+        self.signerChecker = signerChecker
+    }
 
     enum VerificationResult {
         case loading
         case valid(signer: SignerType)
         case invalid
         case error(String)
-    }
-
-    enum SignerType {
-        case selfSigned
-        case known
-        case unknown
     }
 
     var body: some View {
@@ -314,18 +323,9 @@ struct VerifyView: View {
                     publicKeyBase64: publicKeyBase64,
                     signatureBase64: signatureBase64
                 )
-                let signer: SignerType
-                if isValid {
-                    if (try? keychain.isSelfPublicKey(rawBase64: publicKeyBase64)) ?? false {
-                        signer = .selfSigned
-                    } else if ExtensionContactStore().isKnownContact(rawPublicKeyBase64: publicKeyBase64) {
-                        signer = .known
-                    } else {
-                        signer = .unknown
-                    }
-                } else {
-                    signer = .unknown
-                }
+                let signer = isValid
+                    ? signerChecker.resolve(rawPublicKeyBase64: publicKeyBase64)
+                    : SignerType.unknown
                 await MainActor.run {
                     result = isValid ? .valid(signer: signer) : .invalid
                 }

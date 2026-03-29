@@ -43,3 +43,7 @@ final class ExtensionContactStore {
         }
     }
 }
+
+// MARK: - Protocol Conformance
+
+extension ExtensionContactStore: ContactChecking {}
