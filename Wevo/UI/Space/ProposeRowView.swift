@@ -214,34 +214,38 @@ struct ProposeRowView: View {
                 .font(.caption2)
                 .foregroundStyle(propose.localStatus.statusColor)
 
-            // Also show server status
-            Image(systemName: serverStatus.icon)
-                .font(.caption2)
-                .foregroundStyle(serverStatus.color)
-            Text(serverStatus.description)
-                .font(.caption2)
-                .foregroundStyle(serverStatus.color)
+            if space.url != "" {
+                // Also show server status
+                Image(systemName: serverStatus.icon)
+                    .font(.caption2)
+                    .foregroundStyle(serverStatus.color)
+                Text(serverStatus.description)
+                    .font(.caption2)
+                    .foregroundStyle(serverStatus.color)
+            }
         }
     }
 
     @ViewBuilder
     private var actionBar: some View {
         HStack {
-            Button {
-                Task { await resendToServer() }
-            } label: {
-                if isResending {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                } else {
-                    Label("Resend", systemImage: "arrow.clockwise")
-                        .labelStyle(.iconOnly)
-                        .font(.caption)
+            if space.url != "" {
+                Button {
+                    Task { await resendToServer() }
+                } label: {
+                    if isResending {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    } else {
+                        Label("Resend", systemImage: "arrow.clockwise")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
                 }
+                .buttonStyle(.borderless)
+                .disabled(isResending || serverStatus == .exists)
+                .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
             }
-            .buttonStyle(.borderless)
-            .disabled(isResending || serverStatus == .exists)
-            .opacity((isResending || serverStatus == .exists) ? 0.5 : 1.0)
 
 #if os(iOS)
             if #available(iOS 16.0, *) {
