@@ -496,6 +496,8 @@ struct ProposeRowView: View {
     }
 
     private func checkServerStatus() async {
+        guard space.url != "" else { return }
+        
         guard !isCheckingServer else { return }
 
         await MainActor.run {
