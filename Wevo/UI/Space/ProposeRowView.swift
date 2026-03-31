@@ -459,6 +459,8 @@ struct ProposeRowView: View {
     }
 
     private func resendToServer() async {
+        guard space.url != "" else { return }
+
         await MainActor.run {
             isResending = true
             resendSuccess = nil
@@ -540,6 +542,8 @@ struct ProposeRowView: View {
 
     /// Check server status and automatically apply pending changes after own actions
     private func checkAndAutoApplyServerStatus() async {
+        guard space.url != "" else { return }
+
         let useCase = AutoApplyServerChangesUseCaseImpl(proposeRepository: deps.proposeRepository)
         let myPublicKey = defaultIdentity?.publicKey
         do {
@@ -573,6 +577,8 @@ struct ProposeRowView: View {
     }
 
     private func signPropose(with identity: Identity) async {
+        guard space.url != "" else { return }
+
         await MainActor.run {
             isSigning = true
             signSuccess = nil
@@ -628,6 +634,8 @@ struct ProposeRowView: View {
     }
 
     private func dissolvePropose(with identity: Identity) async {
+        guard space.url != "" else { return }
+
         await MainActor.run { isDissolving = true; dissolveSuccess = nil; dissolveErrorMessage = nil }
 
         let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
@@ -646,6 +654,8 @@ struct ProposeRowView: View {
     }
 
     private func honorPropose(with identity: Identity) async {
+        guard space.url != "" else { return }
+
         await MainActor.run { isHonoring = true; honorSuccess = nil; honorErrorMessage = nil }
 
         let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
@@ -664,6 +674,8 @@ struct ProposeRowView: View {
     }
 
     private func partPropose(with identity: Identity) async {
+        guard space.url != "" else { return }
+
         await MainActor.run { isParting = true; partSuccess = nil; partErrorMessage = nil }
 
         let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
