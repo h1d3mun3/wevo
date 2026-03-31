@@ -20,9 +20,11 @@ struct SpaceHeaderView: View {
                         .font(.title)
                         .fontWeight(.bold)
 
-                    Text(space.url)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if space.url != "" {
+                        Text(space.url)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
                     if let identity = defaultIdentity {
                         Text("Default Key: \(identity.nickname)")

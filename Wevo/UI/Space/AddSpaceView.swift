@@ -18,9 +18,8 @@ struct AddSpaceView: View {
     @State private var selectedIdentityID: UUID?
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && 
-        !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        selectedIdentityID != nil && 
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        selectedIdentityID != nil &&
         !isSaving
     }
     @State private var isSaving: Bool = false

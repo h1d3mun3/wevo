@@ -37,14 +37,16 @@ struct SpaceListView: View {
                                     .foregroundStyle(.secondary)
                             }
 
-                            HStack {
-                                Text("URL:")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(space.url)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                            if space.url != "" {
+                                HStack {
+                                    Text("URL:")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(space.url)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
                             }
                         }
                         .padding(.vertical, 8)

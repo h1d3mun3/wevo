@@ -32,7 +32,6 @@ struct EditSpaceView: View {
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isSaving &&
         (name != space.name || url != space.url || selectedIdentity?.id != space.defaultIdentityID)
     }
