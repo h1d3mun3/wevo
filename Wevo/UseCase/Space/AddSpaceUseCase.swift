@@ -22,7 +22,7 @@ struct AddSpaceUseCaseImpl {
 
 extension AddSpaceUseCaseImpl: AddSpaceUseCase {
     func execute(name: String, urlString: String, defaultIdentityID: UUID?) throws {
-        // Validate URL (optional)
+        // Validate URL
         let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Fetch existing Spaces count to determine orderIndex

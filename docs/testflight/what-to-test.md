@@ -4,7 +4,7 @@ wevo records P256-signed agreements between two people, entirely on-device.
 
 Core flow (2 devices recommended):
 1. Create an Identity (Manage Keys → +)
-2. Create a Space (Sidebar → +, URL optional)
+2. Create a Space (Sidebar → +)
 3. Exchange Identities as Contacts via AirDrop
 4. Create a Propose → Export → AirDrop .wevo-propose to the other device
 5. Recipient imports, signs with their Identity

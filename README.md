@@ -20,7 +20,7 @@ This is the iOS/macOS client application, built with SwiftUI and SwiftData. It h
 - Composing, signing, and verifying proposals (`Propose`)
 - Organizing proposals into spaces (local contexts)
 - Exporting and importing proposals, identities, and contacts via AirDrop and file sharing (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`)
-- Optionally syncing with a WevoSpace server for multi-device or multi-party coordination
+- Syncing with a WevoSpace server for multi-party coordination
 
 This is one implementation of the Wevo approach. The underlying ideas — signed proposals, portable identities, locally-owned history — could be implemented on other platforms or in other languages.
 
@@ -44,7 +44,7 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 - Public keys are displayed as a short fingerprint (SHA-256 of the raw key bytes, first 8 bytes as colon-separated hex, e.g. `AB:CD:EF:12:34:56:78:90`) rather than the raw key string
 - Export formats (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) include a `version` field to support future format migrations
 - SwiftData with optional CloudKit sync keeps data on-device by default
-- File-based transfer (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) allows sharing without a server
+- File-based transfer (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) for peer-to-peer key exchange via AirDrop
 
 ## Getting Started
 
@@ -52,11 +52,11 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 2. Select the `Wevo` target (iOS or macOS).
 3. Build and run on a simulator or device.
 
-No server is required to create identities, write proposals, or sign locally. To sync with a server, add a Space with a WevoSpace server URL from within the app.
+To use the app, add a Space with a WevoSpace server URL from within the app.
 
 > **CloudKit sync** is enabled by default. To disable it, remove `cloudKitDatabase: .automatic` from the `ModelConfiguration` in `WevoApp.swift`.
 
-### Optional: WevoSpace Server
+### WevoSpace Server
 
 The companion server handles proposal storage and multi-party synchronization:
 → [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
@@ -97,7 +97,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - Propose の作成・署名・検証
 - Propose を Space（ローカルコンテキスト）で整理
 - AirDrop やファイル共有による Propose・Identity・Contact のエクスポート/インポート（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）
-- WevoSpace サーバーとのオプションの同期（マルチデバイス・マルチパーティ連携）
+- WevoSpace サーバーとの同期（マルチパーティ連携）
 
 これは Wevo のアプローチを実装したものの一つです。署名付き提案、ポータブルな Identity、ローカル所有の履歴という考え方は、他のプラットフォームや言語でも実装できます。
 
@@ -121,7 +121,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - 公開鍵はUIに生の文字列ではなく、短いフィンガープリント（鍵バイト列の SHA-256 先頭8バイトをコロン区切り16進表示、例: `AB:CD:EF:12:34:56:78:90`）として表示
 - エクスポートフォーマット（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）は将来のフォーマット移行に備えた `version` フィールドを含む
 - SwiftData とオプションの CloudKit 同期でデータをデバイス上に保持
-- ファイルベースの転送（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）でサーバーなしの共有が可能
+- ファイルベースの転送（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）でAirDrop経由のP2P鍵交換が可能
 
 ## Getting Started
 
@@ -129,11 +129,11 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 2. `Wevo` ターゲット（iOS または macOS）を選択
 3. シミュレータまたは実機でビルド・実行
 
-Identity の作成・Propose の作成・ローカルでの署名に、サーバーは不要です。サーバーと同期するには、アプリ内で WevoSpace サーバー URL を指定した Space を追加してください。
+アプリ内で WevoSpace サーバー URL を指定した Space を追加してください。
 
 > **CloudKit 同期** はデフォルトで有効です。不要な場合は `WevoApp.swift` の `ModelConfiguration` から `cloudKitDatabase: .automatic` を削除してください。
 
-### オプション：WevoSpace サーバー
+### WevoSpace サーバー
 
 Propose の保存とマルチパーティ同期を扱うコンパニオンサーバー：
 → [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
