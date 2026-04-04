@@ -94,11 +94,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
                 if propose.creatorPartSignature != nil && hashedPropose.partCreatorSignature == nil {
                     pendingLocalResend = true
                 }
-<<<<<<< HEAD
                 if propose.creatorDissolveSignature != nil && hashedPropose.creatorDissolveSignature == nil {
-=======
-                if propose.creatorDissolveSignature != nil && hashedPropose.dissolveSignature == nil {
->>>>>>> main
                     pendingLocalResend = true
                 }
             } else if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == myPublicKey }) {
@@ -113,11 +109,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
                 if propose.counterpartyPartSignature != nil && counterparty.partSignature == nil {
                     pendingLocalResend = true
                 }
-<<<<<<< HEAD
                 if propose.counterpartyDissolveSignature != nil && counterparty.dissolveSignature == nil {
-=======
-                if propose.counterpartyDissolveSignature != nil && hashedPropose.dissolveSignature == nil {
->>>>>>> main
                     pendingLocalResend = true
                 }
             }
