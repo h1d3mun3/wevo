@@ -50,7 +50,11 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
                 let input = ProposeAPIClient.TransitionInput(publicKey: identityPublicKey, signature: sig, timestamp: ts)
                 try await client.partPropose(proposeID: propose.id, input: input)
                 Logger.propose.info("Resent creator part signature to server: \(propose.id, privacy: .private)")
+<<<<<<< HEAD
             } else if let sig = propose.creatorDissolveSignature, let ts = propose.creatorDissolveTimestamp {
+=======
+            } else if let sig = propose.creatorDissolveSignature, let ts = propose.dissolvedAt {
+>>>>>>> main
                 let input = ProposeAPIClient.TransitionInput(publicKey: identityPublicKey, signature: sig, timestamp: ts)
                 try await client.dissolvePropose(proposeID: propose.id, input: input)
                 Logger.propose.info("Resent creator dissolve signature to server: \(propose.id, privacy: .private)")
@@ -70,7 +74,11 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
                 let input = ProposeAPIClient.TransitionInput(publicKey: identityPublicKey, signature: sig, timestamp: ts)
                 try await client.partPropose(proposeID: propose.id, input: input)
                 Logger.propose.info("Resent counterparty part signature to server: \(propose.id, privacy: .private)")
+<<<<<<< HEAD
             } else if let sig = propose.counterpartyDissolveSignature, let ts = propose.counterpartyDissolveTimestamp {
+=======
+            } else if let sig = propose.counterpartyDissolveSignature, let ts = propose.dissolvedAt {
+>>>>>>> main
                 let input = ProposeAPIClient.TransitionInput(publicKey: identityPublicKey, signature: sig, timestamp: ts)
                 try await client.dissolvePropose(proposeID: propose.id, input: input)
                 Logger.propose.info("Resent counterparty dissolve signature to server: \(propose.id, privacy: .private)")
