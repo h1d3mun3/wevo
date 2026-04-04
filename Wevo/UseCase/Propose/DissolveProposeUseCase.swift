@@ -20,10 +20,12 @@ enum DissolveProposeUseCaseError: Error {
 
 struct DissolveProposeUseCaseImpl {
     let keychainRepository: KeychainRepository
+    let proposeRepository: ProposeRepository
     let apiClient: ProposeAPIClientProtocol?
 
-    init(keychainRepository: KeychainRepository, apiClient: ProposeAPIClientProtocol? = nil) {
+    init(keychainRepository: KeychainRepository, proposeRepository: ProposeRepository, apiClient: ProposeAPIClientProtocol? = nil) {
         self.keychainRepository = keychainRepository
+        self.proposeRepository = proposeRepository
         self.apiClient = apiClient
     }
 }
@@ -50,6 +52,34 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
         let message = "dissolved." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
+        // Save locally first (dissolvedAt stores the timestamp; no dedicated signature field exists)
+        let updatedPropose = Propose(
+            id: propose.id,
+            spaceID: propose.spaceID,
+            message: propose.message,
+            creatorPublicKey: propose.creatorPublicKey,
+            creatorSignature: propose.creatorSignature,
+            counterpartyPublicKey: propose.counterpartyPublicKey,
+            counterpartySignSignature: propose.counterpartySignSignature,
+            counterpartySignTimestamp: propose.counterpartySignTimestamp,
+            counterpartyHonorSignature: propose.counterpartyHonorSignature,
+            counterpartyHonorTimestamp: propose.counterpartyHonorTimestamp,
+            counterpartyPartSignature: propose.counterpartyPartSignature,
+            counterpartyPartTimestamp: propose.counterpartyPartTimestamp,
+            creatorHonorSignature: propose.creatorHonorSignature,
+            creatorHonorTimestamp: propose.creatorHonorTimestamp,
+            creatorPartSignature: propose.creatorPartSignature,
+            creatorPartTimestamp: propose.creatorPartTimestamp,
+            dissolvedAt: timestamp,
+            finalStatus: propose.finalStatus,
+            signatureVersion: propose.signatureVersion,
+            createdAt: propose.createdAt,
+            updatedAt: Date()
+        )
+        try proposeRepository.update(updatedPropose)
+        Logger.propose.info("Saved Dissolve timestamp locally: \(propose.id, privacy: .private)")
+
+        // Send to server
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,

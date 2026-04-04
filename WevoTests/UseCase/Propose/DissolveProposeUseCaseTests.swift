@@ -41,7 +41,8 @@ struct DissolveProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "dissolveSig"
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -62,7 +63,8 @@ struct DissolveProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Bob", publicKey: "counterpartyKey")
         mockKeychain.signMessageResult = "dissolveSig"
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -78,7 +80,8 @@ struct DissolveProposeUseCaseTests {
 
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Eve", publicKey: "unrelatedKey")
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: DissolveProposeUseCaseError.notParticipant) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURL: "https://example.com")
@@ -97,7 +100,8 @@ struct DissolveProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "sig"
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -115,7 +119,8 @@ struct DissolveProposeUseCaseTests {
         let propose = makePropose(creatorPublicKey: "creatorKey")
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Alice", publicKey: "creatorKey")
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: DissolveProposeUseCaseError.invalidServerURL) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURL: "not a url")
@@ -128,7 +133,8 @@ struct DissolveProposeUseCaseTests {
 
         mockKeychain.getIdentityError = KeychainError.itemNotFound
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.itemNotFound) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
@@ -144,7 +150,8 @@ struct DissolveProposeUseCaseTests {
         mockKeychain.signMessageResult = "sig"
         mockAPI.dissolveProposeerror = NSError(domain: "API", code: 409)
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: NSError.self) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURL: "https://example.com")

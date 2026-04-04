@@ -628,7 +628,7 @@ struct ProposeRowView: View {
     private func dissolvePropose(with identity: Identity) async {
         await MainActor.run { isDissolving = true; dissolveSuccess = nil; dissolveErrorMessage = nil }
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
@@ -646,7 +646,7 @@ struct ProposeRowView: View {
     private func honorPropose(with identity: Identity) async {
         await MainActor.run { isHonoring = true; honorSuccess = nil; honorErrorMessage = nil }
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
@@ -664,7 +664,7 @@ struct ProposeRowView: View {
     private func partPropose(with identity: Identity) async {
         await MainActor.run { isParting = true; partSuccess = nil; partErrorMessage = nil }
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
