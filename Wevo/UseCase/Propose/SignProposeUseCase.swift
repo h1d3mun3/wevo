@@ -12,24 +12,32 @@ enum SignProposeUseCaseError: Error {
     case failedToSavePropose
     /// The identity attempting to sign is not the Counterparty
     case notCounterparty
+    case invalidServerURL
 }
 
 protocol SignProposeUseCase {
-    func execute(to proposeID: UUID, signIdentityID: UUID) async throws
+    func execute(to proposeID: UUID, signIdentityID: UUID, serverURL: String) async throws
 }
 
 struct SignProposeUseCaseImpl {
     let keychainRepository: KeychainRepository
     let proposeRepository: ProposeRepository
+    let apiClient: ProposeAPIClientProtocol?
 
-    init(keychainRepository: KeychainRepository, proposeRepository: ProposeRepository) {
+    init(keychainRepository: KeychainRepository, proposeRepository: ProposeRepository, apiClient: ProposeAPIClientProtocol? = nil) {
         self.keychainRepository = keychainRepository
         self.proposeRepository = proposeRepository
+        self.apiClient = apiClient
     }
 }
 
 extension SignProposeUseCaseImpl: SignProposeUseCase {
-    func execute(to proposeID: UUID, signIdentityID: UUID) async throws {
+    func execute(to proposeID: UUID, signIdentityID: UUID, serverURL: String) async throws {
+        guard let baseURL = URL(string: serverURL),
+              baseURL.scheme == "https" || baseURL.scheme == "http" else {
+            throw SignProposeUseCaseError.invalidServerURL
+        }
+
         let identity = try keychainRepository.getIdentity(id: signIdentityID)
         let propose = try proposeRepository.fetch(by: proposeID)
 
@@ -49,7 +57,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             withIdentityId: identity.id
         )
 
-        // Update Propose with counterpartySignSignature and signTimestamp set (preserve existing fields)
+        // Save locally first
         let updatedPropose = Propose(
             id: propose.id,
             spaceID: propose.spaceID,
@@ -69,11 +77,11 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
             finalStatus: propose.finalStatus,
+            signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()
         )
 
-        // Save locally
         do {
             try proposeRepository.update(updatedPropose)
             Logger.propose.info("Saved Counterparty signature locally: \(propose.id, privacy: .private)")
@@ -82,7 +90,15 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             throw SignProposeUseCaseError.failedToSavePropose
         }
 
-        // API submission is handled by SendLocalSignaturesToServerUseCase
-        Logger.propose.debug("Use SendLocalSignaturesToServerUseCase to submit to the API")
+        // Send to server
+        let input = ProposeAPIClient.SignInput(
+            signerPublicKey: identity.publicKey,
+            signature: signatureData,
+            timestamp: signTimestamp
+        )
+
+        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        try await client.signPropose(proposeID: propose.id, input: input)
+        Logger.propose.info("Sent Counterparty signature to server: \(propose.id, privacy: .private)")
     }
 }

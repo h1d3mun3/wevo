@@ -577,12 +577,12 @@ struct ProposeRowView: View {
             signErrorMessage = nil
         }
 
-        let useCase = SignProposeServerOnlyUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = SignProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
 
         do {
-            let signature = try await useCase.execute(
-                propose: propose,
-                identityID: identity.id,
+            try await useCase.execute(
+                to: propose.id,
+                signIdentityID: identity.id,
                 serverURL: space.url
             )
 
@@ -595,7 +595,7 @@ struct ProposeRowView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
 
-        } catch SignProposeServerOnlyUseCaseError.notCounterparty {
+        } catch SignProposeUseCaseError.notCounterparty {
             Logger.propose.warning("This identity is not the Counterparty and cannot sign")
             await MainActor.run {
                 isSigning = false

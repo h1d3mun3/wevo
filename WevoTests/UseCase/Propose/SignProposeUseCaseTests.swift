@@ -49,11 +49,12 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act
-        try await useCase.execute(to: proposeID, signIdentityID: identityID)
+        try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
 
         // Assert: counterpartySignSignature is set
         #expect(mockPropose.updateCalled == true)
@@ -78,11 +79,12 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act
-        try await useCase.execute(to: proposeID, signIdentityID: identityID)
+        try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
 
         // Assert: status is signed after signing
         #expect(mockPropose.updatedPropose?.localStatus == .signed)
@@ -105,12 +107,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert: notCounterparty error is thrown
         await #expect(throws: SignProposeUseCaseError.notCounterparty) {
-            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+            try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
         }
     }
 
@@ -130,12 +133,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert
         await #expect(throws: SignProposeUseCaseError.notCounterparty) {
-            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+            try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
         }
     }
 
@@ -157,12 +161,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert
         await #expect(throws: SignProposeUseCaseError.failedToSavePropose) {
-            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+            try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
         }
     }
 
@@ -175,12 +180,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert
         await #expect(throws: KeychainError.itemNotFound) {
-            try await useCase.execute(to: UUID(), signIdentityID: UUID())
+            try await useCase.execute(to: UUID(), signIdentityID: UUID(), serverURL: "https://example.com")
         }
     }
 
@@ -195,12 +201,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(to: UUID(), signIdentityID: UUID())
+            try await useCase.execute(to: UUID(), signIdentityID: UUID(), serverURL: "https://example.com")
         }
     }
 
@@ -221,12 +228,13 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
         )
 
         // Act & Assert
         await #expect(throws: KeychainError.biometricAuthFailed) {
-            try await useCase.execute(to: proposeID, signIdentityID: identityID)
+            try await useCase.execute(to: proposeID, signIdentityID: identityID, serverURL: "https://example.com")
         }
     }
 }
