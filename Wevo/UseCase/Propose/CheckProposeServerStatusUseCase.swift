@@ -19,6 +19,8 @@ struct ProposeServerCheckResult {
     let myHonorSigned: Bool
     /// Whether the current user has already sent their part signature to the server
     let myPartSigned: Bool
+    /// Whether the local Propose has a signature from the current user that has not yet reached the server
+    let pendingLocalResend: Bool
 }
 
 protocol CheckProposeServerStatusUseCase {
@@ -78,15 +80,38 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         let pendingServerUpdate: HashedPropose? = (hasPendingCounterpartySignature || hasPendingTerminalStatus) ? hashedPropose : nil
 
         // Check if the current user has already sent their honor/part signature
+        // Also detect if the local Propose has signatures not yet on the server
         var myHonorSigned = false
         var myPartSigned = false
+        var pendingLocalResend = false
         if let myPublicKey = myPublicKey {
             if myPublicKey == propose.creatorPublicKey {
                 myHonorSigned = hashedPropose.honorCreatorSignature != nil
                 myPartSigned = hashedPropose.partCreatorSignature != nil
+                if propose.creatorHonorSignature != nil && hashedPropose.honorCreatorSignature == nil {
+                    pendingLocalResend = true
+                }
+                if propose.creatorPartSignature != nil && hashedPropose.partCreatorSignature == nil {
+                    pendingLocalResend = true
+                }
+                if propose.creatorDissolveSignature != nil && hashedPropose.dissolveSignature == nil {
+                    pendingLocalResend = true
+                }
             } else if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == myPublicKey }) {
                 myHonorSigned = counterparty.honorSignature != nil
                 myPartSigned = counterparty.partSignature != nil
+                if propose.counterpartySignSignature != nil && counterparty.signSignature == nil {
+                    pendingLocalResend = true
+                }
+                if propose.counterpartyHonorSignature != nil && counterparty.honorSignature == nil {
+                    pendingLocalResend = true
+                }
+                if propose.counterpartyPartSignature != nil && counterparty.partSignature == nil {
+                    pendingLocalResend = true
+                }
+                if propose.counterpartyDissolveSignature != nil && hashedPropose.dissolveSignature == nil {
+                    pendingLocalResend = true
+                }
             }
         }
 
@@ -94,7 +119,8 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
             serverStatus: hashedPropose.status,
             pendingServerUpdate: pendingServerUpdate,
             myHonorSigned: myHonorSigned,
-            myPartSigned: myPartSigned
+            myPartSigned: myPartSigned,
+            pendingLocalResend: pendingLocalResend
         )
     }
 }

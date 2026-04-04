@@ -72,6 +72,62 @@ struct PendingSignatureBannerView: View {
     }
 }
 
+/// Banner displayed when the local Propose has a signature not yet delivered to the server
+struct PendingLocalResendBannerView: View {
+    let isResending: Bool
+    let onResend: () -> Void
+    let onIgnore: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "exclamationmark.icloud")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                Text("Your signature has not reached the server yet")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                    .fontWeight(.medium)
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Spacer()
+
+                Button("Ignore") {
+                    onIgnore()
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .disabled(isResending)
+
+                Button(action: onResend) {
+                    if isResending {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Sending...")
+                                .font(.caption)
+                        }
+                    } else {
+                        Label("Resend", systemImage: "arrow.clockwise.icloud.fill")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .tint(.blue)
+                .disabled(isResending)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
 /// Banner displayed when the server has reached a terminal status (honored/parted/dissolved)
 /// that has not yet been reflected locally
 struct PendingServerStatusBannerView: View {

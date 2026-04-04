@@ -52,17 +52,31 @@ struct SendLocalSignaturesToServerUseCaseTests {
         #expect(mockAPI.signProposeInput?.signature == "myCounterpartySig")
     }
 
-    @Test func testSkipsWhenIdentityIsNotCounterparty() async throws {
+    @Test func testSkipsWhenIdentityIsNotParticipant() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "mySig")
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
-        // Act: does not send with Creator's PublicKey
-        try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURL: "https://example.com")
+        // Act: third-party key (neither creator nor counterparty) is silently skipped
+        try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURL: "https://example.com")
 
-        // Assert: signPropose is not called
+        // Assert: no API call made
+        #expect(mockAPI.signProposeCalled == false)
+    }
+
+    @Test func testThrowsNoSignatureFoundWhenCreatorHasNoSignatures() async throws {
+        // Arrange: creator identity but no honor/part/dissolve signatures
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose()
+
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        // Act & Assert: creator with no pending signatures → noSignatureFound
+        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+            try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURL: "https://example.com")
+        }
         #expect(mockAPI.signProposeCalled == false)
     }
 
