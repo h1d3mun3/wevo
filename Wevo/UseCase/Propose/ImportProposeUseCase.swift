@@ -56,8 +56,11 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
                 creatorPartSignature: propose.creatorPartSignature ?? existing.creatorPartSignature,
                 creatorPartTimestamp: propose.creatorPartTimestamp ?? existing.creatorPartTimestamp,
                 dissolvedAt: propose.dissolvedAt ?? existing.dissolvedAt,
+<<<<<<< HEAD
                 creatorDissolveSignature: propose.creatorDissolveSignature ?? existing.creatorDissolveSignature,
                 counterpartyDissolveSignature: propose.counterpartyDissolveSignature ?? existing.counterpartyDissolveSignature,
+=======
+>>>>>>> main
                 signatureVersion: existing.signatureVersion,
                 createdAt: existing.createdAt,
                 updatedAt: Date()

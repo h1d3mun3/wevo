@@ -32,8 +32,11 @@ struct ProposeConverter {
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
+<<<<<<< HEAD
             creatorDissolveSignature: propose.creatorDissolveSignature,
             counterpartyDissolveSignature: propose.counterpartyDissolveSignature,
+=======
+>>>>>>> main
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: propose.updatedAt
@@ -60,8 +63,11 @@ struct ProposeConverter {
             creatorPartSignature: model.creatorPartSignature,
             creatorPartTimestamp: model.creatorPartTimestamp,
             dissolvedAt: model.dissolvedAt,
+<<<<<<< HEAD
             creatorDissolveSignature: model.creatorDissolveSignature,
             counterpartyDissolveSignature: model.counterpartyDissolveSignature,
+=======
+>>>>>>> main
             signatureVersion: model.signatureVersion,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
@@ -93,8 +99,11 @@ struct ProposeConverter {
         model.creatorPartSignature = propose.creatorPartSignature
         model.creatorPartTimestamp = propose.creatorPartTimestamp
         model.dissolvedAt = propose.dissolvedAt
+<<<<<<< HEAD
         model.creatorDissolveSignature = propose.creatorDissolveSignature
         model.counterpartyDissolveSignature = propose.counterpartyDissolveSignature
+=======
+>>>>>>> main
         model.signatureVersion = propose.signatureVersion
         model.updatedAt = Date()
 
