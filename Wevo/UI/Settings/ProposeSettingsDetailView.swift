@@ -87,7 +87,8 @@ struct ProposeSettingsDetailView: View {
                 || propose.counterpartyHonorTimestamp != nil
                 || propose.creatorPartTimestamp != nil
                 || propose.counterpartyPartTimestamp != nil
-                || propose.dissolvedAt != nil
+                || propose.creatorDissolveTimestamp != nil
+                || propose.counterpartyDissolveTimestamp != nil
             if hasEventTimestamps {
                 Section("Event Timestamps") {
                     if let ts = propose.counterpartySignTimestamp {
@@ -105,8 +106,11 @@ struct ProposeSettingsDetailView: View {
                     if let ts = propose.counterpartyPartTimestamp {
                         timestampRow("Counterparty Parted At", iso8601: ts)
                     }
-                    if let ts = propose.dissolvedAt {
-                        timestampRow("Dissolved At", iso8601: ts)
+                    if let ts = propose.creatorDissolveTimestamp {
+                        timestampRow("Creator Dissolved At", iso8601: ts)
+                    }
+                    if let ts = propose.counterpartyDissolveTimestamp {
+                        timestampRow("Counterparty Dissolved At", iso8601: ts)
                     }
                 }
             }

@@ -59,14 +59,17 @@ struct Propose: Codable, Identifiable {
     /// Timestamp used in the Creator's part message (ISO8601, nil = not yet executed)
     let creatorPartTimestamp: String?
 
-    /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
-    let dissolvedAt: String?
-
     /// Creator's dissolve signature (nil = not dissolved by creator)
     let creatorDissolveSignature: String?
 
+    /// Timestamp used in the Creator's dissolve message (ISO8601, nil = not dissolved by creator)
+    let creatorDissolveTimestamp: String?
+
     /// Counterparty's dissolve signature (nil = not dissolved by counterparty)
     let counterpartyDissolveSignature: String?
+
+    /// Timestamp used in the Counterparty's dissolve message (ISO8601, nil = not dissolved by counterparty)
+    let counterpartyDissolveTimestamp: String?
 
     /// Signature scheme version applied to all signatures on this Propose
     /// v1: all operations include a "proposed."/"signed."/"honored."/"parted."/"dissolved." prefix
@@ -110,9 +113,10 @@ struct Propose: Codable, Identifiable {
         creatorHonorTimestamp: String? = nil,
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
-        dissolvedAt: String? = nil,
         creatorDissolveSignature: String? = nil,
+        creatorDissolveTimestamp: String? = nil,
         counterpartyDissolveSignature: String? = nil,
+        counterpartyDissolveTimestamp: String? = nil,
         signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
@@ -135,9 +139,10 @@ struct Propose: Codable, Identifiable {
         self.creatorHonorTimestamp = creatorHonorTimestamp
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
-        self.dissolvedAt = dissolvedAt
         self.creatorDissolveSignature = creatorDissolveSignature
+        self.creatorDissolveTimestamp = creatorDissolveTimestamp
         self.counterpartyDissolveSignature = counterpartyDissolveSignature
+        self.counterpartyDissolveTimestamp = counterpartyDissolveTimestamp
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt

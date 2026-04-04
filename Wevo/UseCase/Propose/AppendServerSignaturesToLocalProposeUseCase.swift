@@ -48,9 +48,10 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
             creatorHonorTimestamp: serverPropose.honorCreatorTimestamp ?? localPropose.creatorHonorTimestamp,
             creatorPartSignature: serverPropose.partCreatorSignature ?? localPropose.creatorPartSignature,
             creatorPartTimestamp: serverPropose.partCreatorTimestamp ?? localPropose.creatorPartTimestamp,
-            dissolvedAt: serverPropose.dissolvedAt ?? localPropose.dissolvedAt,
-            creatorDissolveSignature: serverDissolveSignature(serverPropose: serverPropose, localPropose: localPropose, isCreator: true),
-            counterpartyDissolveSignature: serverDissolveSignature(serverPropose: serverPropose, localPropose: localPropose, isCreator: false),
+            creatorDissolveSignature: serverPropose.creatorDissolveSignature ?? localPropose.creatorDissolveSignature,
+            creatorDissolveTimestamp: serverPropose.creatorDissolveTimestamp ?? localPropose.creatorDissolveTimestamp,
+            counterpartyDissolveSignature: counterparty?.dissolveSignature ?? localPropose.counterpartyDissolveSignature,
+            counterpartyDissolveTimestamp: counterparty?.dissolveTimestamp ?? localPropose.counterpartyDissolveTimestamp,
             signatureVersion: localPropose.signatureVersion,
             createdAt: localPropose.createdAt,
             updatedAt: Date()
@@ -61,18 +62,4 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
         Logger.propose.info("Reflected server signatures locally: \(localPropose.id, privacy: .private)")
     }
 
-    /// Returns the dissolve signature for creator or counterparty from server data,
-    /// falling back to the existing local value if the server has no dissolve signature or the signer doesn't match.
-    private func serverDissolveSignature(serverPropose: HashedPropose, localPropose: Propose, isCreator: Bool) -> String? {
-        guard let sig = serverPropose.dissolveSignature,
-              let publicKey = serverPropose.dissolvePublicKey else {
-            return isCreator ? localPropose.creatorDissolveSignature : localPropose.counterpartyDissolveSignature
-        }
-        let signerIsCreator = publicKey == localPropose.creatorPublicKey
-        if isCreator {
-            return signerIsCreator ? sig : localPropose.creatorDissolveSignature
-        } else {
-            return signerIsCreator ? localPropose.counterpartyDissolveSignature : sig
-        }
-    }
 }

@@ -60,14 +60,17 @@ final class ProposeSwiftData {
     /// Timestamp used in the Creator's part message (ISO8601, nil = not yet executed)
     var creatorPartTimestamp: String? = nil
 
-    /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
-    var dissolvedAt: String? = nil
-
     /// Creator's dissolve signature (nil = not dissolved by creator)
     var creatorDissolveSignature: String? = nil
 
+    /// Timestamp used in the Creator's dissolve message (ISO8601, nil = not dissolved by creator)
+    var creatorDissolveTimestamp: String? = nil
+
     /// Counterparty's dissolve signature (nil = not dissolved by counterparty)
     var counterpartyDissolveSignature: String? = nil
+
+    /// Timestamp used in the Counterparty's dissolve message (ISO8601, nil = not dissolved by counterparty)
+    var counterpartyDissolveTimestamp: String? = nil
 
     /// Signature scheme version applied to all signatures on this Propose
     var signatureVersion: Int = 1
@@ -90,9 +93,10 @@ final class ProposeSwiftData {
         creatorHonorTimestamp: String? = nil,
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
-        dissolvedAt: String? = nil,
         creatorDissolveSignature: String? = nil,
+        creatorDissolveTimestamp: String? = nil,
         counterpartyDissolveSignature: String? = nil,
+        counterpartyDissolveTimestamp: String? = nil,
         signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
@@ -114,9 +118,10 @@ final class ProposeSwiftData {
         self.creatorHonorTimestamp = creatorHonorTimestamp
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
-        self.dissolvedAt = dissolvedAt
         self.creatorDissolveSignature = creatorDissolveSignature
+        self.creatorDissolveTimestamp = creatorDissolveTimestamp
         self.counterpartyDissolveSignature = counterpartyDissolveSignature
+        self.counterpartyDissolveTimestamp = counterpartyDissolveTimestamp
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt

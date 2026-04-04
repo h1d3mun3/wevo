@@ -264,7 +264,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         #expect(mockRepository.updatedPropose?.creatorPartTimestamp == "2026-03-01T00:00:01Z")
     }
 
-    @Test func testPreservesLocalDissolvedAtWhenServerReturnsNil() throws {
+    @Test func testPreservesLocalCreatorDissolveTimestampWhenServerReturnsNil() throws {
         let mockRepository = MockProposeRepository()
         let proposeID = UUID()
         let existingPropose = Propose(
@@ -274,7 +274,8 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             creatorPublicKey: "creatorKey",
             creatorSignature: "creatorSig",
             counterpartyPublicKey: "counterpartyKey",
-            dissolvedAt: "2026-03-01T00:00:00Z",
+            creatorDissolveSignature: "creatorDissolveSig",
+            creatorDissolveTimestamp: "2026-03-01T00:00:00Z",
             createdAt: .now,
             updatedAt: .now
         )
@@ -286,7 +287,8 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             creatorPublicKey: "creatorKey",
             creatorSignature: "creatorSig",
             counterparties: [],
-            dissolvedAt: nil,
+            creatorDissolveSignature: nil,
+            creatorDissolveTimestamp: nil,
             status: .proposed,
             createdAt: .now,
             updatedAt: .now
@@ -295,7 +297,8 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
 
-        #expect(mockRepository.updatedPropose?.dissolvedAt == "2026-03-01T00:00:00Z")
+        #expect(mockRepository.updatedPropose?.creatorDissolveSignature == "creatorDissolveSig")
+        #expect(mockRepository.updatedPropose?.creatorDissolveTimestamp == "2026-03-01T00:00:00Z")
     }
 
     @Test func testPreservesLocalSignatureVersion() throws {

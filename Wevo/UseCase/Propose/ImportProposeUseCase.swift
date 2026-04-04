@@ -55,9 +55,10 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
                 creatorHonorTimestamp: propose.creatorHonorTimestamp ?? existing.creatorHonorTimestamp,
                 creatorPartSignature: propose.creatorPartSignature ?? existing.creatorPartSignature,
                 creatorPartTimestamp: propose.creatorPartTimestamp ?? existing.creatorPartTimestamp,
-                dissolvedAt: propose.dissolvedAt ?? existing.dissolvedAt,
                 creatorDissolveSignature: propose.creatorDissolveSignature ?? existing.creatorDissolveSignature,
+                creatorDissolveTimestamp: propose.creatorDissolveTimestamp ?? existing.creatorDissolveTimestamp,
                 counterpartyDissolveSignature: propose.counterpartyDissolveSignature ?? existing.counterpartyDissolveSignature,
+                counterpartyDissolveTimestamp: propose.counterpartyDissolveTimestamp ?? existing.counterpartyDissolveTimestamp,
                 signatureVersion: existing.signatureVersion,
                 createdAt: existing.createdAt,
                 updatedAt: Date()
@@ -161,7 +162,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         // Creator dissolve signature
         // v1: "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.creatorDissolveSignature {
-            guard let timestamp = propose.dissolvedAt else {
+            guard let timestamp = propose.creatorDissolveTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
             let message = "dissolved." + propose.id.uuidString + propose.payloadHash + propose.creatorPublicKey + timestamp
@@ -174,7 +175,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         // Counterparty dissolve signature
         // v1: "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
         if let sig = propose.counterpartyDissolveSignature {
-            guard let timestamp = propose.dissolvedAt else {
+            guard let timestamp = propose.counterpartyDissolveTimestamp else {
                 throw ImportProposeUseCaseError.invalidSignature
             }
             let message = "dissolved." + propose.id.uuidString + propose.payloadHash + propose.counterpartyPublicKey + timestamp
