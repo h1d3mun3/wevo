@@ -16,7 +16,7 @@ enum SignProposeUseCaseError: Error {
 }
 
 protocol SignProposeUseCase {
-    func execute(to proposeID: UUID, signIdentityID: UUID, serverURL: String) async throws
+    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
 }
 
 struct SignProposeUseCaseImpl {
@@ -32,14 +32,13 @@ struct SignProposeUseCaseImpl {
 }
 
 extension SignProposeUseCaseImpl: SignProposeUseCase {
-    func execute(to proposeID: UUID, signIdentityID: UUID, serverURL: String) async throws {
+    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
         guard let baseURL = URL(string: serverURL),
               baseURL.scheme == "https" || baseURL.scheme == "http" else {
             throw SignProposeUseCaseError.invalidServerURL
         }
 
-        let identity = try keychainRepository.getIdentity(id: signIdentityID)
-        let propose = try proposeRepository.fetch(by: proposeID)
+        let identity = try keychainRepository.getIdentity(id: identityID)
 
         // Only Counterparty can sign
         guard identity.publicKey == propose.counterpartyPublicKey else {

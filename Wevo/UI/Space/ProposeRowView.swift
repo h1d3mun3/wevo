@@ -581,8 +581,8 @@ struct ProposeRowView: View {
 
         do {
             try await useCase.execute(
-                to: propose.id,
-                signIdentityID: identity.id,
+                propose: propose,
+                identityID: identity.id,
                 serverURL: space.url
             )
 
