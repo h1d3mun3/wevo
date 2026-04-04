@@ -32,14 +32,9 @@ extension AutoApplyServerChangesUseCaseImpl: AutoApplyServerChangesUseCase {
         let checkUseCase = CheckProposeServerStatusUseCaseImpl(apiClient: apiClient)
         let result = try await checkUseCase.execute(propose: propose, serverURL: serverURL, myPublicKey: myPublicKey)
 
-        if let pendingServerPropose = result.pendingServerPropose {
+        if let pendingServerUpdate = result.pendingServerUpdate {
             let appendUseCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: proposeRepository)
-            try appendUseCase.execute(proposeID: propose.id, serverPropose: pendingServerPropose)
-        }
-
-        if let pendingStatusTransition = result.pendingStatusTransition {
-            let applyStatusUseCase = ApplyServerStatusToLocalProposeUseCaseImpl(proposeRepository: proposeRepository)
-            try applyStatusUseCase.execute(proposeID: propose.id, status: pendingStatusTransition)
+            try appendUseCase.execute(proposeID: propose.id, serverPropose: pendingServerUpdate)
         }
     }
 }

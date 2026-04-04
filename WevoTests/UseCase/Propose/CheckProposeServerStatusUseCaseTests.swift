@@ -86,8 +86,8 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingServerPropose != nil)
-        #expect(result.pendingServerPropose?.counterparties.first?.signSignature == "serverCounterpartySig")
+        #expect(result.pendingServerUpdate != nil)
+        #expect(result.pendingServerUpdate?.counterparties.first?.signSignature == "serverCounterpartySig")
         #expect(result.serverStatus == .signed)
     }
 
@@ -104,7 +104,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingServerPropose == nil)
+        #expect(result.pendingServerUpdate == nil)
     }
 
     @Test func testNoPendingSignatureWhenCounterpartyNotSignedOnServer() async throws {
@@ -120,7 +120,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingServerPropose == nil)
+        #expect(result.pendingServerUpdate == nil)
         #expect(result.serverStatus == .proposed)
     }
 
@@ -159,7 +159,7 @@ struct CheckProposeServerStatusUseCaseTests {
         }
     }
 
-    // MARK: - pendingStatusTransition tests
+    // MARK: - pendingServerUpdate for terminal status tests
 
     @Test func testDetectsPendingHonoredStatus() async throws {
         let mockAPI = MockProposeAPIClient()
@@ -174,7 +174,8 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingStatusTransition == .honored)
+        #expect(result.pendingServerUpdate != nil)
+        #expect(result.pendingServerUpdate?.status == .honored)
         #expect(result.serverStatus == .honored)
     }
 
@@ -191,7 +192,8 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingStatusTransition == .parted)
+        #expect(result.pendingServerUpdate != nil)
+        #expect(result.pendingServerUpdate?.status == .parted)
     }
 
     @Test func testDetectsPendingDissolvedStatus() async throws {
@@ -207,11 +209,13 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingStatusTransition == .dissolved)
+        #expect(result.pendingServerUpdate != nil)
+        #expect(result.pendingServerUpdate?.status == .dissolved)
     }
 
     @Test func testNoPendingStatusTransitionWhenLocalAlreadyMatches() async throws {
         let mockAPI = MockProposeAPIClient()
+        // Honored locally: both honor signatures are present
         let propose = Propose(
             id: UUID(),
             spaceID: UUID(),
@@ -220,7 +224,10 @@ struct CheckProposeServerStatusUseCaseTests {
             creatorSignature: "creatorSig",
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: "signSig",
-            finalStatus: .honored,
+            counterpartyHonorSignature: "counterpartyHonorSig",
+            counterpartyHonorTimestamp: "2026-01-02T00:00:00Z",
+            creatorHonorSignature: "creatorHonorSig",
+            creatorHonorTimestamp: "2026-01-03T00:00:00Z",
             createdAt: .now,
             updatedAt: .now
         )
@@ -234,7 +241,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingStatusTransition == nil)
+        #expect(result.pendingServerUpdate == nil)
     }
 
     @Test func testNoPendingStatusTransitionForNonTerminalStatus() async throws {
@@ -250,7 +257,9 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        #expect(result.pendingStatusTransition == nil)
+        // .signed is not a terminal state, so no pendingStatusTransition;
+        // but counterparty signature is new, so pendingServerUpdate is set
+        #expect(result.pendingServerUpdate?.status == .signed)
     }
 
     // MARK: - myHonorSigned / myPartSigned tests

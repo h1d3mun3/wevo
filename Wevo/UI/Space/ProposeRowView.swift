@@ -31,15 +31,10 @@ struct ProposeRowView: View {
     @State private var showProposeDetail = false
     @State private var contactNicknames: [String: String] = [:]
 
-    /// Server HashedPropose when Counterparty has signed on server but not yet reflected locally
-    @State private var pendingServerPropose: HashedPropose? = nil
-    /// Whether signature acceptance is in progress
-    @State private var isAcceptingSignature = false
-
-    /// Terminal server status (honored/parted/dissolved) pending local reflection
-    @State private var pendingStatusTransition: ProposeStatus? = nil
-    /// Whether terminal status application is in progress
-    @State private var isApplyingServerStatus = false
+    /// Server HashedPropose when there are server-side changes not yet reflected locally
+    @State private var pendingServerUpdate: HashedPropose? = nil
+    /// Whether server update application is in progress
+    @State private var isApplyingServerUpdate = false
 
     @State private var isHonoring = false
     @State private var honorSuccess: Bool?
@@ -91,34 +86,37 @@ struct ProposeRowView: View {
             // Status messages
             statusMessages
 
-            // Pending signature banner for Counterparty approval
-            if let serverPropose = pendingServerPropose {
-                let counterpartyName = otherParticipantNames
-                let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
-                PendingSignatureBannerView(
-                    counterpartyNickname: counterpartyName,
-                    message: isSelfSigned ? "Your signature was sent to the server. Save locally?" : nil,
-                    isAccepting: isAcceptingSignature
-                ) {
-                    Task {
-                        await acceptServerPropose(serverPropose)
-                        onSigned()
+            // Pending server update banner (counterparty signature or terminal status from server)
+            if let serverUpdate = pendingServerUpdate {
+                let terminalStatuses: Set<ProposeStatus> = [.honored, .parted, .dissolved]
+                if terminalStatuses.contains(serverUpdate.status) {
+                    PendingServerStatusBannerView(
+                        status: serverUpdate.status,
+                        isApplying: isApplyingServerUpdate
+                    ) {
+                        Task {
+                            await acceptServerPropose(serverUpdate)
+                            onSigned()
+                        }
+                    } onIgnore: {
+                        pendingServerUpdate = nil
                     }
-                } onIgnore: {
-                    // Ignore: just hide the banner (do not reflect locally)
-                    pendingServerPropose = nil
-                }
-            }
-
-            // Pending terminal status banner (honored/parted/dissolved from server)
-            if let pendingStatus = pendingStatusTransition {
-                PendingServerStatusBannerView(
-                    status: pendingStatus,
-                    isApplying: isApplyingServerStatus
-                ) {
-                    Task { await applyServerStatus(pendingStatus) }
-                } onIgnore: {
-                    pendingStatusTransition = nil
+                } else {
+                    let counterpartyName = otherParticipantNames
+                    let isSelfSigned = defaultIdentity?.publicKey == propose.counterpartyPublicKey
+                    PendingSignatureBannerView(
+                        counterpartyNickname: counterpartyName,
+                        message: isSelfSigned ? "Your signature was sent to the server. Save locally?" : nil,
+                        isAccepting: isApplyingServerUpdate
+                    ) {
+                        Task {
+                            await acceptServerPropose(serverUpdate)
+                            onSigned()
+                        }
+                    } onIgnore: {
+                        // Ignore: just hide the banner (do not reflect locally)
+                        pendingServerUpdate = nil
+                    }
                 }
             }
 
@@ -197,7 +195,7 @@ struct ProposeRowView: View {
         guard let identity = defaultIdentity else { return false }
         let canSign = CanSignProposeUseCaseImpl().execute(identity: identity, propose: propose)
         return canSign
-            && pendingServerPropose == nil
+            && pendingServerUpdate == nil
             && signSuccess != true
     }
 
@@ -512,10 +510,7 @@ struct ProposeRowView: View {
             await MainActor.run {
                 serverStatus = .exists
                 isCheckingServer = false
-                pendingServerPropose = result.pendingServerPropose
-                if pendingStatusTransition == nil {
-                    pendingStatusTransition = result.pendingStatusTransition
-                }
+                pendingServerUpdate = result.pendingServerUpdate
                 myHonorSigned = result.myHonorSigned
                 myPartSigned = result.myPartSigned
             }
@@ -533,20 +528,6 @@ struct ProposeRowView: View {
                 serverStatus = .error(error.localizedDescription)
                 isCheckingServer = false
             }
-        }
-    }
-
-    /// Check server status and automatically apply pending changes after own actions
-    private func checkAndAutoApplyServerStatus() async {
-        let useCase = AutoApplyServerChangesUseCaseImpl(proposeRepository: deps.proposeRepository)
-        let myPublicKey = defaultIdentity?.publicKey
-        do {
-            try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
-            onSigned()
-        } catch {
-            Logger.propose.warning("AutoApplyServerChanges error: \(error, privacy: .public)")
-            // Fall back to a manual server check so the banner can appear as a recovery path.
-            await checkServerStatus()
         }
     }
 
@@ -591,7 +572,6 @@ struct ProposeRowView: View {
                 signSuccess = true
             }
 
-            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
 
@@ -632,7 +612,6 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
-            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { dissolveSuccess = nil }
         } catch {
@@ -650,7 +629,6 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
-            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { honorSuccess = nil }
         } catch {
@@ -668,7 +646,6 @@ struct ProposeRowView: View {
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
-            await checkAndAutoApplyServerStatus()
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
         } catch {
@@ -679,31 +656,9 @@ struct ProposeRowView: View {
         }
     }
 
-    /// Apply terminal server status locally
-    private func applyServerStatus(_ status: ProposeStatus) async {
-        await MainActor.run { isApplyingServerStatus = true }
-
-        let useCase = ApplyServerStatusToLocalProposeUseCaseImpl(
-            proposeRepository: deps.proposeRepository
-        )
-
-        do {
-            try useCase.execute(proposeID: propose.id, status: status)
-            await MainActor.run {
-                isApplyingServerStatus = false
-                pendingStatusTransition = nil
-            }
-            Logger.propose.info("Applied server status (\(status.rawValue, privacy: .public)) locally")
-            onSigned()
-        } catch {
-            Logger.propose.error("Failed to apply server status locally: \(error, privacy: .public)")
-            await MainActor.run { isApplyingServerStatus = false }
-        }
-    }
-
     /// Accept the server HashedPropose and reflect all signatures locally
     private func acceptServerPropose(_ serverPropose: HashedPropose) async {
-        await MainActor.run { isAcceptingSignature = true }
+        await MainActor.run { isApplyingServerUpdate = true }
 
         let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(
             proposeRepository: deps.proposeRepository
@@ -713,13 +668,13 @@ struct ProposeRowView: View {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
 
             await MainActor.run {
-                isAcceptingSignature = false
-                pendingServerPropose = nil
+                isApplyingServerUpdate = false
+                pendingServerUpdate = nil
             }
             Logger.propose.info("Accepted server signatures and reflected them locally")
         } catch {
             Logger.propose.error("Failed to reflect server signatures locally: \(error, privacy: .public)")
-            await MainActor.run { isAcceptingSignature = false }
+            await MainActor.run { isApplyingServerUpdate = false }
         }
     }
 }

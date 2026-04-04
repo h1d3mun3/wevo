@@ -12,10 +12,9 @@ import os
 struct ProposeServerCheckResult {
     /// Status returned by the server
     let serverStatus: ProposeStatus
-    /// Full server HashedPropose when the Counterparty has signed on the server but it has not yet been reflected locally (nil means no new signature)
-    let pendingServerPropose: HashedPropose?
-    /// Terminal status (honored/parted/dissolved) that the server has reached but has not yet been reflected locally (nil means no pending transition)
-    let pendingStatusTransition: ProposeStatus?
+    /// Full server HashedPropose when there are server-side changes not yet reflected locally
+    /// (counterparty signed on server, or server reached a terminal state not yet reflected locally)
+    let pendingServerUpdate: HashedPropose?
     /// Whether the current user has already sent their honor signature to the server
     let myHonorSigned: Bool
     /// Whether the current user has already sent their part signature to the server
@@ -59,22 +58,24 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         Logger.propose.debug("Server status: \(hashedPropose.status.rawValue, privacy: .public)")
 
         // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
-        var pendingServerPropose: HashedPropose? = nil
+        var hasPendingCounterpartySignature = false
         if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
            counterparty.signSignature != nil,
            propose.counterpartySignSignature == nil {
-            pendingServerPropose = hashedPropose
+            hasPendingCounterpartySignature = true
             Logger.propose.info("Detected Counterparty signature from server: not yet reflected locally")
         }
 
         // Check if the server has reached a terminal state (honored/parted/dissolved) not yet reflected locally
-        var pendingStatusTransition: ProposeStatus? = nil
+        var hasPendingTerminalStatus = false
         let terminalStatuses: Set<ProposeStatus> = [.honored, .parted, .dissolved]
         if terminalStatuses.contains(hashedPropose.status),
            propose.localStatus != hashedPropose.status {
-            pendingStatusTransition = hashedPropose.status
+            hasPendingTerminalStatus = true
             Logger.propose.info("Detected terminal status from server: \(hashedPropose.status.rawValue, privacy: .public), not yet reflected locally")
         }
+
+        let pendingServerUpdate: HashedPropose? = (hasPendingCounterpartySignature || hasPendingTerminalStatus) ? hashedPropose : nil
 
         // Check if the current user has already sent their honor/part signature
         var myHonorSigned = false
@@ -91,8 +92,7 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
 
         return ProposeServerCheckResult(
             serverStatus: hashedPropose.status,
-            pendingServerPropose: pendingServerPropose,
-            pendingStatusTransition: pendingStatusTransition,
+            pendingServerUpdate: pendingServerUpdate,
             myHonorSigned: myHonorSigned,
             myPartSigned: myPartSigned
         )
