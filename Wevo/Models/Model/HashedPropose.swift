@@ -23,6 +23,32 @@ struct ProposeCounterparty: Codable {
     let partSignature: String?
     /// Timestamp used in the part message (ISO8601, nil = not yet executed)
     let partTimestamp: String?
+    /// Counterparty's dissolve signature (nil = not dissolved by counterparty)
+    let dissolveSignature: String?
+    /// Timestamp used in the counterparty's dissolve message (ISO8601, nil = not dissolved by counterparty)
+    let dissolveTimestamp: String?
+
+    init(
+        publicKey: String,
+        signSignature: String? = nil,
+        signTimestamp: String? = nil,
+        honorSignature: String? = nil,
+        honorTimestamp: String? = nil,
+        partSignature: String? = nil,
+        partTimestamp: String? = nil,
+        dissolveSignature: String? = nil,
+        dissolveTimestamp: String? = nil
+    ) {
+        self.publicKey = publicKey
+        self.signSignature = signSignature
+        self.signTimestamp = signTimestamp
+        self.honorSignature = honorSignature
+        self.honorTimestamp = honorTimestamp
+        self.partSignature = partSignature
+        self.partTimestamp = partTimestamp
+        self.dissolveSignature = dissolveSignature
+        self.dissolveTimestamp = dissolveTimestamp
+    }
 }
 
 /// Propose model for API communication
@@ -48,10 +74,10 @@ struct HashedPropose: Codable, Identifiable {
     let partCreatorTimestamp: String?
     /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
     let dissolvedAt: String?
-    /// Dissolve signature from the participant who dissolved (nil = not dissolved)
-    let dissolveSignature: String?
-    /// Public key of the participant who dissolved (nil = not dissolved)
-    let dissolvePublicKey: String?
+    /// Creator's dissolve signature (nil = not dissolved by creator)
+    let creatorDissolveSignature: String?
+    /// Timestamp used in the Creator's dissolve message (ISO8601, nil = not dissolved by creator)
+    let creatorDissolveTimestamp: String?
     /// Status managed by the server (reference value only)
     let status: ProposeStatus
     /// Signature scheme version (v1 = signerPublicKey embedded in every signed message)
@@ -70,8 +96,8 @@ struct HashedPropose: Codable, Identifiable {
         partCreatorSignature: String? = nil,
         partCreatorTimestamp: String? = nil,
         dissolvedAt: String? = nil,
-        dissolveSignature: String? = nil,
-        dissolvePublicKey: String? = nil,
+        creatorDissolveSignature: String? = nil,
+        creatorDissolveTimestamp: String? = nil,
         status: ProposeStatus = .proposed,
         signatureVersion: Int = 1,
         createdAt: Date,
@@ -87,8 +113,8 @@ struct HashedPropose: Codable, Identifiable {
         self.partCreatorSignature = partCreatorSignature
         self.partCreatorTimestamp = partCreatorTimestamp
         self.dissolvedAt = dissolvedAt
-        self.dissolveSignature = dissolveSignature
-        self.dissolvePublicKey = dissolvePublicKey
+        self.creatorDissolveSignature = creatorDissolveSignature
+        self.creatorDissolveTimestamp = creatorDissolveTimestamp
         self.status = status
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt

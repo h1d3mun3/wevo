@@ -29,7 +29,6 @@ struct ImportProposeUseCaseTests {
         creatorHonorTimestamp: String? = nil,
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
-        dissolvedAt: String? = nil,
         signatureVersion: Int = 1
     ) -> Propose {
         Propose(
@@ -49,7 +48,6 @@ struct ImportProposeUseCaseTests {
             creatorHonorTimestamp: creatorHonorTimestamp,
             creatorPartSignature: creatorPartSignature,
             creatorPartTimestamp: creatorPartTimestamp,
-            dissolvedAt: dissolvedAt,
             signatureVersion: signatureVersion,
             createdAt: Date(),
             updatedAt: Date()

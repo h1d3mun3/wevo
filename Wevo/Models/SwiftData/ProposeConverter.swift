@@ -31,9 +31,10 @@ struct ProposeConverter {
             creatorHonorTimestamp: propose.creatorHonorTimestamp,
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
-            dissolvedAt: propose.dissolvedAt,
             creatorDissolveSignature: propose.creatorDissolveSignature,
+            creatorDissolveTimestamp: propose.creatorDissolveTimestamp,
             counterpartyDissolveSignature: propose.counterpartyDissolveSignature,
+            counterpartyDissolveTimestamp: propose.counterpartyDissolveTimestamp,
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: propose.updatedAt
@@ -59,9 +60,10 @@ struct ProposeConverter {
             creatorHonorTimestamp: model.creatorHonorTimestamp,
             creatorPartSignature: model.creatorPartSignature,
             creatorPartTimestamp: model.creatorPartTimestamp,
-            dissolvedAt: model.dissolvedAt,
             creatorDissolveSignature: model.creatorDissolveSignature,
+            creatorDissolveTimestamp: model.creatorDissolveTimestamp,
             counterpartyDissolveSignature: model.counterpartyDissolveSignature,
+            counterpartyDissolveTimestamp: model.counterpartyDissolveTimestamp,
             signatureVersion: model.signatureVersion,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
@@ -92,9 +94,10 @@ struct ProposeConverter {
         model.creatorHonorTimestamp = propose.creatorHonorTimestamp
         model.creatorPartSignature = propose.creatorPartSignature
         model.creatorPartTimestamp = propose.creatorPartTimestamp
-        model.dissolvedAt = propose.dissolvedAt
         model.creatorDissolveSignature = propose.creatorDissolveSignature
+        model.creatorDissolveTimestamp = propose.creatorDissolveTimestamp
         model.counterpartyDissolveSignature = propose.counterpartyDissolveSignature
+        model.counterpartyDissolveTimestamp = propose.counterpartyDissolveTimestamp
         model.signatureVersion = propose.signatureVersion
         model.updatedAt = Date()
 

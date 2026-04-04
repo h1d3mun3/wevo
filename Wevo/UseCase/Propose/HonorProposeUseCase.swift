@@ -61,9 +61,10 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
             creatorHonorTimestamp: isCreator ? timestamp : propose.creatorHonorTimestamp,
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
-            dissolvedAt: propose.dissolvedAt,
             creatorDissolveSignature: propose.creatorDissolveSignature,
+            creatorDissolveTimestamp: propose.creatorDissolveTimestamp,
             counterpartyDissolveSignature: propose.counterpartyDissolveSignature,
+            counterpartyDissolveTimestamp: propose.counterpartyDissolveTimestamp,
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()
