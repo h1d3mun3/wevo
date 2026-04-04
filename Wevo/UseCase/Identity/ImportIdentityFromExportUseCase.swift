@@ -23,6 +23,7 @@ enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
 }
 
 protocol ImportIdentityFromExportUseCase {
+    func readFromFile(url: URL) throws -> IdentityPlainExport
     func execute(exportData: IdentityPlainExport) throws
 }
 
@@ -56,5 +57,12 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
             nickname: exportData.nickname,
             privateKey: privateKeyData
         )
+    }
+
+    func readFromFile(url: URL) throws -> IdentityPlainExport {
+        let data = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(IdentityPlainExport.self, from: data)
     }
 }

@@ -9,6 +9,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct ExportProposeUseCaseTests {
 
     let space = Space(
@@ -60,10 +61,13 @@ struct ExportProposeUseCaseTests {
 
     @Test("Import of exported file yields the same data")
     func exportImportRoundTrip() throws {
-        let useCase = ExportProposeUseCaseImpl()
-        let url = try useCase.execute(propose: propose, space: space)
+        let exportUseCase = ExportProposeUseCaseImpl()
+        let url = try exportUseCase.execute(propose: propose, space: space)
 
-        let imported = try ProposeExporter.importPropose(from: url)
+        let mockKeychainRepository = MockKeychainRepository()
+        let mockProposeRepository = MockProposeRepository()
+        let importUseCase = ImportProposeUseCaseImpl(proposeRepository: mockProposeRepository, keychainRepository: mockKeychainRepository)
+        let imported = try importUseCase.readFromFile(url: url)
         #expect(imported.propose.id == propose.id)
         #expect(imported.propose.message == propose.message)
         #expect(imported.spaceName == space.name)
