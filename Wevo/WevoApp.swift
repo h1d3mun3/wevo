@@ -160,20 +160,21 @@ struct WevoApp: App {
     
     private func prepareImport(from url: URL) {
         do {
-            let exportData = try ProposeExporter.importPropose(from: url)
+            let useCase = ImportProposeUseCaseImpl(proposeRepository: container.proposeRepository, keychainRepository: container.keychainRepository)
+            let exportData = try useCase.readFromFile(url: url)
 
             let spaces = try container.spaceRepository.fetchAll()
-            
+
             guard !spaces.isEmpty else {
                 Logger.app.error("No spaces found. Cannot import propose.")
                 cleanup()
                 return
             }
-            
+
             importedProposeData = (propose: exportData.propose, spaceID: exportData.spaceID)
             availableSpaces = spaces
             showSpaceSelector = true
-            
+
         } catch {
             Logger.app.error("Error preparing import: \(error, privacy: .public)")
             cleanup()
@@ -182,7 +183,8 @@ struct WevoApp: App {
 
     private func prepareIdentityImport(from url: URL) {
         do {
-            let plain = try IdentityPlainTransfer.importPlainFromFile(url: url)
+            let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: container.keychainRepository)
+            let plain = try useCase.readFromFile(url: url)
             pendingIdentityPlain = plain
             showIdentityImportSheet = true
         } catch {
@@ -203,7 +205,8 @@ struct WevoApp: App {
 
     private func prepareContactImport(from url: URL) {
         do {
-            pendingContactExport = try ContactTransfer.importFromFile(url: url)
+            let useCase = ImportContactFromExportUseCaseImpl(contactRepository: container.contactRepository)
+            pendingContactExport = try useCase.readFromFile(url: url)
             showContactImportSheet = true
         } catch {
             Logger.app.error("Error preparing contact import: \(error, privacy: .public)")
