@@ -70,8 +70,8 @@ struct CanSignProposeUseCaseTests {
         #expect(result == false)
     }
 
-    @Test func testReturnsFalseWhenProposeHasFinalStatus() {
-        // Arrange
+    @Test func testReturnsFalseWhenProposeIsHonored() {
+        // Arrange: honored state requires both creator and counterparty honor signatures
         let identity = Identity(id: UUID(), nickname: "Counterparty", publicKey: counterpartyPublicKey)
         let propose = Propose(
             id: UUID(),
@@ -81,7 +81,10 @@ struct CanSignProposeUseCaseTests {
             creatorSignature: "creatorSig",
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: "sig",
-            finalStatus: .honored,
+            counterpartyHonorSignature: "counterpartyHonorSig",
+            counterpartyHonorTimestamp: "2026-01-02T00:00:00Z",
+            creatorHonorSignature: "creatorHonorSig",
+            creatorHonorTimestamp: "2026-01-03T00:00:00Z",
             createdAt: .now,
             updatedAt: .now
         )
@@ -90,7 +93,7 @@ struct CanSignProposeUseCaseTests {
         // Act
         let result = useCase.execute(identity: identity, propose: propose)
 
-        // Assert
+        // Assert: localStatus is .honored, so cannot sign
         #expect(result == false)
     }
 

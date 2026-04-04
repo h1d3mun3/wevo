@@ -32,7 +32,6 @@ struct ProposeConverter {
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
-            finalStatus: propose.finalStatus?.rawValue,
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: propose.updatedAt
@@ -59,7 +58,6 @@ struct ProposeConverter {
             creatorPartSignature: model.creatorPartSignature,
             creatorPartTimestamp: model.creatorPartTimestamp,
             dissolvedAt: model.dissolvedAt,
-            finalStatus: model.finalStatus.flatMap { ProposeStatus(rawValue: $0) },
             signatureVersion: model.signatureVersion,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
@@ -91,10 +89,9 @@ struct ProposeConverter {
         model.creatorPartSignature = propose.creatorPartSignature
         model.creatorPartTimestamp = propose.creatorPartTimestamp
         model.dissolvedAt = propose.dissolvedAt
-        model.finalStatus = propose.finalStatus?.rawValue
         model.signatureVersion = propose.signatureVersion
         model.updatedAt = Date()
 
-        Logger.propose.debug("ProposeSwiftData update complete: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil", privacy: .private), finalStatus=\(propose.finalStatus?.rawValue ?? "nil", privacy: .public)")
+        Logger.propose.debug("ProposeSwiftData update complete: counterpartySignSignature=\(propose.counterpartySignSignature ?? "nil", privacy: .private)")
     }
 }

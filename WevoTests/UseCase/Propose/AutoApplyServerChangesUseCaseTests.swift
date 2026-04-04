@@ -17,8 +17,7 @@ struct AutoApplyServerChangesUseCaseTests {
 
     private func makePropose(
         id: UUID = UUID(),
-        counterpartySignSignature: String? = nil,
-        finalStatus: ProposeStatus? = nil
+        counterpartySignSignature: String? = nil
     ) -> Propose {
         Propose(
             id: id,
@@ -28,7 +27,6 @@ struct AutoApplyServerChangesUseCaseTests {
             creatorSignature: "creatorSig",
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
-            finalStatus: finalStatus,
             createdAt: .now,
             updatedAt: .now
         )
@@ -101,9 +99,8 @@ struct AutoApplyServerChangesUseCaseTests {
         // Act
         try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
 
-        // Assert: update was called (for terminal status)
+        // Assert: AppendServerSignatures was called (terminal status triggers pendingServerUpdate)
         #expect(mockRepository.updateCalled == true)
-        #expect(mockRepository.updatedPropose?.finalStatus == .honored)
     }
 
     @Test func testDoesNothingWhenNoPendingChanges() async throws {

@@ -49,7 +49,6 @@ extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignature
             creatorPartSignature: serverPropose.partCreatorSignature ?? localPropose.creatorPartSignature,
             creatorPartTimestamp: serverPropose.partCreatorTimestamp ?? localPropose.creatorPartTimestamp,
             dissolvedAt: serverPropose.dissolvedAt ?? localPropose.dissolvedAt,
-            finalStatus: localPropose.finalStatus,
             signatureVersion: localPropose.signatureVersion,
             createdAt: localPropose.createdAt,
             updatedAt: Date()

@@ -63,9 +63,6 @@ final class ProposeSwiftData {
     /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
     var dissolvedAt: String? = nil
 
-    /// Terminal server status reflected locally (honored/parted/dissolved raw value; nil = not yet finalized)
-    var finalStatus: String? = nil
-
     /// Signature scheme version applied to all signatures on this Propose
     var signatureVersion: Int = 1
 
@@ -88,7 +85,6 @@ final class ProposeSwiftData {
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
-        finalStatus: String? = nil,
         signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
@@ -111,7 +107,6 @@ final class ProposeSwiftData {
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
         self.dissolvedAt = dissolvedAt
-        self.finalStatus = finalStatus
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt

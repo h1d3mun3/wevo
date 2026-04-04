@@ -30,7 +30,6 @@ struct ImportProposeUseCaseTests {
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
-        finalStatus: ProposeStatus? = nil,
         signatureVersion: Int = 1
     ) -> Propose {
         Propose(
@@ -51,7 +50,6 @@ struct ImportProposeUseCaseTests {
             creatorPartSignature: creatorPartSignature,
             creatorPartTimestamp: creatorPartTimestamp,
             dissolvedAt: dissolvedAt,
-            finalStatus: finalStatus,
             signatureVersion: signatureVersion,
             createdAt: Date(),
             updatedAt: Date()
@@ -165,28 +163,6 @@ struct ImportProposeUseCaseTests {
 
         #expect(mock.updatedPropose?.counterpartySignSignature == "existingSig")
         #expect(mock.updatedPropose?.counterpartySignTimestamp == "2026-01-01T00:00:00Z")
-    }
-
-    @Test func testIncomingFinalStatusIsMerged() throws {
-        let mock = MockProposeRepository()
-        let proposeID = UUID()
-        mock.fetchByIDResult = makePropose(id: proposeID, finalStatus: nil)
-        let useCase = makeUseCase(proposeRepository: mock)
-
-        try useCase.execute(propose: makePropose(id: proposeID, finalStatus: .honored), spaceID: UUID())
-
-        #expect(mock.updatedPropose?.finalStatus == .honored)
-    }
-
-    @Test func testLocalFinalStatusPreservedWhenIncomingIsNil() throws {
-        let mock = MockProposeRepository()
-        let proposeID = UUID()
-        mock.fetchByIDResult = makePropose(id: proposeID, finalStatus: .honored)
-        let useCase = makeUseCase(proposeRepository: mock)
-
-        try useCase.execute(propose: makePropose(id: proposeID, finalStatus: nil), spaceID: UUID())
-
-        #expect(mock.updatedPropose?.finalStatus == .honored)
     }
 
     @Test func testUpdateErrorThrowsFailedToSave() throws {
