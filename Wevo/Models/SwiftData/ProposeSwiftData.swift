@@ -63,6 +63,12 @@ final class ProposeSwiftData {
     /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
     var dissolvedAt: String? = nil
 
+    /// Creator's dissolve signature (nil = not dissolved by creator)
+    var creatorDissolveSignature: String? = nil
+
+    /// Counterparty's dissolve signature (nil = not dissolved by counterparty)
+    var counterpartyDissolveSignature: String? = nil
+
     /// Signature scheme version applied to all signatures on this Propose
     var signatureVersion: Int = 1
 
@@ -85,6 +91,8 @@ final class ProposeSwiftData {
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
+        creatorDissolveSignature: String? = nil,
+        counterpartyDissolveSignature: String? = nil,
         signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
@@ -107,6 +115,8 @@ final class ProposeSwiftData {
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
         self.dissolvedAt = dissolvedAt
+        self.creatorDissolveSignature = creatorDissolveSignature
+        self.counterpartyDissolveSignature = counterpartyDissolveSignature
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt

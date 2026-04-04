@@ -40,8 +40,8 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
         let identity = try keychainRepository.getIdentity(id: identityID)
 
         // Only creator or counterparty can dissolve
-        let isParticipant = identity.publicKey == propose.creatorPublicKey
-            || identity.publicKey == propose.counterpartyPublicKey
+        let isCreator = identity.publicKey == propose.creatorPublicKey
+        let isParticipant = isCreator || identity.publicKey == propose.counterpartyPublicKey
         guard isParticipant else {
             throw DissolveProposeUseCaseError.notParticipant
         }
@@ -52,7 +52,7 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
         let message = "dissolved." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
-        // Save locally first (dissolvedAt stores the timestamp; no dedicated signature field exists)
+        // Save locally first
         let updatedPropose = Propose(
             id: propose.id,
             spaceID: propose.spaceID,
@@ -71,13 +71,14 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: timestamp,
-
+            creatorDissolveSignature: isCreator ? signature : propose.creatorDissolveSignature,
+            counterpartyDissolveSignature: isCreator ? propose.counterpartyDissolveSignature : signature,
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()
         )
         try proposeRepository.update(updatedPropose)
-        Logger.propose.info("Saved Dissolve timestamp locally: \(propose.id, privacy: .private)")
+        Logger.propose.info("Saved Dissolve signature locally: \(propose.id, privacy: .private)")
 
         // Send to server
         let input = ProposeAPIClient.TransitionInput(

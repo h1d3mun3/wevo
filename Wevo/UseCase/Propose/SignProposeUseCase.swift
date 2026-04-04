@@ -75,7 +75,8 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
-
+            creatorDissolveSignature: propose.creatorDissolveSignature,
+            counterpartyDissolveSignature: propose.counterpartyDissolveSignature,
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()

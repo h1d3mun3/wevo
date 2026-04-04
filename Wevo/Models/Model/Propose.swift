@@ -62,6 +62,12 @@ struct Propose: Codable, Identifiable {
     /// Timestamp when the propose was dissolved (ISO8601, nil = not dissolved)
     let dissolvedAt: String?
 
+    /// Creator's dissolve signature (nil = not dissolved by creator)
+    let creatorDissolveSignature: String?
+
+    /// Counterparty's dissolve signature (nil = not dissolved by counterparty)
+    let counterpartyDissolveSignature: String?
+
     /// Signature scheme version applied to all signatures on this Propose
     /// v1: all operations include a "proposed."/"signed."/"honored."/"parted."/"dissolved." prefix
     ///     and embed the signer's public key in the signed message
@@ -80,7 +86,7 @@ struct Propose: Codable, Identifiable {
     /// Status derived from the presence of local signatures and finalized server status
     /// The status field received from the server is a reference value only; use this instead
     var localStatus: ProposeStatus {
-        if dissolvedAt != nil { return .dissolved }
+        if creatorDissolveSignature != nil || counterpartyDissolveSignature != nil { return .dissolved }
         if creatorHonorSignature != nil && counterpartyHonorSignature != nil { return .honored }
         if creatorPartSignature != nil || counterpartyPartSignature != nil { return .parted }
         if counterpartySignSignature != nil { return .signed }
@@ -105,6 +111,8 @@ struct Propose: Codable, Identifiable {
         creatorPartSignature: String? = nil,
         creatorPartTimestamp: String? = nil,
         dissolvedAt: String? = nil,
+        creatorDissolveSignature: String? = nil,
+        counterpartyDissolveSignature: String? = nil,
         signatureVersion: Int = 1,
         createdAt: Date,
         updatedAt: Date
@@ -128,6 +136,8 @@ struct Propose: Codable, Identifiable {
         self.creatorPartSignature = creatorPartSignature
         self.creatorPartTimestamp = creatorPartTimestamp
         self.dissolvedAt = dissolvedAt
+        self.creatorDissolveSignature = creatorDissolveSignature
+        self.counterpartyDissolveSignature = counterpartyDissolveSignature
         self.signatureVersion = signatureVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt
