@@ -62,6 +62,10 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
             creatorPartSignature: isCreator ? signature : propose.creatorPartSignature,
             creatorPartTimestamp: isCreator ? timestamp : propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
+<<<<<<< HEAD
+=======
+            finalStatus: propose.finalStatus,
+>>>>>>> main
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()
