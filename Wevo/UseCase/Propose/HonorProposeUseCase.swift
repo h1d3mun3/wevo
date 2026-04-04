@@ -18,10 +18,12 @@ enum HonorProposeUseCaseError: Error {
 
 struct HonorProposeUseCaseImpl {
     let keychainRepository: KeychainRepository
+    let proposeRepository: ProposeRepository
     let apiClient: ProposeAPIClientProtocol?
 
-    init(keychainRepository: KeychainRepository, apiClient: ProposeAPIClientProtocol? = nil) {
+    init(keychainRepository: KeychainRepository, proposeRepository: ProposeRepository, apiClient: ProposeAPIClientProtocol? = nil) {
         self.keychainRepository = keychainRepository
+        self.proposeRepository = proposeRepository
         self.apiClient = apiClient
     }
 }
@@ -40,6 +42,35 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
         let message = "honored." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp
         let signature = try keychainRepository.signMessage(message, withIdentityId: identity.id)
 
+        // Save locally first
+        let isCreator = identity.publicKey == propose.creatorPublicKey
+        let updatedPropose = Propose(
+            id: propose.id,
+            spaceID: propose.spaceID,
+            message: propose.message,
+            creatorPublicKey: propose.creatorPublicKey,
+            creatorSignature: propose.creatorSignature,
+            counterpartyPublicKey: propose.counterpartyPublicKey,
+            counterpartySignSignature: propose.counterpartySignSignature,
+            counterpartySignTimestamp: propose.counterpartySignTimestamp,
+            counterpartyHonorSignature: isCreator ? propose.counterpartyHonorSignature : signature,
+            counterpartyHonorTimestamp: isCreator ? propose.counterpartyHonorTimestamp : timestamp,
+            counterpartyPartSignature: propose.counterpartyPartSignature,
+            counterpartyPartTimestamp: propose.counterpartyPartTimestamp,
+            creatorHonorSignature: isCreator ? signature : propose.creatorHonorSignature,
+            creatorHonorTimestamp: isCreator ? timestamp : propose.creatorHonorTimestamp,
+            creatorPartSignature: propose.creatorPartSignature,
+            creatorPartTimestamp: propose.creatorPartTimestamp,
+            dissolvedAt: propose.dissolvedAt,
+            finalStatus: propose.finalStatus,
+            signatureVersion: propose.signatureVersion,
+            createdAt: propose.createdAt,
+            updatedAt: Date()
+        )
+        try proposeRepository.update(updatedPropose)
+        Logger.propose.info("Saved Honor signature locally: \(propose.id, privacy: .private)")
+
+        // Send to server
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,

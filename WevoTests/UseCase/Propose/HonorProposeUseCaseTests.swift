@@ -41,7 +41,8 @@ struct HonorProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "honorSig"
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -62,7 +63,8 @@ struct HonorProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "sig"
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -78,7 +80,8 @@ struct HonorProposeUseCaseTests {
 
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Alice", publicKey: "creatorKey")
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: HonorProposeUseCaseError.invalidServerURL) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "not a url")
@@ -91,7 +94,8 @@ struct HonorProposeUseCaseTests {
 
         mockKeychain.getIdentityError = KeychainError.itemNotFound
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.itemNotFound) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
@@ -105,7 +109,8 @@ struct HonorProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageError = KeychainError.biometricAuthFailed
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.biometricAuthFailed) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
@@ -121,7 +126,8 @@ struct HonorProposeUseCaseTests {
         mockKeychain.signMessageResult = "sig"
         mockAPI.honorProposeerror = NSError(domain: "API", code: 409)
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: NSError.self) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")

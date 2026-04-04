@@ -577,10 +577,10 @@ struct ProposeRowView: View {
             signErrorMessage = nil
         }
 
-        let useCase = SignProposeServerOnlyUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = SignProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
 
         do {
-            let signature = try await useCase.execute(
+            try await useCase.execute(
                 propose: propose,
                 identityID: identity.id,
                 serverURL: space.url
@@ -595,7 +595,7 @@ struct ProposeRowView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { signSuccess = nil }
 
-        } catch SignProposeServerOnlyUseCaseError.notCounterparty {
+        } catch SignProposeUseCaseError.notCounterparty {
             Logger.propose.warning("This identity is not the Counterparty and cannot sign")
             await MainActor.run {
                 isSigning = false
@@ -628,7 +628,7 @@ struct ProposeRowView: View {
     private func dissolvePropose(with identity: Identity) async {
         await MainActor.run { isDissolving = true; dissolveSuccess = nil; dissolveErrorMessage = nil }
 
-        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
@@ -646,7 +646,7 @@ struct ProposeRowView: View {
     private func honorPropose(with identity: Identity) async {
         await MainActor.run { isHonoring = true; honorSuccess = nil; honorErrorMessage = nil }
 
-        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
@@ -664,7 +664,7 @@ struct ProposeRowView: View {
     private func partPropose(with identity: Identity) async {
         await MainActor.run { isParting = true; partSuccess = nil; partErrorMessage = nil }
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }

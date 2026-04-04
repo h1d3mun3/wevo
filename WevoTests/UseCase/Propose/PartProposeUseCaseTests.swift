@@ -41,7 +41,8 @@ struct PartProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "partSig"
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -62,7 +63,8 @@ struct PartProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageResult = "sig"
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
 
@@ -79,7 +81,8 @@ struct PartProposeUseCaseTests {
 
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Alice", publicKey: "creatorKey")
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: PartProposeUseCaseError.invalidServerURL) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "not a url")
@@ -92,7 +95,8 @@ struct PartProposeUseCaseTests {
 
         mockKeychain.getIdentityError = KeychainError.itemNotFound
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.itemNotFound) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
@@ -106,7 +110,8 @@ struct PartProposeUseCaseTests {
         mockKeychain.getIdentityResult = Identity(id: UUID(), nickname: "Alice", publicKey: "creatorKey")
         mockKeychain.signMessageError = KeychainError.biometricAuthFailed
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.biometricAuthFailed) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
@@ -122,7 +127,8 @@ struct PartProposeUseCaseTests {
         mockKeychain.signMessageResult = "sig"
         mockAPI.partProposeerror = NSError(domain: "API", code: 409)
 
-        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, apiClient: mockAPI)
+        let mockRepo = MockProposeRepository()
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: NSError.self) {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
