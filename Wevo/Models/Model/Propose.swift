@@ -83,12 +83,10 @@ struct Propose: Codable, Identifiable {
     /// Status derived from the presence of local signatures and finalized server status
     /// The status field received from the server is a reference value only; use this instead
     var localStatus: ProposeStatus {
-        if let finalStatus = finalStatus {
-            return finalStatus
-        }
-        if counterpartySignSignature != nil {
-            return .signed
-        }
+        if dissolvedAt != nil { return .dissolved }
+        if creatorHonorSignature != nil && counterpartyHonorSignature != nil { return .honored }
+        if creatorPartSignature != nil || counterpartyPartSignature != nil { return .parted }
+        if counterpartySignSignature != nil { return .signed }
         return .proposed
     }
 
