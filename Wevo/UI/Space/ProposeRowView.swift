@@ -50,6 +50,11 @@ struct ProposeRowView: View {
     @State private var dissolveSuccess: Bool?
     @State private var dissolveErrorMessage: String?
 
+    /// Whether the local Propose has a signature not yet delivered to the server
+    @State private var pendingLocalResend = false
+    /// Whether a local signature resend is in progress
+    @State private var isResendingLocalSignature = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Header section (message, timestamp, Counterparty nickname)
@@ -85,6 +90,15 @@ struct ProposeRowView: View {
 
             // Status messages
             statusMessages
+
+            // Pending local resend banner (local signature not yet on server)
+            if pendingLocalResend {
+                PendingLocalResendBannerView(isResending: isResendingLocalSignature) {
+                    Task { await resendLocalSignature() }
+                } onIgnore: {
+                    pendingLocalResend = false
+                }
+            }
 
             // Pending server update banner (counterparty signature or terminal status from server)
             if let serverUpdate = pendingServerUpdate {
@@ -513,6 +527,7 @@ struct ProposeRowView: View {
                 pendingServerUpdate = result.pendingServerUpdate
                 myHonorSigned = result.myHonorSigned
                 myPartSigned = result.myPartSigned
+                pendingLocalResend = result.pendingLocalResend
             }
 
         } catch CheckProposeServerStatusUseCaseError.proposeNotFound {
@@ -653,6 +668,25 @@ struct ProposeRowView: View {
             await MainActor.run { isParting = false; partSuccess = false; partErrorMessage = error.localizedDescription }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run { partSuccess = nil; partErrorMessage = nil }
+        }
+    }
+
+    private func resendLocalSignature() async {
+        guard let identity = await MainActor.run(body: { defaultIdentity }) else { return }
+
+        await MainActor.run { isResendingLocalSignature = true }
+
+        let useCase = SendLocalSignaturesToServerUseCaseImpl()
+        do {
+            try await useCase.execute(propose: propose, identityPublicKey: identity.publicKey, serverURL: space.url)
+            await MainActor.run {
+                isResendingLocalSignature = false
+                pendingLocalResend = false
+            }
+            Logger.propose.info("Resent local signature to server: \(propose.id, privacy: .private)")
+        } catch {
+            Logger.propose.error("Local signature resend error: \(error, privacy: .public)")
+            await MainActor.run { isResendingLocalSignature = false }
         }
     }
 
