@@ -62,10 +62,7 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
             creatorPartSignature: propose.creatorPartSignature,
             creatorPartTimestamp: propose.creatorPartTimestamp,
             dissolvedAt: propose.dissolvedAt,
-<<<<<<< HEAD
-=======
-            finalStatus: propose.finalStatus,
->>>>>>> main
+
             signatureVersion: propose.signatureVersion,
             createdAt: propose.createdAt,
             updatedAt: Date()
