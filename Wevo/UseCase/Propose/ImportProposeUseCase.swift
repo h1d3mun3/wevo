@@ -56,6 +56,8 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
                 creatorPartSignature: propose.creatorPartSignature ?? existing.creatorPartSignature,
                 creatorPartTimestamp: propose.creatorPartTimestamp ?? existing.creatorPartTimestamp,
                 dissolvedAt: propose.dissolvedAt ?? existing.dissolvedAt,
+                creatorDissolveSignature: propose.creatorDissolveSignature ?? existing.creatorDissolveSignature,
+                counterpartyDissolveSignature: propose.counterpartyDissolveSignature ?? existing.counterpartyDissolveSignature,
                 signatureVersion: existing.signatureVersion,
                 createdAt: existing.createdAt,
                 updatedAt: Date()
@@ -152,6 +154,32 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
             let message = "parted." + propose.id.uuidString + propose.payloadHash + propose.creatorPublicKey + timestamp
             guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
                 Logger.propose.warning("Import rejected: invalid creator part signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Creator dissolve signature
+        // v1: "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
+        if let sig = propose.creatorDissolveSignature {
+            guard let timestamp = propose.dissolvedAt else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "dissolved." + propose.id.uuidString + propose.payloadHash + propose.creatorPublicKey + timestamp
+            guard verify(sig, for: message, publicKey: propose.creatorPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid creator dissolve signature \(propose.id, privacy: .private)")
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+        }
+
+        // Counterparty dissolve signature
+        // v1: "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
+        if let sig = propose.counterpartyDissolveSignature {
+            guard let timestamp = propose.dissolvedAt else {
+                throw ImportProposeUseCaseError.invalidSignature
+            }
+            let message = "dissolved." + propose.id.uuidString + propose.payloadHash + propose.counterpartyPublicKey + timestamp
+            guard verify(sig, for: message, publicKey: propose.counterpartyPublicKey) else {
+                Logger.propose.warning("Import rejected: invalid counterparty dissolve signature \(propose.id, privacy: .private)")
                 throw ImportProposeUseCaseError.invalidSignature
             }
         }
