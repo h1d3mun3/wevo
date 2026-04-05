@@ -94,4 +94,44 @@ struct AddSpaceUseCaseTests {
             try await useCase.execute(name: "Space", urls: ["url"], defaultIdentityID: nil)
         }
     }
+
+    @Test func testStoresAllURLsWhenMultipleProvided() async throws {
+        // Arrange
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
+
+        // Act
+        try await useCase.execute(
+            name: "Space",
+            urls: ["https://node-a.example.com", "https://node-b.example.com", "https://node-c.example.com"],
+            defaultIdentityID: nil
+        )
+
+        // Assert
+        let createdSpace = mockRepository.createdSpace
+        #expect(createdSpace?.urls.count == 3)
+        #expect(createdSpace?.urls.first == "https://node-a.example.com")
+        #expect(createdSpace?.url == "https://node-a.example.com")
+    }
+
+    @Test func testFiltersEmptyURLsFromList() async throws {
+        // Arrange
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
+
+        // Act
+        try await useCase.execute(
+            name: "Space",
+            urls: ["https://node-a.example.com", "", "  ", "https://node-b.example.com"],
+            defaultIdentityID: nil
+        )
+
+        // Assert
+        let createdSpace = mockRepository.createdSpace
+        #expect(createdSpace?.urls.count == 2)
+    }
 }

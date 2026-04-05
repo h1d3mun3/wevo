@@ -6,10 +6,19 @@
 import Foundation
 import os
 
-enum FetchServerInfoUseCaseError: Error {
+enum FetchServerInfoUseCaseError: Error, Equatable {
     case invalidURL
     case serverError(statusCode: Int)
     case decodingError(Error)
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL): return true
+        case (.serverError(let a), .serverError(let b)): return a == b
+        case (.decodingError, .decodingError): return true
+        default: return false
+        }
+    }
 }
 
 /// Result of a successful /info call.
@@ -21,11 +30,21 @@ protocol FetchServerInfoUseCase {
     func execute(urlString: String) async throws -> WevoServerInfo
 }
 
-struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
-    private let session: URLSession
+// MARK: - HTTP abstraction (enables test injection without URLProtocol)
 
-    init(session: URLSession = .shared) {
-        self.session = session
+protocol HTTPDataFetching: Sendable {
+    func data(from url: URL) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: HTTPDataFetching {}
+
+// MARK: - Implementation
+
+struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
+    private let httpClient: any HTTPDataFetching
+
+    init(httpClient: any HTTPDataFetching = URLSession.shared) {
+        self.httpClient = httpClient
     }
 
     func execute(urlString: String) async throws -> WevoServerInfo {
@@ -35,7 +54,7 @@ struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
         }
         let url = base.appendingPathComponent("info")
 
-        let (data, response) = try await session.data(from: url)
+        let (data, response) = try await httpClient.data(from: url)
 
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw FetchServerInfoUseCaseError.serverError(statusCode: http.statusCode)
