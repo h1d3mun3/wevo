@@ -13,6 +13,8 @@ final class SpaceSwiftData {
     var id: UUID = UUID()
     var name: String = ""
     var urlString: String = ""
+    /// All node URLs (primary + peers). Empty for legacy records — converter falls back to urlString.
+    var nodeURLs: [String] = []
     var defaultIdentityID: UUID?
     var orderIndex: Int = 0
     var createdAt: Date = Date()
