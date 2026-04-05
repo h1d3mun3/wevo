@@ -16,7 +16,7 @@ enum SignProposeUseCaseError: Error {
 }
 
 protocol SignProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws
 }
 
 struct SignProposeUseCaseImpl {
@@ -32,9 +32,8 @@ struct SignProposeUseCaseImpl {
 }
 
 extension SignProposeUseCaseImpl: SignProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL),
-              baseURL.scheme == "https" || baseURL.scheme == "http" else {
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw SignProposeUseCaseError.invalidServerURL
         }
 
@@ -98,7 +97,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             timestamp: signTimestamp
         )
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         try await client.signPropose(proposeID: propose.id, input: input)
         Logger.propose.info("Sent Counterparty signature to server: \(propose.id, privacy: .private)")
     }

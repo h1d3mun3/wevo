@@ -14,8 +14,8 @@ protocol SendLocalSignaturesToServerUseCase {
     /// - Parameters:
     ///   - propose: The target Propose
     ///   - identityPublicKey: Public key of the acting identity
-    ///   - serverURL: Server URL
-    func execute(propose: Propose, identityPublicKey: String, serverURL: String) async throws
+    ///   - serverURLs: Server node URLs
+    func execute(propose: Propose, identityPublicKey: String, serverURLs: [String]) async throws
 }
 
 enum SendLocalSignaturesToServerUseCaseError: Error {
@@ -32,12 +32,12 @@ struct SendLocalSignaturesToServerUseCaseImpl {
 }
 
 extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUseCase {
-    func execute(propose: Propose, identityPublicKey: String, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL) else {
+    func execute(propose: Propose, identityPublicKey: String, serverURLs: [String]) async throws {
+        guard !serverURLs.isEmpty else {
             throw SendLocalSignaturesToServerUseCaseError.invalidServerURL
         }
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         let isCreator = identityPublicKey == propose.creatorPublicKey
         let isCounterparty = identityPublicKey == propose.counterpartyPublicKey
 

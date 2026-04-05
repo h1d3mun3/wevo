@@ -24,7 +24,7 @@ struct ProposeServerCheckResult {
 }
 
 protocol CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String, myPublicKey: String?) async throws -> ProposeServerCheckResult
+    func execute(propose: Propose, serverURLs: [String], myPublicKey: String?) async throws -> ProposeServerCheckResult
 }
 
 enum CheckProposeServerStatusUseCaseError: Error {
@@ -41,12 +41,12 @@ struct CheckProposeServerStatusUseCaseImpl {
 }
 
 extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
-    func execute(propose: Propose, serverURL: String, myPublicKey: String? = nil) async throws -> ProposeServerCheckResult {
-        guard let baseURL = URL(string: serverURL) else {
+    func execute(propose: Propose, serverURLs: [String], myPublicKey: String? = nil) async throws -> ProposeServerCheckResult {
+        guard !serverURLs.isEmpty else {
             throw CheckProposeServerStatusUseCaseError.invalidServerURL
         }
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         let hashedPropose: HashedPropose
         do {
             hashedPropose = try await client.getPropose(proposeID: propose.id)

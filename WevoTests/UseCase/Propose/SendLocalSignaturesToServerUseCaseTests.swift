@@ -43,7 +43,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: when IdentityPublicKey matches CounterpartyPublicKey
-        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
         // Assert: signPropose endpoint was called
         #expect(mockAPI.signProposeCalled == true)
@@ -60,7 +60,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: third-party key (neither creator nor counterparty) is silently skipped
-        try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURLs: ["https://example.com"])
 
         // Assert: no API call made
         #expect(mockAPI.signProposeCalled == false)
@@ -75,7 +75,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert: creator with no pending signatures → noSignatureFound
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -90,7 +90,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -104,7 +104,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: [])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -119,7 +119,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: ProposeAPIClient.APIError.self) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
     }
 
@@ -132,7 +132,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
     }

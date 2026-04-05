@@ -9,7 +9,7 @@ import Foundation
 import os
 
 protocol ResendProposeToServerUseCase {
-    func execute(propose: Propose, serverURL: String) async throws
+    func execute(propose: Propose, serverURLs: [String]) async throws
 }
 
 enum ResendProposeToServerUseCaseError: Error {
@@ -26,8 +26,8 @@ struct ResendProposeToServerUseCaseImpl {
 }
 
 extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
-    func execute(propose: Propose, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL) else {
+    func execute(propose: Propose, serverURLs: [String]) async throws {
+        guard !serverURLs.isEmpty else {
             throw ResendProposeToServerUseCaseError.invalidServerURL
         }
 
@@ -49,7 +49,7 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
             createdAt: iso8601String
         )
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         try await client.createPropose(input: input)
 
         Logger.propose.info("Resent Propose to server: \(propose.id, privacy: .private)")
