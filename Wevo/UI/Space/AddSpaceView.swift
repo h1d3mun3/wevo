@@ -113,20 +113,28 @@ struct AddSpaceView: View {
 
     private func add() {
         guard canSave else { return }
-        
+
         isSaving = true
 
-        let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+        Task {
+            // Discover peers from the entered URL's /info endpoint.
+            // If unreachable, proceed with only the entered URL (graceful degradation).
+            let primaryURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            var allURLs = [primaryURL]
+            let fetchInfo = FetchServerInfoUseCaseImpl()
+            if let info = try? await fetchInfo.execute(urlString: primaryURL) {
+                let peers = info.peers.filter { $0 != primaryURL }
+                allURLs.append(contentsOf: peers)
+            }
 
-        do {
-            try addSpaceUseCase.execute(name: name, urlString: urlString, defaultIdentityID: selectedIdentityID)
-
-            isSaving = false
-            dismiss()
-        } catch {
-            Logger.space.error("Error saving space: \(error, privacy: .public)")
-            isSaving = false
-            saveError = error.localizedDescription
+            let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+            do {
+                try addSpaceUseCase.execute(name: name, urls: allURLs, defaultIdentityID: selectedIdentityID)
+                await MainActor.run { isSaving = false; dismiss() }
+            } catch {
+                Logger.space.error("Error saving space: \(error, privacy: .public)")
+                await MainActor.run { isSaving = false; saveError = error.localizedDescription }
+            }
         }
     }
 }

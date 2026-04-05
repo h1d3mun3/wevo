@@ -24,7 +24,7 @@ struct AddSpaceUseCaseTests {
         let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
-        try await useCase.execute(name: "New Space", urlString: "https://example.com", defaultIdentityID: nil)
+        try await useCase.execute(name: "New Space", urls: ["https://example.com"], defaultIdentityID: nil)
 
         // Assert
         #expect(mockRepository.createCalled == true)
@@ -41,7 +41,7 @@ struct AddSpaceUseCaseTests {
         let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert - should not throw
-        try await useCase.execute(name: "New Space", urlString: "https://example.com", defaultIdentityID: nil)
+        try await useCase.execute(name: "New Space", urls: ["https://example.com"], defaultIdentityID: nil)
         #expect(mockRepository.createCalled == true)
         let createdSpace = mockRepository.createdSpace
         #expect(createdSpace?.orderIndex == 0)
@@ -55,7 +55,7 @@ struct AddSpaceUseCaseTests {
         let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
-        try await useCase.execute(name: "  My Space  ", urlString: "  https://example.com  ", defaultIdentityID: nil)
+        try await useCase.execute(name: "  My Space  ", urls: ["  https://example.com  "], defaultIdentityID: nil)
 
         // Assert
         #expect(mockRepository.createCalled == true)
@@ -73,7 +73,7 @@ struct AddSpaceUseCaseTests {
         let useCase = AddSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
-        try await useCase.execute(name: "Space", urlString: "url", defaultIdentityID: defaultIdentityID)
+        try await useCase.execute(name: "Space", urls: ["url"], defaultIdentityID: defaultIdentityID)
 
         // Assert
         #expect(mockRepository.createCalled == true)
@@ -91,7 +91,7 @@ struct AddSpaceUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(name: "Space", urlString: "url", defaultIdentityID: nil)
+            try await useCase.execute(name: "Space", urls: ["url"], defaultIdentityID: nil)
         }
     }
 }

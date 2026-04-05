@@ -148,11 +148,26 @@ struct EditSpaceView: View {
             errorMessage = nil
         }
 
+        // Re-discover peers from the (possibly updated) primary URL.
+        // If unreachable, preserve the existing peer list or fall back to the entered URL alone.
+        let primaryURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        var allURLs = [primaryURL]
+        let fetchInfo = FetchServerInfoUseCaseImpl()
+        if let info = try? await fetchInfo.execute(urlString: primaryURL) {
+            let peers = info.peers.filter { $0 != primaryURL }
+            allURLs.append(contentsOf: peers)
+        } else if space.urls.count > 1 {
+            // Keep known peers if /info is temporarily unreachable
+            allURLs = space.urls.map {
+                $0 == space.url ? primaryURL : $0
+            }
+        }
+
         do {
             try editSpaceUseCase.execute(
                 id: space.id,
                 name: name,
-                urlString: url,
+                urls: allURLs,
                 defaultIdentityID: selectedIdentity?.id
             )
 
