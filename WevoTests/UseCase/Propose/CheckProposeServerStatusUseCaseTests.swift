@@ -67,7 +67,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.serverStatus == .proposed)
         #expect(mockAPI.getProposeCalledWithID == propose.id)
@@ -84,7 +84,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate != nil)
         #expect(result.pendingServerUpdate?.counterparties.first?.signSignature == "serverCounterpartySig")
@@ -102,7 +102,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate == nil)
     }
@@ -118,7 +118,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate == nil)
         #expect(result.serverStatus == .proposed)
@@ -131,7 +131,7 @@ struct CheckProposeServerStatusUseCaseTests {
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         await #expect(throws: CheckProposeServerStatusUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: propose, serverURL: "", myPublicKey: nil)
+            try await useCase.execute(propose: propose, serverURLs: [], myPublicKey: nil)
         }
     }
 
@@ -143,7 +143,7 @@ struct CheckProposeServerStatusUseCaseTests {
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         await #expect(throws: CheckProposeServerStatusUseCaseError.proposeNotFound) {
-            try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+            try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
         }
     }
 
@@ -155,7 +155,7 @@ struct CheckProposeServerStatusUseCaseTests {
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         await #expect(throws: ProposeAPIClient.APIError.self) {
-            try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+            try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
         }
     }
 
@@ -172,7 +172,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate != nil)
         #expect(result.pendingServerUpdate?.status == .honored)
@@ -190,7 +190,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate != nil)
         #expect(result.pendingServerUpdate?.status == .parted)
@@ -207,7 +207,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate != nil)
         #expect(result.pendingServerUpdate?.status == .dissolved)
@@ -239,7 +239,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.pendingServerUpdate == nil)
     }
@@ -255,7 +255,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         // .signed is not a terminal state, so no pendingStatusTransition;
         // but counterparty signature is new, so pendingServerUpdate is set
@@ -281,7 +281,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: creatorPublicKey)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: creatorPublicKey)
 
         #expect(result.myHonorSigned == true)
         #expect(result.myPartSigned == false)
@@ -304,7 +304,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: counterpartyPublicKey)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: counterpartyPublicKey)
 
         #expect(result.myHonorSigned == true)
         #expect(result.myPartSigned == false)
@@ -321,7 +321,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: creatorPublicKey)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: creatorPublicKey)
 
         #expect(result.myHonorSigned == false)
         #expect(result.myPartSigned == false)
@@ -338,7 +338,7 @@ struct CheckProposeServerStatusUseCaseTests {
 
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: nil)
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: nil)
 
         #expect(result.myHonorSigned == false)
         #expect(result.myPartSigned == false)
@@ -372,7 +372,7 @@ struct CheckProposeServerStatusUseCaseTests {
         let useCase = CheckProposeServerStatusUseCaseImpl(apiClient: mockAPI)
 
         // Act: query with a key that is neither creator nor counterparty
-        let result = try await useCase.execute(propose: propose, serverURL: "https://example.com", myPublicKey: "unrelatedKey")
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: "unrelatedKey")
 
         // Assert: unrelated key reports unsigned
         #expect(result.myHonorSigned == false)

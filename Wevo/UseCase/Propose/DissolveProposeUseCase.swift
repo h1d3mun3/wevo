@@ -9,7 +9,7 @@ import Foundation
 import os
 
 protocol DissolveProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws
 }
 
 enum DissolveProposeUseCaseError: Error {
@@ -31,9 +31,8 @@ struct DissolveProposeUseCaseImpl {
 }
 
 extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL),
-              baseURL.scheme == "https" || baseURL.scheme == "http" else {
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw DissolveProposeUseCaseError.invalidServerURL
         }
 
@@ -88,7 +87,7 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
             timestamp: timestamp
         )
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         try await client.dissolvePropose(proposeID: propose.id, input: input)
         Logger.propose.info("Sent Dissolve to server: \(propose.id, privacy: .private)")
     }

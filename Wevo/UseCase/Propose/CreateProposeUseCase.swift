@@ -70,8 +70,8 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         Logger.propose.debug("Message: \(trimmedMessage, privacy: .private), contentHash: \(contentHash, privacy: .private)")
 
         // Send to API (only warn if it fails since it's already saved locally)
-        guard let baseURL = URL(string: space.url) else {
-            Logger.propose.warning("Invalid server URL: \(space.url, privacy: .private)")
+        guard !space.urls.isEmpty else {
+            Logger.propose.warning("No server URLs configured for space")
             return
         }
 
@@ -85,7 +85,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         )
 
         do {
-            let client = ProposeAPIClient(baseURL: baseURL)
+            let client = ResilientProposeAPIClient(urls: space.urls)
             try await client.createPropose(input: input)
             Logger.propose.info("Sent Propose to API: \(proposeID, privacy: .private)")
         } catch {

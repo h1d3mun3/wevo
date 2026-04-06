@@ -12,7 +12,8 @@ import SwiftData
 final class SpaceSwiftData {
     var id: UUID = UUID()
     var name: String = ""
-    var urlString: String = ""
+    /// All node URLs (primary + peers).
+    var nodeURLs: [String] = []
     var defaultIdentityID: UUID?
     var orderIndex: Int = 0
     var createdAt: Date = Date()
@@ -21,7 +22,7 @@ final class SpaceSwiftData {
     init(
         id: UUID,
         name: String,
-        urlString: String,
+        nodeURLs: [String],
         defaultIdentityID: UUID?,
         orderIndex: Int,
         createdAt: Date,
@@ -29,7 +30,7 @@ final class SpaceSwiftData {
     ) {
         self.id = id
         self.name = name
-        self.urlString = urlString
+        self.nodeURLs = nodeURLs
         self.defaultIdentityID = defaultIdentityID
         self.orderIndex = orderIndex
         self.createdAt = createdAt

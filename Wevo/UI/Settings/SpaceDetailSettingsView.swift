@@ -28,14 +28,24 @@ struct SpaceDetailSettingsView: View {
                         .textSelection(.enabled)
                 }
 
-                LabeledContent("URL") {
-                    Text(currentSpace.url)
-                        .font(.caption)
-                        .textSelection(.enabled)
-                }
-
                 LabeledContent("Order Index") {
                     Text("\(currentSpace.orderIndex)")
+                }
+            }
+
+            Section("Node URLs") {
+                if currentSpace.urls.isEmpty {
+                    Text("No URLs configured")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(Array(currentSpace.urls.enumerated()), id: \.offset) { index, url in
+                        LabeledContent(index == 0 ? "Primary" : "Peer \(index)") {
+                            Text(url)
+                                .font(.caption)
+                                .fontDesign(.monospaced)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
             }
 
@@ -97,12 +107,14 @@ struct SpaceDetailSettingsView: View {
     let space = Space(
         id: UUID(),
         name: "Preview Space",
-        url: "https://example.com",
+        urls: ["https://node-a.example.com", "https://node-b.example.com"],
         defaultIdentityID: UUID(),
         orderIndex: 1,
         createdAt: .now,
         updatedAt: .now
     )
 
-    SpaceDetailSettingsView(space: space)
+    NavigationStack {
+        SpaceDetailSettingsView(space: space)
+    }
 }

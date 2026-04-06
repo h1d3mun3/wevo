@@ -53,7 +53,7 @@ struct SignProposeUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+        try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
 
         // Assert: counterpartySignSignature is set
         #expect(mockPropose.updateCalled == true)
@@ -82,7 +82,7 @@ struct SignProposeUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+        try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
 
         // Assert: status is signed after signing
         #expect(mockPropose.updatedPropose?.localStatus == .signed)
@@ -110,7 +110,7 @@ struct SignProposeUseCaseTests {
 
         // Act & Assert: notCounterparty error is thrown
         await #expect(throws: SignProposeUseCaseError.notCounterparty) {
-            try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+            try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
         }
     }
 
@@ -134,7 +134,7 @@ struct SignProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SignProposeUseCaseError.notCounterparty) {
-            try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+            try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
         }
     }
 
@@ -161,7 +161,7 @@ struct SignProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SignProposeUseCaseError.failedToSavePropose) {
-            try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+            try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
         }
     }
 
@@ -180,7 +180,7 @@ struct SignProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: KeychainError.itemNotFound) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["https://example.com"])
         }
     }
 
@@ -206,7 +206,53 @@ struct SignProposeUseCaseTests {
 
         // Act & Assert
         await #expect(throws: KeychainError.biometricAuthFailed) {
-            try await useCase.execute(propose: testPropose, identityID: identityID, serverURL: "https://example.com")
+            try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
+        }
+    }
+
+    @Test func testThrowsWhenAPIFails() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockPropose = MockProposeRepository()
+        let mockAPI = MockProposeAPIClient()
+
+        let identityID = UUID()
+        let counterpartyKey = "counterpartyKey"
+        let testPropose = makePropose(counterpartyPublicKey: counterpartyKey)
+
+        let testIdentity = Identity(id: identityID, nickname: "Bob", publicKey: counterpartyKey)
+        mockKeychain.getIdentityResult = testIdentity
+        mockKeychain.signMessageResult = "signature"
+        mockAPI.signProposeError = NSError(domain: "Test", code: -1)
+
+        let useCase = SignProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            proposeRepository: mockPropose,
+            apiClient: mockAPI
+        )
+
+        // Act & Assert: local save succeeds but API send throws
+        await #expect(throws: NSError.self) {
+            try await useCase.execute(propose: testPropose, identityID: identityID, serverURLs: ["https://example.com"])
+        }
+        // local save was performed
+        #expect(mockPropose.updateCalled == true)
+    }
+
+    @Test func testThrowsInvalidServerURLWhenURLsEmpty() async throws {
+        // Arrange
+        let mockKeychain = MockKeychainRepository()
+        let mockPropose = MockProposeRepository()
+
+        let useCase = SignProposeUseCaseImpl(
+            keychainRepository: mockKeychain,
+            proposeRepository: mockPropose,
+            apiClient: MockProposeAPIClient()
+        )
+
+        // Act & Assert
+        await #expect(throws: SignProposeUseCaseError.invalidServerURL) {
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: [])
         }
     }
 }

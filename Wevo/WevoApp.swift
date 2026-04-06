@@ -24,7 +24,7 @@ struct WevoApp: App {
         )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, migrationPlan: SpaceMigrationPlan.self, configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -59,6 +59,7 @@ struct WevoApp: App {
 #endif
                 .task {
                     cleanupTemporaryFiles()
+                    await refreshSpacePeers()
                 }
                 .sheet(isPresented: $showSpaceSelector) {
                     if let proposeData = importedProposeData {
@@ -244,6 +245,11 @@ struct WevoApp: App {
     }
 
     /// Deletes private key and Propose export files in the temporary directory on app launch
+    private func refreshSpacePeers() async {
+        let useCase = RefreshSpacePeersUseCaseImpl(spaceRepository: container.spaceRepository)
+        await useCase.execute()
+    }
+
     private func cleanupTemporaryFiles() {
         let tempDir = FileManager.default.temporaryDirectory
         let sensitiveExtensions = ["wevo-identity", "wevo-propose", "wevo-contact"]

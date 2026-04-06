@@ -15,38 +15,38 @@ struct SpaceConverter {
         return SpaceSwiftData(
             id: space.id,
             name: space.name,
-            urlString: space.url,
+            nodeURLs: space.urls,
             defaultIdentityID: space.defaultIdentityID,
             orderIndex: space.orderIndex,
             createdAt: space.createdAt,
             updatedAt: space.updatedAt
         )
     }
-    
+
     /// Converts SpaceModel to a Space struct
     static func toEntity(from model: SpaceSwiftData) -> Space {
         return Space(
             id: model.id,
             name: model.name,
-            url: model.urlString,
+            urls: model.nodeURLs,
             defaultIdentityID: model.defaultIdentityID,
             orderIndex: model.orderIndex,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
         )
     }
-    
+
     /// Converts multiple SpaceModel objects
     static func toEntities(from models: [SpaceSwiftData]) -> [Space] {
         return models.map { model in
             toEntity(from: model)
         }
     }
-    
+
     /// Updates a SpaceModel with an existing Space struct
     static func updateModel(_ model: SpaceSwiftData, with space: Space) {
         model.name = space.name
-        model.urlString = space.url
+        model.nodeURLs = space.urls
         model.defaultIdentityID = space.defaultIdentityID
         model.orderIndex = space.orderIndex
         model.updatedAt = Date()

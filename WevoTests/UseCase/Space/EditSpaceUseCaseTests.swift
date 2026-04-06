@@ -54,7 +54,7 @@ struct EditSpaceUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(id: spaceID, name: "  Updated  ", urlString: "  new-url  ", defaultIdentityID: nil)
+        try await useCase.execute(id: spaceID, name: "  Updated  ", urls: ["  new-url  "], defaultIdentityID: nil)
 
         // Assert
         #expect(mockSpaceRepository.updateCalled == true)
@@ -88,7 +88,7 @@ struct EditSpaceUseCaseTests {
         )
 
         // Act
-        try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url", defaultIdentityID: defaultIdentityID)
+        try await useCase.execute(id: spaceID, name: "Updated", urls: ["new-url"], defaultIdentityID: defaultIdentityID)
 
         // Assert
         let updatedSpace = mockSpaceRepository.updatedSpace
@@ -96,6 +96,29 @@ struct EditSpaceUseCaseTests {
         #expect(updatedSpace?.defaultIdentityID == defaultIdentityID)
         #expect(updatedSpace?.orderIndex == 5)
         #expect(updatedSpace?.createdAt == createdAt)
+    }
+
+    @Test func testFiltersEmptyURLsFromList() async throws {
+        // Arrange
+        let mockSpaceRepository = MockSpaceRepository()
+        let mockGetSpaceUseCase = MockGetSpaceUseCase()
+
+        let spaceID = UUID()
+        mockGetSpaceUseCase.result = Space(
+            id: spaceID, name: "Space", url: "original-url",
+            defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now
+        )
+
+        let useCase = EditSpaceUseCaseImpl(
+            spaceRepository: mockSpaceRepository,
+            getSpaceUseCase: mockGetSpaceUseCase
+        )
+
+        // Act: include empty string and whitespace-only entries
+        try await useCase.execute(id: spaceID, name: "Space", urls: ["https://a.com", "", "   ", "https://b.com"], defaultIdentityID: nil)
+
+        // Assert: only non-empty entries remain
+        #expect(mockSpaceRepository.updatedSpace?.urls == ["https://a.com", "https://b.com"])
     }
 
     @Test func testThrowsWhenGetSpaceFails() async throws {
@@ -111,7 +134,7 @@ struct EditSpaceUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID(), name: "New", urlString: "new-url", defaultIdentityID: nil)
+            try await useCase.execute(id: UUID(), name: "New", urls: ["new-url"], defaultIdentityID: nil)
         }
     }
 
@@ -140,7 +163,7 @@ struct EditSpaceUseCaseTests {
 
         // Act & Assert
         await #expect(throws: NSError.self) {
-            try await useCase.execute(id: spaceID, name: "Updated", urlString: "new-url", defaultIdentityID: nil)
+            try await useCase.execute(id: spaceID, name: "Updated", urls: ["new-url"], defaultIdentityID: nil)
         }
     }
 }

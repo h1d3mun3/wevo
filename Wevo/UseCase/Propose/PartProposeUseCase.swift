@@ -9,7 +9,7 @@ import Foundation
 import os
 
 protocol PartProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws
 }
 
 enum PartProposeUseCaseError: Error {
@@ -29,9 +29,8 @@ struct PartProposeUseCaseImpl {
 }
 
 extension PartProposeUseCaseImpl: PartProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURL: String) async throws {
-        guard let baseURL = URL(string: serverURL),
-              baseURL.scheme == "https" || baseURL.scheme == "http" else {
+    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw PartProposeUseCaseError.invalidServerURL
         }
 
@@ -79,7 +78,7 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
             timestamp: timestamp
         )
 
-        let client = apiClient ?? ProposeAPIClient(baseURL: baseURL)
+        let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
         try await client.partPropose(proposeID: propose.id, input: input)
         Logger.propose.info("Sent Part to server: \(propose.id, privacy: .private)")
     }

@@ -9,7 +9,7 @@ import Foundation
 import os
 
 protocol AddSpaceUseCase {
-    func execute(name: String, urlString: String, defaultIdentityID: UUID?) throws
+    func execute(name: String, urls: [String], defaultIdentityID: UUID?) throws
 }
 
 struct AddSpaceUseCaseImpl {
@@ -21,9 +21,10 @@ struct AddSpaceUseCaseImpl {
 }
 
 extension AddSpaceUseCaseImpl: AddSpaceUseCase {
-    func execute(name: String, urlString: String, defaultIdentityID: UUID?) throws {
-        // Validate URL
-        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+    func execute(name: String, urls: [String], defaultIdentityID: UUID?) throws {
+        let trimmedURLs = urls
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
 
         // Fetch existing Spaces count to determine orderIndex
         let orderIndex: Int
@@ -39,7 +40,7 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
         let space = Space(
             id: UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            url: trimmedURL,
+            urls: trimmedURLs,
             defaultIdentityID: defaultIdentityID,
             orderIndex: orderIndex,
             createdAt: .now,

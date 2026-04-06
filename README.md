@@ -20,7 +20,7 @@ This is the iOS/macOS client application, built with SwiftUI and SwiftData. It h
 - Composing, signing, and verifying proposals (`Propose`)
 - Organizing proposals into spaces (local contexts)
 - Exporting and importing proposals, identities, and contacts via AirDrop and file sharing (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`)
-- Syncing with a WevoSpace server for multi-party coordination
+- Syncing with a WevoSpace server for multi-party coordination, with automatic failover across backup nodes when the primary is unavailable
 
 This is one implementation of the Wevo approach. The underlying ideas — signed proposals, portable identities, locally-owned history — could be implemented on other platforms or in other languages.
 
@@ -31,7 +31,6 @@ This is one implementation of the Wevo approach. The underlying ideas — signed
 The core flows work: create an identity, write a proposal, sign it, share it. But:
 
 - No formal data format specification exists yet; the schema may change without migration
-- Server integration is partial and not resilient
 - Automated test coverage is minimal
 - This is not production-ready software
 
@@ -45,6 +44,7 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 - Export formats (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) include a `version` field to support future format migrations
 - SwiftData with optional CloudKit sync keeps data on-device by default
 - File-based transfer (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) for peer-to-peer key exchange via AirDrop
+- A Space stores all node URLs for a WevoSpace cluster; on registration the app calls `/info` on the entered URL to automatically discover peer nodes. All API operations use `ResilientProposeAPIClient`, which retries across nodes on network errors or 5xx responses and fails immediately on 4xx client errors
 
 ## Getting Started
 
@@ -60,6 +60,8 @@ To use the app, add a Space with a WevoSpace server URL from within the app.
 
 The companion server handles proposal storage and multi-party synchronization:
 → [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
+
+When adding a Space, enter the URL of any node in the cluster. The app will automatically discover all peer nodes via the `/info` endpoint and store them — enabling transparent failover if a node becomes unavailable. Single-node deployments work without any additional configuration.
 
 ## Try it
 
@@ -97,7 +99,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - Propose の作成・署名・検証
 - Propose を Space（ローカルコンテキスト）で整理
 - AirDrop やファイル共有による Propose・Identity・Contact のエクスポート/インポート（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）
-- WevoSpace サーバーとの同期（マルチパーティ連携）
+- WevoSpace サーバーとの同期（マルチパーティ連携）、プライマリノードが利用不能な場合はバックアップノードへ自動フェイルオーバー
 
 これは Wevo のアプローチを実装したものの一つです。署名付き提案、ポータブルな Identity、ローカル所有の履歴という考え方は、他のプラットフォームや言語でも実装できます。
 
@@ -108,7 +110,6 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 基本的なフローは動作します：Identity の作成、Propose の作成、署名、共有。ただし：
 
 - データフォーマットの仕様はまだ確定していません。マイグレーションなしに変更される可能性があります
-- サーバー連携は部分的で、堅牢ではありません
 - 自動テストのカバレッジは最小限です
 - プロダクション用途には対応していません
 
@@ -122,6 +123,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - エクスポートフォーマット（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）は将来のフォーマット移行に備えた `version` フィールドを含む
 - SwiftData とオプションの CloudKit 同期でデータをデバイス上に保持
 - ファイルベースの転送（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）でAirDrop経由のP2P鍵交換が可能
+- Space は WevoSpace クラスターの全ノード URL を保持する。登録時に入力 URL の `/info` を呼び出してピアノードを自動発見する。API 操作はすべて `ResilientProposeAPIClient` 経由で行われ、ネットワークエラーや 5xx 応答時は次のノードにリトライし、4xx クライアントエラーは即時 throw する
 
 ## Getting Started
 
@@ -137,6 +139,8 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 
 Propose の保存とマルチパーティ同期を扱うコンパニオンサーバー：
 → [`wevo-space`](https://www.github.com/h1d3mun3/wevo-space)
+
+Space を追加するときは、クラスター内のいずれかのノード URL を入力してください。アプリは `/info` エンドポイント経由でピアノードを自動発見して保存し、ノードが利用不能になった場合に透過的なフェイルオーバーを実現します。シングルノード構成でも追加の設定は不要です。
 
 ## Try it
 

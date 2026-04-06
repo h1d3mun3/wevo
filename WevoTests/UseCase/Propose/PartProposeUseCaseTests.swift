@@ -44,7 +44,7 @@ struct PartProposeUseCaseTests {
         let mockRepo = MockProposeRepository()
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
 
         #expect(mockAPI.partProposeCalled == true)
         #expect(mockAPI.partProposeProposeID == proposeID)
@@ -66,7 +66,7 @@ struct PartProposeUseCaseTests {
         let mockRepo = MockProposeRepository()
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        try await useCase.execute(propose: propose, identityID: identityID, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
 
         // Verify v1 message format: "parted." + proposeId + contentHash + signerPublicKey + timestamp
         let signedMessage = mockKeychain.signMessageCalledWithMessage ?? ""
@@ -85,7 +85,7 @@ struct PartProposeUseCaseTests {
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: PartProposeUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "not a url")
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["not a url"])
         }
     }
 
@@ -99,7 +99,7 @@ struct PartProposeUseCaseTests {
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.itemNotFound) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["https://example.com"])
         }
     }
 
@@ -114,7 +114,7 @@ struct PartProposeUseCaseTests {
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: KeychainError.biometricAuthFailed) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.partProposeCalled == false)
     }
@@ -131,7 +131,61 @@ struct PartProposeUseCaseTests {
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
         await #expect(throws: NSError.self) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURL: "https://example.com")
+            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["https://example.com"])
         }
+    }
+
+    @Test func testCreatorPartSetsCreatorPartSignature() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "creatorPartSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.creatorPartSignature == "creatorPartSig")
+        #expect(mockRepo.updatedPropose?.counterpartyPartSignature == nil)
+    }
+
+    @Test func testCounterpartyPartSetsCounterpartyPartSignature() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Bob", publicKey: "counterpartyKey")
+        mockKeychain.signMessageResult = "counterpartyPartSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.counterpartyPartSignature == "counterpartyPartSig")
+        #expect(mockRepo.updatedPropose?.creatorPartSignature == nil)
+    }
+
+    @Test func testThrowsWhenUpdateFails() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "sig"
+        mockRepo.updateError = NSError(domain: "Test", code: -1)
+
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: NSError.self) {
+            try await useCase.execute(propose: makePropose(), identityID: identityID, serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.partProposeCalled == false)
     }
 }

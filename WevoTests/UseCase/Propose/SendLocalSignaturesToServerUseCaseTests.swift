@@ -43,7 +43,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: when IdentityPublicKey matches CounterpartyPublicKey
-        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
         // Assert: signPropose endpoint was called
         #expect(mockAPI.signProposeCalled == true)
@@ -60,7 +60,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: third-party key (neither creator nor counterparty) is silently skipped
-        try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURLs: ["https://example.com"])
 
         // Assert: no API call made
         #expect(mockAPI.signProposeCalled == false)
@@ -75,7 +75,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert: creator with no pending signatures → noSignatureFound
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -90,7 +90,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -104,7 +104,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: [])
         }
         #expect(mockAPI.signProposeCalled == false)
     }
@@ -119,7 +119,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: ProposeAPIClient.APIError.self) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
     }
 
@@ -132,8 +132,124 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
+    }
+
+    // MARK: - Creator signature paths
+
+    private func makeProposeWithCreatorHonor() -> Propose {
+        Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            creatorHonorSignature: "creatorHonorSig",
+            creatorHonorTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+    }
+
+    @Test func testSendsCreatorHonorSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = makeProposeWithCreatorHonor()
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.honorProposeCalled == true)
+        #expect(mockAPI.honorProposeinput?.signature == "creatorHonorSig")
+    }
+
+    @Test func testSendsCreatorPartSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            creatorPartSignature: "creatorPartSig",
+            creatorPartTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.partProposeCalled == true)
+        #expect(mockAPI.partProposeinput?.signature == "creatorPartSig")
+    }
+
+    @Test func testSendsCreatorDissolveSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            creatorDissolveSignature: "creatorDissolveSig",
+            creatorDissolveTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.dissolveProposeCalled == true)
+        #expect(mockAPI.dissolveProposeinput?.signature == "creatorDissolveSig")
+    }
+
+    // MARK: - Counterparty remaining signature paths
+
+    @Test func testSendsCounterpartyHonorSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartyHonorSignature: "cpHonorSig",
+            counterpartyHonorTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.honorProposeCalled == true)
+        #expect(mockAPI.honorProposeinput?.signature == "cpHonorSig")
+    }
+
+    @Test func testSendsCounterpartyPartSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartyPartSignature: "cpPartSig",
+            counterpartyPartTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.partProposeCalled == true)
+        #expect(mockAPI.partProposeinput?.signature == "cpPartSig")
+    }
+
+    @Test func testSendsCounterpartyDissolveSignatureToServer() async throws {
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartyDissolveSignature: "cpDissolveSig",
+            counterpartyDissolveTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
+
+        #expect(mockAPI.dissolveProposeCalled == true)
+        #expect(mockAPI.dissolveProposeinput?.signature == "cpDissolveSig")
     }
 }

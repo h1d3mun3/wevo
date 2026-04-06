@@ -40,7 +40,7 @@ struct ResendProposeToServerUseCaseTests {
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, serverURLs: ["https://example.com"])
 
         // Assert: createPropose was called
         #expect(mockAPI.createProposeCalled == true)
@@ -56,7 +56,7 @@ struct ResendProposeToServerUseCaseTests {
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, serverURLs: ["https://example.com"])
 
         // Assert: Creator's public key is sent correctly
         #expect(mockAPI.createProposeInput?.creatorPublicKey == "my-creator-key")
@@ -70,7 +70,7 @@ struct ResendProposeToServerUseCaseTests {
         let useCase = ResendProposeToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act
-        try await useCase.execute(propose: propose, serverURL: "https://example.com")
+        try await useCase.execute(propose: propose, serverURLs: ["https://example.com"])
 
         // Assert: CounterpartyPublicKeys are sent correctly
         #expect(mockAPI.createProposeInput?.counterpartyPublicKeys == ["my-counterparty-key"])
@@ -85,7 +85,7 @@ struct ResendProposeToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: ResendProposeToServerUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: propose, serverURL: "")
+            try await useCase.execute(propose: propose, serverURLs: [])
         }
         #expect(mockAPI.createProposeCalled == false)
     }
@@ -100,7 +100,7 @@ struct ResendProposeToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: ResendProposeToServerUseCaseError.noSignatureFound) {
-            try await useCase.execute(propose: propose, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.createProposeCalled == false)
     }
@@ -115,7 +115,7 @@ struct ResendProposeToServerUseCaseTests {
 
         // Act & Assert
         await #expect(throws: ProposeAPIClient.APIError.self) {
-            try await useCase.execute(propose: propose, serverURL: "https://example.com")
+            try await useCase.execute(propose: propose, serverURLs: ["https://example.com"])
         }
     }
 }

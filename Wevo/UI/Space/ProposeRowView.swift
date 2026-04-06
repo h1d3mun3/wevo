@@ -480,7 +480,7 @@ struct ProposeRowView: View {
         let useCase = ResendProposeToServerUseCaseImpl()
 
         do {
-            try await useCase.execute(propose: propose, serverURL: space.url)
+            try await useCase.execute(propose: propose, serverURLs: space.urls)
 
             await MainActor.run {
                 isResending = false
@@ -519,7 +519,7 @@ struct ProposeRowView: View {
 
         do {
             let myPublicKey = await MainActor.run { defaultIdentity?.publicKey }
-            let result = try await useCase.execute(propose: propose, serverURL: space.url, myPublicKey: myPublicKey)
+            let result = try await useCase.execute(propose: propose, serverURLs: space.urls, myPublicKey: myPublicKey)
 
             await MainActor.run {
                 serverStatus = .exists
@@ -579,7 +579,7 @@ struct ProposeRowView: View {
             try await useCase.execute(
                 propose: propose,
                 identityID: identity.id,
-                serverURL: space.url
+                serverURLs: space.urls
             )
 
             await MainActor.run {
@@ -625,7 +625,7 @@ struct ProposeRowView: View {
 
         let useCase = DissolveProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
             await MainActor.run { isDissolving = false; dissolveSuccess = true }
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { dissolveSuccess = nil }
@@ -642,7 +642,7 @@ struct ProposeRowView: View {
 
         let useCase = HonorProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
             await MainActor.run { isHonoring = false; honorSuccess = true; myHonorSigned = true }
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { honorSuccess = nil }
@@ -659,7 +659,7 @@ struct ProposeRowView: View {
 
         let useCase = PartProposeUseCaseImpl(keychainRepository: deps.keychainRepository, proposeRepository: deps.proposeRepository)
         do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURL: space.url)
+            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
             await MainActor.run { isParting = false; partSuccess = true; myPartSigned = true }
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run { partSuccess = nil }
@@ -678,7 +678,7 @@ struct ProposeRowView: View {
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl()
         do {
-            try await useCase.execute(propose: propose, identityPublicKey: identity.publicKey, serverURL: space.url)
+            try await useCase.execute(propose: propose, identityPublicKey: identity.publicKey, serverURLs: space.urls)
             await MainActor.run {
                 isResendingLocalSignature = false
                 pendingLocalResend = false
