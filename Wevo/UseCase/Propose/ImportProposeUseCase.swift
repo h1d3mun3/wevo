@@ -12,6 +12,7 @@ enum ImportProposeUseCaseError: Error {
 }
 
 protocol ImportProposeUseCase {
+    func readFromFile(url: URL) throws -> ProposeExportData
     func execute(propose: Propose, spaceID: UUID) throws
 }
 
@@ -184,6 +185,21 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
                 throw ImportProposeUseCaseError.invalidSignature
             }
         }
+    }
+
+    func readFromFile(url: URL) throws -> ProposeExportData {
+        let jsonData = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+            if let date = ProposeAPIClient.iso8601Formatter.date(from: string)
+                ?? ProposeAPIClient.iso8601FormatterBasic.date(from: string) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot parse date: \(string)")
+        }
+        return try decoder.decode(ProposeExportData.self, from: jsonData)
     }
 
     /// Returns true only if the signature is cryptographically valid. Any error (malformed data etc.) is treated as invalid.
