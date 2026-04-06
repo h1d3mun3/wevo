@@ -12,32 +12,23 @@ struct SpaceConverter {
 
     /// Converts a Space struct to SpaceModel
     static func toModel(from space: Space) -> SpaceSwiftData {
-        let model = SpaceSwiftData(
+        return SpaceSwiftData(
             id: space.id,
             name: space.name,
-            urlString: space.url,
+            nodeURLs: space.urls,
             defaultIdentityID: space.defaultIdentityID,
             orderIndex: space.orderIndex,
             createdAt: space.createdAt,
             updatedAt: space.updatedAt
         )
-        model.nodeURLs = space.urls
-        return model
     }
 
     /// Converts SpaceModel to a Space struct
     static func toEntity(from model: SpaceSwiftData) -> Space {
-        // Prefer nodeURLs when available; fall back to urlString for legacy records
-        let urls: [String]
-        if model.nodeURLs.isEmpty {
-            urls = model.urlString.isEmpty ? [] : [model.urlString]
-        } else {
-            urls = model.nodeURLs
-        }
         return Space(
             id: model.id,
             name: model.name,
-            urls: urls,
+            urls: model.nodeURLs,
             defaultIdentityID: model.defaultIdentityID,
             orderIndex: model.orderIndex,
             createdAt: model.createdAt,
@@ -55,7 +46,6 @@ struct SpaceConverter {
     /// Updates a SpaceModel with an existing Space struct
     static func updateModel(_ model: SpaceSwiftData, with space: Space) {
         model.name = space.name
-        model.urlString = space.url
         model.nodeURLs = space.urls
         model.defaultIdentityID = space.defaultIdentityID
         model.orderIndex = space.orderIndex
