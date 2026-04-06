@@ -157,4 +157,77 @@ struct DissolveProposeUseCaseTests {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
         }
     }
+
+    @Test func testCreatorDissolveSignatureIsSetLocally() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "creatorDissolveSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.creatorDissolveSignature == "creatorDissolveSig")
+        #expect(mockRepo.updatedPropose?.counterpartyDissolveSignature == nil)
+    }
+
+    @Test func testCounterpartyDissolveSignatureIsSetLocally() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Bob", publicKey: "counterpartyKey")
+        mockKeychain.signMessageResult = "counterpartyDissolveSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.counterpartyDissolveSignature == "counterpartyDissolveSig")
+        #expect(mockRepo.updatedPropose?.creatorDissolveSignature == nil)
+    }
+
+    @Test func testThrowsWhenSignMessageFails() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        let propose = makePropose(creatorPublicKey: "creatorKey")
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageError = KeychainError.biometricAuthFailed
+
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: KeychainError.biometricAuthFailed) {
+            try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.dissolveProposeCalled == false)
+    }
+
+    @Test func testThrowsWhenUpdateFails() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        let propose = makePropose(creatorPublicKey: "creatorKey")
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "sig"
+        mockRepo.updateError = NSError(domain: "Test", code: -1)
+
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: NSError.self) {
+            try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.dissolveProposeCalled == false)
+    }
 }

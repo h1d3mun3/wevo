@@ -133,4 +133,58 @@ struct HonorProposeUseCaseTests {
             try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["https://example.com"])
         }
     }
+
+    @Test func testCreatorHonorSetsCreatorHonorSignature() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "creatorHonorSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.creatorHonorSignature == "creatorHonorSig")
+        #expect(mockRepo.updatedPropose?.counterpartyHonorSignature == nil)
+    }
+
+    @Test func testCounterpartyHonorSetsCounterpartyHonorSignature() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Bob", publicKey: "counterpartyKey")
+        mockKeychain.signMessageResult = "counterpartyHonorSig"
+
+        let propose = makePropose(creatorPublicKey: "creatorKey", counterpartyPublicKey: "counterpartyKey")
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityID: identityID, serverURLs: ["https://example.com"])
+
+        #expect(mockRepo.updatedPropose?.counterpartyHonorSignature == "counterpartyHonorSig")
+        #expect(mockRepo.updatedPropose?.creatorHonorSignature == nil)
+    }
+
+    @Test func testThrowsWhenUpdateFails() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let identityID = UUID()
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "sig"
+        mockRepo.updateError = NSError(domain: "Test", code: -1)
+
+        let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: NSError.self) {
+            try await useCase.execute(propose: makePropose(), identityID: identityID, serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.honorProposeCalled == false)
+    }
 }

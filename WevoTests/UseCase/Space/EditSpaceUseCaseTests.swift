@@ -98,6 +98,29 @@ struct EditSpaceUseCaseTests {
         #expect(updatedSpace?.createdAt == createdAt)
     }
 
+    @Test func testFiltersEmptyURLsFromList() async throws {
+        // Arrange
+        let mockSpaceRepository = MockSpaceRepository()
+        let mockGetSpaceUseCase = MockGetSpaceUseCase()
+
+        let spaceID = UUID()
+        mockGetSpaceUseCase.result = Space(
+            id: spaceID, name: "Space", url: "original-url",
+            defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now
+        )
+
+        let useCase = EditSpaceUseCaseImpl(
+            spaceRepository: mockSpaceRepository,
+            getSpaceUseCase: mockGetSpaceUseCase
+        )
+
+        // Act: include empty string and whitespace-only entries
+        try await useCase.execute(id: spaceID, name: "Space", urls: ["https://a.com", "", "   ", "https://b.com"], defaultIdentityID: nil)
+
+        // Assert: only non-empty entries remain
+        #expect(mockSpaceRepository.updatedSpace?.urls == ["https://a.com", "https://b.com"])
+    }
+
     @Test func testThrowsWhenGetSpaceFails() async throws {
         // Arrange
         let mockSpaceRepository = MockSpaceRepository()
