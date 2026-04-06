@@ -14,6 +14,7 @@ struct LoadSettingsDataUseCaseTests {
 
     let mockProposeRepository = MockProposeRepository()
     let mockSpaceRepository = MockSpaceRepository()
+    let mockContactRepository = MockContactRepository()
 
     @Test("Can fetch all data at once")
     func executeSuccess() throws {
@@ -35,7 +36,8 @@ struct LoadSettingsDataUseCaseTests {
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository
+            spaceRepository: mockSpaceRepository,
+            contactRepository: mockContactRepository
         )
 
         let data = try useCase.execute()
@@ -50,13 +52,15 @@ struct LoadSettingsDataUseCaseTests {
     func executeWithEmptyData() throws {
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository
+            spaceRepository: mockSpaceRepository,
+            contactRepository: mockContactRepository
         )
 
         let data = try useCase.execute()
 
         #expect(data.proposes.isEmpty)
         #expect(data.spaces.isEmpty)
+        #expect(data.contacts.isEmpty)
     }
 
     @Test("Returns error when Propose fetch fails")
@@ -65,7 +69,8 @@ struct LoadSettingsDataUseCaseTests {
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository
+            spaceRepository: mockSpaceRepository,
+            contactRepository: mockContactRepository
         )
 
         #expect(throws: ProposeRepositoryError.self) {
@@ -79,10 +84,26 @@ struct LoadSettingsDataUseCaseTests {
 
         let useCase = LoadSettingsDataUseCaseImpl(
             proposeRepository: mockProposeRepository,
-            spaceRepository: mockSpaceRepository
+            spaceRepository: mockSpaceRepository,
+            contactRepository: mockContactRepository
         )
 
         #expect(throws: SpaceRepositoryError.self) {
+            _ = try useCase.execute()
+        }
+    }
+
+    @Test("Returns error when Contact fetch fails")
+    func executeFailsWhenContactFetchFails() {
+        mockContactRepository.fetchAllError = ContactRepositoryError.fetchError(NSError(domain: "", code: -1))
+
+        let useCase = LoadSettingsDataUseCaseImpl(
+            proposeRepository: mockProposeRepository,
+            spaceRepository: mockSpaceRepository,
+            contactRepository: mockContactRepository
+        )
+
+        #expect(throws: ContactRepositoryError.self) {
             _ = try useCase.execute()
         }
     }
