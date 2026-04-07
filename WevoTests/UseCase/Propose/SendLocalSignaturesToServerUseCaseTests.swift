@@ -35,10 +35,46 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
     }
 
+    /// Helper to generate a HashedPropose representing current server state (all signatures nil by default)
+    private func makeServerPropose(
+        id: UUID,
+        counterpartyPublicKey: String = "counterpartyKey",
+        counterpartySignSignature: String? = nil,
+        counterpartyHonorSignature: String? = nil,
+        counterpartyPartSignature: String? = nil,
+        counterpartyDissolveSignature: String? = nil,
+        honorCreatorSignature: String? = nil,
+        partCreatorSignature: String? = nil,
+        creatorDissolveSignature: String? = nil
+    ) -> HashedPropose {
+        HashedPropose(
+            id: id,
+            contentHash: "dummyHash",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterparties: [
+                ProposeCounterparty(
+                    publicKey: counterpartyPublicKey,
+                    signSignature: counterpartySignSignature,
+                    honorSignature: counterpartyHonorSignature,
+                    partSignature: counterpartyPartSignature,
+                    dissolveSignature: counterpartyDissolveSignature
+                )
+            ],
+            honorCreatorSignature: honorCreatorSignature,
+            partCreatorSignature: partCreatorSignature,
+            creatorDissolveSignature: creatorDissolveSignature,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
+
     @Test func testSendsCounterpartySignatureToServer() async throws {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "myCounterpartySig")
+        // Server does not have the sign signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -56,6 +92,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Arrange
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "mySig")
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -70,6 +107,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Arrange: creator identity but no honor/part/dissolve signatures
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose()
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -85,6 +123,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let mockAPI = MockProposeAPIClient()
         // counterpartySignSignature is nil (unsigned)
         let propose = makePropose(counterpartySignSignature: nil)
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -102,7 +141,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
-        // Act & Assert
+        // Act & Assert: URL check fires before getPropose, so getProposeResult is not needed
         await #expect(throws: SendLocalSignaturesToServerUseCaseError.invalidServerURL) {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: [])
         }
@@ -114,6 +153,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let mockAPI = MockProposeAPIClient()
         mockAPI.signProposeError = ProposeAPIClient.APIError.httpError(statusCode: 500)
         let propose = makePropose()
+        // Server does not have the sign signature, so signPropose will be called (and fail)
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -127,6 +168,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Arrange: signature exists but timestamp is nil
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose(counterpartySignSignature: "counterpartySig", counterpartySignTimestamp: nil)
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
@@ -153,6 +195,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
     @Test func testSendsCreatorHonorSignatureToServer() async throws {
         let mockAPI = MockProposeAPIClient()
         let propose = makeProposeWithCreatorHonor()
+        // Server does not have the creator honor signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
@@ -171,6 +215,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
             creatorPartTimestamp: "2026-01-01T00:00:00Z",
             createdAt: .now, updatedAt: .now
         )
+        // Server does not have the creator part signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
@@ -189,6 +235,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
             creatorDissolveTimestamp: "2026-01-01T00:00:00Z",
             createdAt: .now, updatedAt: .now
         )
+        // Server does not have the creator dissolve signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
@@ -209,6 +257,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
             counterpartyHonorTimestamp: "2026-01-01T00:00:00Z",
             createdAt: .now, updatedAt: .now
         )
+        // Server does not have the counterparty honor signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
@@ -227,6 +277,8 @@ struct SendLocalSignaturesToServerUseCaseTests {
             counterpartyPartTimestamp: "2026-01-01T00:00:00Z",
             createdAt: .now, updatedAt: .now
         )
+        // Server does not have the counterparty part signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
@@ -245,11 +297,57 @@ struct SendLocalSignaturesToServerUseCaseTests {
             counterpartyDissolveTimestamp: "2026-01-01T00:00:00Z",
             createdAt: .now, updatedAt: .now
         )
+        // Server does not have the counterparty dissolve signature yet
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id)
         let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
         #expect(mockAPI.dissolveProposeCalled == true)
         #expect(mockAPI.dissolveProposeinput?.signature == "cpDissolveSig")
+    }
+
+    // MARK: - Already-on-server skipping
+
+    @Test func testSkipsSignatureAlreadyOnServer() async throws {
+        // Arrange: counterparty sign is local AND already on server
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "myCounterpartySig")
+        // Server already has the sign signature
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id, counterpartySignSignature: "myCounterpartySig")
+
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        // Act & Assert: nothing to send → noSignatureFound
+        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+            try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.signProposeCalled == false)
+    }
+
+    @Test func testSendsOnlyMissingSignatureWhenSignIsAlreadyOnServer() async throws {
+        // Arrange: counterparty has both sign (on server) and honor (missing from server)
+        let mockAPI = MockProposeAPIClient()
+        let propose = Propose(
+            id: UUID(), spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: counterpartyPublicKey,
+            counterpartySignSignature: "cpSignSig",
+            counterpartySignTimestamp: "2026-01-01T00:00:00Z",
+            counterpartyHonorSignature: "cpHonorSig",
+            counterpartyHonorTimestamp: "2026-01-02T00:00:00Z",
+            createdAt: .now, updatedAt: .now
+        )
+        // Server has sign but not honor
+        mockAPI.getProposeResult = makeServerPropose(id: propose.id, counterpartySignSignature: "cpSignSig")
+
+        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+
+        try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
+
+        // Only honor should be sent; sign was already on server
+        #expect(mockAPI.signProposeCalled == false)
+        #expect(mockAPI.honorProposeCalled == true)
+        #expect(mockAPI.honorProposeinput?.signature == "cpHonorSig")
     }
 }
