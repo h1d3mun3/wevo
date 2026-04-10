@@ -64,7 +64,7 @@ struct ContentView: View {
                 }
             }
 #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+            .navigationSplitViewColumnWidth(350)
 #endif
             .toolbar {
                 ToolbarItem(placement: .navigation) {
