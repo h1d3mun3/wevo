@@ -446,7 +446,6 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Wevo/Info.plist;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				"INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace[sdk=macosx*]" = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Wevo uses Face ID to verify your identity.";
@@ -497,7 +496,6 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Wevo/Info.plist;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				"INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace[sdk=macosx*]" = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Wevo uses Face ID to verify your identity.";
