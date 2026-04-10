@@ -7,8 +7,8 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "ChatGPT Image Mar 5, 2026, 11_16_48 PM.png",
-          "name" : "ChatGPT Image Mar 5, 2026, 11_16_48 PM",
+          "image-name" : "icon.png",
+          "name" : "icon.png",
           "position" : {
             "scale" : 1,
             "translation-in-points" : [
