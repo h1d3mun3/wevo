@@ -94,5 +94,8 @@ struct SpaceSelectorView: View {
                 }
             }
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 400)
+#endif
     }
 }

@@ -82,6 +82,9 @@ struct AddSpaceView: View {
         } message: {
             Text(saveError ?? "")
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 450)
+#endif
     }
 
     private func loadIdentities() async {

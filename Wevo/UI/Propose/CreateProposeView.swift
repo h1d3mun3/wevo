@@ -291,6 +291,9 @@ struct ContactPickerSheet: View {
                 loadContacts()
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 300)
+#endif
     }
 
     private func loadContacts() {
@@ -362,6 +365,9 @@ struct IdentityPickerSheet: View {
                 }
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 300)
+#endif
     }
 }
 

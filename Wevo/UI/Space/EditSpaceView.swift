@@ -112,6 +112,9 @@ struct EditSpaceView: View {
                 loadIdentities()
             }
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 450)
+#endif
     }
 
     private func loadIdentities() {
