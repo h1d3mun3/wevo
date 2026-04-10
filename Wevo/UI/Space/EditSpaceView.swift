@@ -40,27 +40,19 @@ struct EditSpaceView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Space Name", text: $name)
-                } header: {
-                    Text("Name")
-                } footer: {
-                    Text("Enter a friendly name for this space")
-                }
+            Section("Name") {
+                TextField("Space Name", text: $name)
+            }
                 
-                Section {
+                Section("Server URL") {
                     TextField("Server URL", text: $url)
                         .autocorrectionDisabled()
                         #if os(iOS)
                         .keyboardType(.URL)
                         #endif
-                } header: {
-                    Text("Server URL")
-                } footer: {
-                    Text("Enter the base URL of the WevoSpace server (e.g., https://api.example.com)")
                 }
                 
-                Section {
+                Section("Default Key") {
                     HStack {
                         if let identity = selectedIdentity {
                             Text(identity.nickname)
@@ -74,8 +66,6 @@ struct EditSpaceView: View {
                             .buttonStyle(.borderless)
                             .foregroundStyle(.blue)
                     }
-                } header: {
-                    Text("Default Key")
                 }
                 
                 if let errorMessage = errorMessage {
