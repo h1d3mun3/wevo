@@ -36,7 +36,7 @@ struct CreateProposeView: View {
         NavigationStack {
             Form {
                 // MARK: - Basic Information Section
-                Section {
+                Section("Information") {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Space")
                             .font(.caption)
@@ -71,12 +71,10 @@ struct CreateProposeView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                } header: {
-                    Text("Information")
                 }
 
                 // MARK: - To (Counterparty) Section
-                Section {
+                Section("To（Counterparty）") {
                     if let contact = selectedContact {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -109,21 +107,13 @@ struct CreateProposeView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                } header: {
-                    Text("To（Counterparty）")
-                } footer: {
-                    Text("Select the counterparty who will sign the Propose.")
                 }
 
                 // MARK: - Message Section
-                Section {
+                Section("Propose Message") {
                     TextField("Message", text: $message, axis: .vertical)
                         .autocorrectionDisabled()
                         .lineLimit(3...10)
-                } header: {
-                    Text("Propose Message")
-                } footer: {
-                    Text("Enter the message for the propose. It will be SHA256-hashed and signed with your identity.")
                 }
 
                 // MARK: - Error Message
@@ -301,6 +291,9 @@ struct ContactPickerSheet: View {
                 loadContacts()
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 300)
+#endif
     }
 
     private func loadContacts() {
@@ -372,6 +365,9 @@ struct IdentityPickerSheet: View {
                 }
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 300)
+#endif
     }
 }
 

@@ -64,6 +64,9 @@ struct EditIdentityView: View {
                 }
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 240)
+#endif
     }
     
     private func save() async {

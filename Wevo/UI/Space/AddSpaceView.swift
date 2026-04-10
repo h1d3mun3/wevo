@@ -37,7 +37,7 @@ struct AddSpaceView: View {
                     TextField("Space URL", text: $urlString)
                 }
 
-                Section {
+                Section("Default Identity") {
                     if identities.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("No identities available")
@@ -54,12 +54,6 @@ struct AddSpaceView: View {
                                 Text(identity.nickname).tag(identity.id as UUID?)
                             }
                         }
-                    }
-                } header: {
-                    Text("Default Identity")
-                } footer: {
-                    if !identities.isEmpty {
-                        Text("Select which identity to use for this space.")
                     }
                 }
             }
@@ -80,9 +74,6 @@ struct AddSpaceView: View {
                 await loadIdentities()
             }
         }
-#if os(macOS)
-        .frame(minWidth: 400, minHeight: 500)
-#endif
         .alert("Error", isPresented: .init(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
@@ -91,6 +82,9 @@ struct AddSpaceView: View {
         } message: {
             Text(saveError ?? "")
         }
+#if os(macOS)
+        .frame(minWidth: 400, minHeight: 450)
+#endif
     }
 
     private func loadIdentities() async {

@@ -69,17 +69,13 @@ struct ProposeSettingsDetailView: View {
                 }
             }
 
-            Section {
+            Section("Local Record") {
                 LabeledContent("Created") {
                     Text(propose.createdAt, format: .dateTime)
                 }
                 LabeledContent("Last Modified") {
                     Text(propose.updatedAt, format: .dateTime)
                 }
-            } header: {
-                Text("Local Record")
-            } footer: {
-                Text("Dates when this record was created or last modified on this device.")
             }
 
             let hasEventTimestamps = propose.counterpartySignTimestamp != nil

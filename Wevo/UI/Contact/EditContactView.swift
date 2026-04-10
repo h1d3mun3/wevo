@@ -69,6 +69,9 @@ struct EditContactView: View {
                 }
             }
         }
+#if os(macOS)
+        .frame(minWidth: 360, minHeight: 300)
+#endif
     }
 
     private func save() {
