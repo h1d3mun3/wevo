@@ -18,8 +18,6 @@ struct IdentityDetailView: View {
     @State private var showingEditSheet = false
     @State private var shareURL: URL?
     @State private var showShareSheet = false
-    @State private var migrationError: String?
-    @State private var migrationSucceeded = false
     @State private var isAuthenticating = false
     @State private var contactShareURL: URL?
     @State private var contactExportError: String?
@@ -57,24 +55,6 @@ struct IdentityDetailView: View {
                     showingEditSheet = true
                 }) {
                     Label("Edit Nickname", systemImage: "pencil")
-                }
-            }
-
-            Section {
-                Button(action: {
-                    migrateKey()
-                }) {
-                    Label("Migrate Key", systemImage: "arrow.trianglehead.2.clockwise")
-                }
-                .alert("Migration Error", isPresented: .constant(migrationError != nil)) {
-                    Button("OK", role: .cancel) { migrationError = nil }
-                } message: {
-                    Text(migrationError ?? "")
-                }
-                .alert("Migration Complete", isPresented: $migrationSucceeded) {
-                    Button("OK", role: .cancel) {}
-                } message: {
-                    Text("Key has been migrated to JWK format.")
                 }
             }
 
@@ -193,15 +173,6 @@ struct IdentityDetailView: View {
         }
     }
 
-    private func migrateKey() {
-        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-        do {
-            try migrateIdentityUseCase.execute(id: identity.id)
-            migrationSucceeded = true
-        } catch {
-            migrationError = "Failed to migrate identity: \(error.localizedDescription)"
-        }
-    }
 }
 
 #Preview("Identity Detail") {
