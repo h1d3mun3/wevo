@@ -113,6 +113,10 @@ enum SpaceMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV2.self
     )
 
+    /// Temporary in-memory store to pass urlString values from willMigrate to didMigrate.
+    /// Cleared immediately after didMigrate completes.
+    private static var migrationMapping: [String: String] = [:]
+
     /// V2 → V3: custom — copies urlString → nodeURLs[0] for records where nodeURLs is still empty,
     /// then urlString is dropped as part of the schema change.
     private static let migrateV2toV3 = MigrationStage.custom(
@@ -120,22 +124,19 @@ enum SpaceMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV3.self,
         willMigrate: { context in
             let spaces = try context.fetch(FetchDescriptor<SchemaV2.SpaceSwiftData>())
-            var mapping: [String: String] = [:]
             for space in spaces where !space.urlString.isEmpty && space.nodeURLs.isEmpty {
-                mapping[space.id.uuidString] = space.urlString
+                migrationMapping[space.id.uuidString] = space.urlString
             }
-            UserDefaults.standard.set(mapping, forKey: "wevo_migration_v2_space_urls")
         },
         didMigrate: { context in
-            let mapping = UserDefaults.standard.dictionary(forKey: "wevo_migration_v2_space_urls") as? [String: String] ?? [:]
             let spaces = try context.fetch(FetchDescriptor<SpaceSwiftData>())
             for space in spaces {
-                if let urlString = mapping[space.id.uuidString] {
+                if let urlString = migrationMapping[space.id.uuidString] {
                     space.nodeURLs = [urlString]
                 }
             }
             try context.save()
-            UserDefaults.standard.removeObject(forKey: "wevo_migration_v2_space_urls")
+            migrationMapping = [:]
         }
     )
 }
