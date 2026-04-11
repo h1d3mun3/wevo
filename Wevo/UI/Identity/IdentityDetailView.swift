@@ -77,20 +77,19 @@ struct IdentityDetailView: View {
                     }
                 }
 
+                Button {
+                    prepareContactExport()
+                } label: {
+                    Label("Share Public Key as Contact", systemImage: "person.badge.plus")
+                }
+                .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
+                    Button("OK", role: .cancel) { contactExportError = nil }
+                } message: {
+                    Text(contactExportError ?? "")
+                }
                 if let contactShareURL {
                     ShareLink(item: contactShareURL) {
-                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
-                    }
-                } else {
-                    Button {
-                        prepareContactExport()
-                    } label: {
-                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
-                    }
-                    .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
-                        Button("OK", role: .cancel) { contactExportError = nil }
-                    } message: {
-                        Text(contactExportError ?? "")
+                        Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
                 }
 #else
@@ -150,10 +149,7 @@ struct IdentityDetailView: View {
     }
 
     private func prepareContactExport() {
-        if let existing = contactShareURL {
-            try? FileManager.default.removeItem(at: existing)
-            contactShareURL = nil
-        }
+        guard contactShareURL == nil else { return }
         let useCase = ExportIdentityAsContactUseCaseImpl()
         do {
             contactShareURL = try useCase.execute(identity: identity)
