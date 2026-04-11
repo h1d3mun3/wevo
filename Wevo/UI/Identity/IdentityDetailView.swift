@@ -18,8 +18,6 @@ struct IdentityDetailView: View {
     @State private var showingEditSheet = false
     @State private var shareURL: URL?
     @State private var showShareSheet = false
-    @State private var migrationError: String?
-    @State private var migrationSucceeded = false
     @State private var isAuthenticating = false
     @State private var contactShareURL: URL?
     @State private var contactExportError: String?
@@ -60,24 +58,6 @@ struct IdentityDetailView: View {
                 }
             }
 
-            Section {
-                Button(action: {
-                    migrateKey()
-                }) {
-                    Label("Migrate Key", systemImage: "arrow.trianglehead.2.clockwise")
-                }
-                .alert("Migration Error", isPresented: .constant(migrationError != nil)) {
-                    Button("OK", role: .cancel) { migrationError = nil }
-                } message: {
-                    Text(migrationError ?? "")
-                }
-                .alert("Migration Complete", isPresented: $migrationSucceeded) {
-                    Button("OK", role: .cancel) {}
-                } message: {
-                    Text("Key has been migrated to JWK format.")
-                }
-            }
-
             Section("Share") {
 #if os(iOS)
                 Button {
@@ -97,20 +77,19 @@ struct IdentityDetailView: View {
                     }
                 }
 
+                Button {
+                    prepareContactExport()
+                } label: {
+                    Label("Share Public Key as Contact", systemImage: "person.badge.plus")
+                }
+                .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
+                    Button("OK", role: .cancel) { contactExportError = nil }
+                } message: {
+                    Text(contactExportError ?? "")
+                }
                 if let contactShareURL {
                     ShareLink(item: contactShareURL) {
-                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
-                    }
-                } else {
-                    Button {
-                        prepareContactExport()
-                    } label: {
-                        Label("Share Public Key as Contact", systemImage: "person.badge.plus")
-                    }
-                    .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
-                        Button("OK", role: .cancel) { contactExportError = nil }
-                    } message: {
-                        Text(contactExportError ?? "")
+                        Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
                 }
 #else
@@ -170,10 +149,7 @@ struct IdentityDetailView: View {
     }
 
     private func prepareContactExport() {
-        if let existing = contactShareURL {
-            try? FileManager.default.removeItem(at: existing)
-            contactShareURL = nil
-        }
+        guard contactShareURL == nil else { return }
         let useCase = ExportIdentityAsContactUseCaseImpl()
         do {
             contactShareURL = try useCase.execute(identity: identity)
@@ -193,15 +169,6 @@ struct IdentityDetailView: View {
         }
     }
 
-    private func migrateKey() {
-        let migrateIdentityUseCase = MigrateIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
-        do {
-            try migrateIdentityUseCase.execute(id: identity.id)
-            migrationSucceeded = true
-        } catch {
-            migrationError = "Failed to migrate identity: \(error.localizedDescription)"
-        }
-    }
 }
 
 #Preview("Identity Detail") {
