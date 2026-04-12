@@ -61,6 +61,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		835F89C82F8BC8F7009CA8C4 /* Exceptions for "docs" folder in "Wevo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"testflight/what-to-test-ja.md",
+				"testflight/what-to-test.md",
+			);
+			target = 83A5458D2F5893F600342AE7 /* Wevo */;
+		};
 		839B29182F78D43F007A27FE /* Exceptions for "Wevo" folder in "WevoShareExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -89,6 +97,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		835F83982F8BC510009CA8C4 /* docs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				835F89C82F8BC8F7009CA8C4 /* Exceptions for "docs" folder in "Wevo" target */,
+			);
 			path = docs;
 			sourceTree = "<group>";
 		};
