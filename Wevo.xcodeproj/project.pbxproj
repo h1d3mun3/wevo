@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		831A97EC2F6CF083001F9F46 /* what-to-test.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E82F6CF083001F9F46 /* what-to-test.md */; };
-		831A97ED2F6CF083001F9F46 /* what-to-test-ja.md in Resources */ = {isa = PBXBuildFile; fileRef = 831A97E92F6CF083001F9F46 /* what-to-test-ja.md */; };
 		839B291D2F78D499007A27FE /* SwiftData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 839B291C2F78D499007A27FE /* SwiftData.framework */; };
 		83A545BE2F58957F00342AE7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 83A545BD2F58957F00342AE7 /* README.md */; };
 		83B8E1ED2F77A8BF00A31963 /* WevoShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 83B8E1E32F77A8BF00A31963 /* WevoShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -53,8 +51,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		831A97E82F6CF083001F9F46 /* what-to-test.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "what-to-test.md"; sourceTree = "<group>"; };
-		831A97E92F6CF083001F9F46 /* what-to-test-ja.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "what-to-test-ja.md"; sourceTree = "<group>"; };
 		839B291C2F78D499007A27FE /* SwiftData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/SwiftData.framework; sourceTree = DEVELOPER_DIR; };
 		839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Wevo.xctestplan; sourceTree = "<group>"; };
 		83A5458E2F5893F600342AE7 /* Wevo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wevo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -91,6 +87,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		835F83982F8BC510009CA8C4 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
 		83A545902F5893F600342AE7 /* Wevo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -153,23 +154,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		831A97EA2F6CF083001F9F46 /* testflight */ = {
-			isa = PBXGroup;
-			children = (
-				831A97E82F6CF083001F9F46 /* what-to-test.md */,
-				831A97E92F6CF083001F9F46 /* what-to-test-ja.md */,
-			);
-			path = testflight;
-			sourceTree = "<group>";
-		};
-		831A97EB2F6CF083001F9F46 /* docs */ = {
-			isa = PBXGroup;
-			children = (
-				831A97EA2F6CF083001F9F46 /* testflight */,
-			);
-			path = docs;
-			sourceTree = "<group>";
-		};
 		839B291B2F78D491007A27FE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -182,8 +166,8 @@
 			isa = PBXGroup;
 			children = (
 				83A545BD2F58957F00342AE7 /* README.md */,
-				831A97EB2F6CF083001F9F46 /* docs */,
 				839CD4042F6039CA000B1FB7 /* Wevo.xctestplan */,
+				835F83982F8BC510009CA8C4 /* docs */,
 				83A545902F5893F600342AE7 /* Wevo */,
 				83B8E1E42F77A8BF00A31963 /* WevoShareExtension */,
 				83A545A22F5893F800342AE7 /* WevoTests */,
@@ -222,6 +206,7 @@
 				83B8E1EC2F77A8BF00A31963 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				835F83982F8BC510009CA8C4 /* docs */,
 				83A545902F5893F600342AE7 /* Wevo */,
 			);
 			name = Wevo;
@@ -353,8 +338,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				83A545BE2F58957F00342AE7 /* README.md in Resources */,
-				831A97EC2F6CF083001F9F46 /* what-to-test.md in Resources */,
-				831A97ED2F6CF083001F9F46 /* what-to-test-ja.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
