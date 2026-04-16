@@ -64,7 +64,6 @@
 		835F89C82F8BC8F7009CA8C4 /* Exceptions for "docs" folder in "Wevo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-<<<<<<< HEAD
 				appstore/iPad/1.png,
 				appstore/iPad/2.png,
 				appstore/iPad/3.png,
@@ -77,8 +76,6 @@
 				appstore/mac/2.png,
 				appstore/mac/3.png,
 				appstore/mac/4.png,
-=======
->>>>>>> main
 				"testflight/what-to-test-ja.md",
 				"testflight/what-to-test.md",
 			);
