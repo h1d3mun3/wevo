@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct IdentityDetailView: View {
     let identity: Identity
@@ -17,7 +16,6 @@ struct IdentityDetailView: View {
     @State private var exportError: String?
     @State private var showingEditSheet = false
     @State private var shareURL: URL?
-    @State private var showShareSheet = false
     @State private var isAuthenticating = false
     @State private var contactShareURL: URL?
     @State private var contactExportError: String?
@@ -59,7 +57,6 @@ struct IdentityDetailView: View {
             }
 
             Section("Share") {
-#if os(iOS)
                 Button {
                     Task { await authenticateAndExport() }
                 } label: {
@@ -92,21 +89,6 @@ struct IdentityDetailView: View {
                         Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
                 }
-#else
-                Button {
-                    Task { await authenticateAndExport(); showShareSheet = true }
-                } label: {
-                    Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
-                }
-                .disabled(isAuthenticating)
-
-                Button {
-                    prepareContactExport()
-                    showShareSheet = true
-                } label: {
-                    Label("Share Public Key as Contact", systemImage: "person.badge.plus")
-                }
-#endif
             }
         }
         .navigationTitle("Identity Detail")
@@ -116,18 +98,6 @@ struct IdentityDetailView: View {
         .sheet(isPresented: $showingEditSheet) {
             EditIdentityView(identity: identity)
         }
-#if os(macOS)
-        .sheet(isPresented: $showShareSheet) {
-            if let shareURL = shareURL {
-                ShareSheetView(items: [shareURL])
-            }
-        }
-        .onChange(of: showShareSheet) { _, isPresented in
-            if !isPresented {
-                cleanupExportFile()
-            }
-        }
-#endif
         .onDisappear {
             cleanupExportFile()
         }

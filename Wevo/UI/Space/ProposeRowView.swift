@@ -180,12 +180,6 @@ struct ProposeRowView: View {
                 ShareSheetView(items: [shareURL])
             }
         }
-#elseif os(macOS)
-        .sheet(isPresented: $showShareSheet) {
-            if let shareURL = shareURL {
-                ShareSheetView(items: [shareURL])
-            }
-        }
 #endif
     }
 
@@ -281,12 +275,21 @@ struct ProposeRowView: View {
                 .buttonStyle(.borderless)
             }
 #else
-            Button { sharePropose() } label: {
-                Label("Share", systemImage: "square.and.arrow.up")
-                    .labelStyle(.iconOnly)
-                    .font(.caption)
+            if let shareURL = shareURL {
+                ShareLink(item: shareURL) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+            } else {
+                Button { prepareShare() } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
 #endif
         }
     }
