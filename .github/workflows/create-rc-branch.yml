@@ -3,11 +3,6 @@ name: Create RC Branch
 on:
   workflow_dispatch:
     inputs:
-      base_branch:
-        description: "Base branch to create RC from"
-        required: true
-        default: "main"
-        type: string
       version:
         description: "Version number (e.g. 1.2.3)"
         required: true
@@ -29,8 +24,6 @@ jobs:
           fi
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.base_branch }}
 
       - name: Create RC branch
         run: |
