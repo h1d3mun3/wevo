@@ -3,6 +3,7 @@
 //  Wevo
 //
 
+import Foundation
 import CryptoKit
 
 protocol GetFingerprintUseCase {
