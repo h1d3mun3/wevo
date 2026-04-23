@@ -9,24 +9,32 @@ import Foundation
 import os
 
 protocol AddSpaceUseCase {
-    func execute(name: String, urls: [String], defaultIdentityID: UUID?) throws
+    func execute(name: String, primaryURL: String, defaultIdentityID: UUID?) async throws
 }
 
 struct AddSpaceUseCaseImpl {
     let spaceRepository: SpaceRepository
+    let fetchServerInfoUseCase: FetchServerInfoUseCase
 
-    init(spaceRepository: SpaceRepository) {
+    init(
+        spaceRepository: SpaceRepository,
+        fetchServerInfoUseCase: FetchServerInfoUseCase = FetchServerInfoUseCaseImpl()
+    ) {
         self.spaceRepository = spaceRepository
+        self.fetchServerInfoUseCase = fetchServerInfoUseCase
     }
 }
 
 extension AddSpaceUseCaseImpl: AddSpaceUseCase {
-    func execute(name: String, urls: [String], defaultIdentityID: UUID?) throws {
-        let trimmedURLs = urls
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+    func execute(name: String, primaryURL: String, defaultIdentityID: UUID?) async throws {
+        let trimmedURL = primaryURL.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Fetch existing Spaces count to determine orderIndex
+        var allURLs = [trimmedURL]
+        if let info = try? await fetchServerInfoUseCase.execute(urlString: trimmedURL) {
+            let peers = info.peers.filter { $0 != trimmedURL }
+            allURLs.append(contentsOf: peers)
+        }
+
         let orderIndex: Int
         do {
             let existingSpaces = try spaceRepository.fetchAll()
@@ -36,18 +44,16 @@ extension AddSpaceUseCaseImpl: AddSpaceUseCase {
             orderIndex = 0
         }
 
-        // Create Space entity
         let space = Space(
             id: UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            urls: trimmedURLs,
+            urls: allURLs,
             defaultIdentityID: defaultIdentityID,
             orderIndex: orderIndex,
             createdAt: .now,
             updatedAt: .now
         )
 
-        // Save to SwiftData
         try spaceRepository.create(space)
         Logger.space.info("Space saved: \(space.name, privacy: .private)")
     }

@@ -11,10 +11,10 @@ import os
 struct EditSpaceView: View {
     let space: Space
     let onUpdate: () -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
-    
+
     @State private var name: String
     @State private var url: String
     @State private var isSaving: Bool = false
@@ -36,14 +36,24 @@ struct EditSpaceView: View {
         !isSaving &&
         (name != space.name || url != space.url || selectedIdentity?.id != space.defaultIdentityID)
     }
-    
+
+    private var editSpaceUseCase: any EditSpaceUseCase {
+        EditSpaceUseCaseImpl(
+            spaceRepository: deps.spaceRepository,
+            getSpaceUseCase: GetSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+        )
+    }
+    private var getAllIdentitiesUseCase: any GetAllIdentitiesUseCase {
+        GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-            Section("Name") {
-                TextField("Space Name", text: $name)
-            }
-                
+                Section("Name") {
+                    TextField("Space Name", text: $name)
+                }
+
                 Section("Server URL") {
                     TextField("Server URL", text: $url)
                         .autocorrectionDisabled()
@@ -51,7 +61,7 @@ struct EditSpaceView: View {
                         .keyboardType(.URL)
                         #endif
                 }
-                
+
                 Section("Default Key") {
                     HStack {
                         if let identity = selectedIdentity {
@@ -67,7 +77,7 @@ struct EditSpaceView: View {
                             .foregroundStyle(.blue)
                     }
                 }
-                
+
                 if let errorMessage = errorMessage {
                     Section {
                         HStack {
@@ -91,7 +101,7 @@ struct EditSpaceView: View {
                     }
                     .disabled(isSaving)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task {
@@ -118,9 +128,8 @@ struct EditSpaceView: View {
     }
 
     private func loadIdentities() {
-        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let all = try useCase.execute()
+            let all = try getAllIdentitiesUseCase.execute()
             identities = all
             selectedIdentity = all.first { $0.id == space.defaultIdentityID }
         } catch {
@@ -129,41 +138,15 @@ struct EditSpaceView: View {
     }
 
     private func saveChanges() async {
-        let editSpaceUseCase = EditSpaceUseCaseImpl(
-            spaceRepository: deps.spaceRepository,
-            getSpaceUseCase: GetSpaceUseCaseImpl(
-                spaceRepository: deps.spaceRepository
-            )
-        )
-
-        await MainActor.run {
-            isSaving = true
-            errorMessage = nil
-        }
-
-        // Re-discover peers from the (possibly updated) primary URL.
-        // If unreachable, preserve the existing peer list or fall back to the entered URL alone.
-        let primaryURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        var allURLs = [primaryURL]
-        let fetchInfo = FetchServerInfoUseCaseImpl()
-        if let info = try? await fetchInfo.execute(urlString: primaryURL) {
-            let peers = info.peers.filter { $0 != primaryURL }
-            allURLs.append(contentsOf: peers)
-        } else if space.urls.count > 1 {
-            // Keep known peers if /info is temporarily unreachable
-            allURLs = space.urls.map {
-                $0 == space.url ? primaryURL : $0
-            }
-        }
-
+        isSaving = true
+        errorMessage = nil
         do {
-            try editSpaceUseCase.execute(
+            try await editSpaceUseCase.execute(
                 id: space.id,
                 name: name,
-                urls: allURLs,
+                primaryURL: url,
                 defaultIdentityID: selectedIdentity?.id
             )
-
             isSaving = false
             onUpdate()
             dismiss()
