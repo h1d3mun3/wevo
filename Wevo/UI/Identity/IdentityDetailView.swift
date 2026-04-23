@@ -12,6 +12,16 @@ struct IdentityDetailView: View {
 
     @Environment(\.dependencies) private var deps
 
+    private var authenticateAndExportUseCase: any AuthenticateAndExportIdentityUseCase {
+        AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+    }
+    private var exportIdentityAsContactUseCase: any ExportIdentityAsContactUseCase {
+        ExportIdentityAsContactUseCaseImpl()
+    }
+    private var cleanupExportFileUseCase: any CleanupExportFileUseCase {
+        CleanupExportFileUseCaseImpl()
+    }
+
     @State private var errorMessage: String?
     @State private var exportError: String?
     @State private var showingEditSheet = false
@@ -106,10 +116,8 @@ struct IdentityDetailView: View {
     private func authenticateAndExport() async {
         isAuthenticating = true
         defer { isAuthenticating = false }
-
-        let useCase = AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let url = try await useCase.execute(identity: identity)
+            let url = try await authenticateAndExportUseCase.execute(identity: identity)
             await MainActor.run { shareURL = url }
         } catch {
             await MainActor.run {
@@ -120,23 +128,17 @@ struct IdentityDetailView: View {
 
     private func prepareContactExport() {
         guard contactShareURL == nil else { return }
-        let useCase = ExportIdentityAsContactUseCaseImpl()
         do {
-            contactShareURL = try useCase.execute(identity: identity)
+            contactShareURL = try exportIdentityAsContactUseCase.execute(identity: identity)
         } catch {
             contactExportError = "Failed to export: \(error.localizedDescription)"
         }
     }
 
     private func cleanupExportFile() {
-        if let url = shareURL {
-            try? FileManager.default.removeItem(at: url)
-            shareURL = nil
-        }
-        if let url = contactShareURL {
-            try? FileManager.default.removeItem(at: url)
-            contactShareURL = nil
-        }
+        cleanupExportFileUseCase.execute(urls: [shareURL, contactShareURL])
+        shareURL = nil
+        contactShareURL = nil
     }
 
 }
