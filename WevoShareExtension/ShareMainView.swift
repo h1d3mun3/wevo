@@ -219,10 +219,6 @@ struct SignView: View {
             await MainActor.run { withAnimation { copied = false } }
         }
     }
-<<<<<<< HEAD
-=======
-
->>>>>>> rc-1.1.0
 }
 
 // MARK: - Verify View
