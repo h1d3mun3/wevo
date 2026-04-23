@@ -29,6 +29,18 @@ enum KeychainAccessError: Error, LocalizedError {
     }
 }
 
+// MARK: - Protocols
+
+protocol IdentitySigningService {
+    func getAllIdentities() throws -> [ExtensionIdentity]
+    func signText(_ text: String, withIdentityId id: UUID) throws -> String
+    func getPublicKeyRawBase64(forIdentityId id: UUID) throws -> String
+}
+
+protocol SignatureVerifyingService {
+    func verifyText(_ text: String, publicKeyBase64: String, signatureBase64: String) throws -> Bool
+}
+
 // MARK: - Service
 
 final class ExtensionKeychainService {
@@ -183,3 +195,5 @@ extension Data {
 // MARK: - Protocol Conformance
 
 extension ExtensionKeychainService: SelfKeyChecking {}
+extension ExtensionKeychainService: IdentitySigningService {}
+extension ExtensionKeychainService: SignatureVerifyingService {}
