@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 
 // MARK: - Share Main View
 
@@ -83,7 +82,7 @@ struct SignView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(identity.nickname)
                                         .foregroundStyle(.primary)
-                                    Text(fingerprintFor(identity))
+                                    Text(ExtensionKeychainService.fingerprint(jwkPublicKey: identity.publicKeyJWK))
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -212,13 +211,6 @@ struct SignView: View {
         }
     }
 
-    private func fingerprintFor(_ identity: ExtensionIdentity) -> String {
-        guard let pk = P256.Signing.PublicKey(jwkString: identity.publicKeyJWK) else { return "---" }
-        let hash = SHA256.hash(data: pk.rawRepresentation)
-        return Array(hash.prefix(8))
-            .map { String(format: "%02X", $0) }
-            .joined(separator: ":")
-    }
 }
 
 // MARK: - Verify View

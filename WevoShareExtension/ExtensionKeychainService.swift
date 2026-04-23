@@ -120,6 +120,14 @@ final class ExtensionKeychainService {
             .joined(separator: ":")
     }
 
+    static func fingerprint(jwkPublicKey: String) -> String {
+        guard let pk = P256.Signing.PublicKey(jwkString: jwkPublicKey) else { return "---" }
+        let hash = SHA256.hash(data: pk.rawRepresentation)
+        return Array(hash.prefix(8))
+            .map { String(format: "%02X", $0) }
+            .joined(separator: ":")
+    }
+
     // MARK: Private
 
     private func getPrivateKey(id: UUID) throws -> Data {
