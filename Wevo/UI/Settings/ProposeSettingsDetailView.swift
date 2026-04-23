@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 import os
 
 struct ProposeSettingsDetailView: View {
@@ -193,16 +192,8 @@ struct ProposeSettingsDetailView: View {
         .padding(.vertical, 4)
     }
 
-    /// Returns the fingerprint of a JWK public key in the same format as Contact.fingerprintDisplay:
-    /// first 8 bytes of SHA256(rawRepresentation) as colon-separated hex
     private func fingerprintDisplay(for jwkPublicKey: String) -> String {
-        guard let key = P256.Signing.PublicKey.fromJWKString(jwkPublicKey) else {
-            return String(jwkPublicKey.prefix(16)) + "..."
-        }
-        let hash = SHA256.hash(data: key.rawRepresentation)
-        return Array(hash.prefix(8))
-            .map { String(format: "%02X", $0) }
-            .joined(separator: ":")
+        GetFingerprintUseCaseImpl().execute(jwkPublicKey: jwkPublicKey)
     }
 
     private func verifyHash() async {
