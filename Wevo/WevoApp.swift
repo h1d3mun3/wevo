@@ -246,7 +246,7 @@ struct WevoApp: App {
 
     /// Deletes private key and Propose export files in the temporary directory on app launch
     private func refreshSpacePeers() async {
-        let useCase = RefreshSpacePeersUseCaseImpl(spaceRepository: container.spaceRepository)
+        let useCase: any RefreshSpacePeersUseCase = RefreshSpacePeersUseCaseImpl(spaceRepository: container.spaceRepository)
         await useCase.execute()
     }
 
