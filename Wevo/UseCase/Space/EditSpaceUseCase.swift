@@ -9,32 +9,42 @@ import Foundation
 import os
 
 protocol EditSpaceUseCase {
-    func execute(id: UUID, name: String, urls: [String], defaultIdentityID: UUID?) throws
+    func execute(id: UUID, name: String, primaryURL: String, defaultIdentityID: UUID?) async throws
 }
 
 struct EditSpaceUseCaseImpl {
     let spaceRepository: SpaceRepository
     let getSpaceUseCase: GetSpaceUseCase
+    let fetchServerInfoUseCase: FetchServerInfoUseCase
 
-    init(spaceRepository: SpaceRepository, getSpaceUseCase: GetSpaceUseCase) {
+    init(
+        spaceRepository: SpaceRepository,
+        getSpaceUseCase: GetSpaceUseCase,
+        fetchServerInfoUseCase: FetchServerInfoUseCase = FetchServerInfoUseCaseImpl()
+    ) {
         self.spaceRepository = spaceRepository
         self.getSpaceUseCase = getSpaceUseCase
+        self.fetchServerInfoUseCase = fetchServerInfoUseCase
     }
 }
 
 extension EditSpaceUseCaseImpl: EditSpaceUseCase {
-    func execute(id: UUID, name: String, urls: [String], defaultIdentityID: UUID?) throws {
+    func execute(id: UUID, name: String, primaryURL: String, defaultIdentityID: UUID?) async throws {
         let space = try getSpaceUseCase.execute(id: id)
 
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedURLs = urls
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        let trimmedURL = primaryURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        var allURLs = [trimmedURL]
+        if let info = try? await fetchServerInfoUseCase.execute(urlString: trimmedURL) {
+            let peers = info.peers.filter { $0 != trimmedURL }
+            allURLs.append(contentsOf: peers)
+        } else if space.urls.count > 1 {
+            allURLs = space.urls.map { $0 == space.url ? trimmedURL : $0 }
+        }
 
         let updatedSpace = Space(
             id: space.id,
-            name: trimmedName,
-            urls: trimmedURLs,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            urls: allURLs,
             defaultIdentityID: defaultIdentityID,
             orderIndex: space.orderIndex,
             createdAt: space.createdAt,

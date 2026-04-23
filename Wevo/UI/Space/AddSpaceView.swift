@@ -18,13 +18,20 @@ struct AddSpaceView: View {
     @State private var selectedIdentityID: UUID?
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && 
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        selectedIdentityID != nil && 
+        selectedIdentityID != nil &&
         !isSaving
     }
     @State private var isSaving: Bool = false
     @State private var saveError: String?
+
+    private var addSpaceUseCase: any AddSpaceUseCase {
+        AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+    }
+    private var loadIdentitiesUseCase: any LoadIdentitiesWithDefaultSelectionUseCase {
+        LoadIdentitiesWithDefaultSelectionUseCaseImpl(keychainRepository: deps.keychainRepository)
+    }
 
     var body: some View {
         NavigationStack {
@@ -65,7 +72,7 @@ struct AddSpaceView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add Space") {
-                        add()
+                        Task { await add() }
                     }
                     .disabled(!canSave)
                 }
@@ -88,9 +95,8 @@ struct AddSpaceView: View {
     }
 
     private func loadIdentities() async {
-        let useCase = LoadIdentitiesWithDefaultSelectionUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let (loadedIdentities, defaultSelectedID) = try useCase.execute()
+            let (loadedIdentities, defaultSelectedID) = try loadIdentitiesUseCase.execute()
             await MainActor.run {
                 identities = loadedIdentities
                 if selectedIdentityID == nil {
@@ -99,36 +105,19 @@ struct AddSpaceView: View {
             }
         } catch {
             Logger.identity.error("Error loading identities: \(error, privacy: .public)")
-            await MainActor.run {
-                identities = []
-            }
+            await MainActor.run { identities = [] }
         }
     }
 
-    private func add() {
+    private func add() async {
         guard canSave else { return }
-
         isSaving = true
-
-        Task {
-            // Discover peers from the entered URL's /info endpoint.
-            // If unreachable, proceed with only the entered URL (graceful degradation).
-            let primaryURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-            var allURLs = [primaryURL]
-            let fetchInfo = FetchServerInfoUseCaseImpl()
-            if let info = try? await fetchInfo.execute(urlString: primaryURL) {
-                let peers = info.peers.filter { $0 != primaryURL }
-                allURLs.append(contentsOf: peers)
-            }
-
-            let addSpaceUseCase = AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
-            do {
-                try addSpaceUseCase.execute(name: name, urls: allURLs, defaultIdentityID: selectedIdentityID)
-                await MainActor.run { isSaving = false; dismiss() }
-            } catch {
-                Logger.space.error("Error saving space: \(error, privacy: .public)")
-                await MainActor.run { isSaving = false; saveError = error.localizedDescription }
-            }
+        do {
+            try await addSpaceUseCase.execute(name: name, primaryURL: urlString, defaultIdentityID: selectedIdentityID)
+            await MainActor.run { isSaving = false; dismiss() }
+        } catch {
+            Logger.space.error("Error saving space: \(error, privacy: .public)")
+            await MainActor.run { isSaving = false; saveError = error.localizedDescription }
         }
     }
 }
