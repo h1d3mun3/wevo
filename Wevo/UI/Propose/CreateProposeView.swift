@@ -6,61 +6,58 @@
 //
 
 import SwiftUI
-import CryptoKit
 import os
+
+// MARK: - Container
 
 struct CreateProposeView: View {
     let space: Space
     let onSuccess: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
 
-    @State private var message: String = ""
-    @State private var isSaving: Bool = false
-    @State private var errorMessage: String?
-    @State private var selectedContact: Contact?
-    @State private var showContactPicker = false
-    @State private var identities: [Identity] = []
-    @State private var selectedIdentity: Identity?
-    @State private var showIdentityPicker = false
-
-    private var canSave: Bool {
-        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !isSaving
-            && selectedContact != nil
-            && selectedIdentity != nil
+    var body: some View {
+        CreateProposeContent(
+            viewModel: CreateProposeViewModel(space: space, onSuccess: onSuccess, deps: deps)
+        )
     }
+}
+
+// MARK: - Content
+
+private struct CreateProposeContent: View {
+    @State var viewModel: CreateProposeViewModel
+
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - Basic Information Section
                 Section("Information") {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Space")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text(space.name)
+                        Text(viewModel.space.name)
                             .font(.body)
                     }
 
-                    if let identity = selectedIdentity {
+                    if let identity = viewModel.selectedIdentity {
                         HStack {
                             Image(systemName: "key.fill")
                                 .foregroundStyle(.blue)
                             Text(identity.nickname)
                                 .font(.body)
                             Spacer()
-                            if identities.count > 1 {
-                                Button("Change") { showIdentityPicker = true }
+                            if viewModel.identities.count > 1 {
+                                Button("Change") { viewModel.showIdentityPicker = true }
                                     .buttonStyle(.borderless)
                                     .foregroundStyle(.blue)
                             }
                         }
                     } else {
                         Button {
-                            showIdentityPicker = true
+                            viewModel.showIdentityPicker = true
                         } label: {
                             HStack {
                                 Image(systemName: "key.fill")
@@ -73,9 +70,8 @@ struct CreateProposeView: View {
                     }
                 }
 
-                // MARK: - To (Counterparty) Section
                 Section("To（Counterparty）") {
-                    if let contact = selectedContact {
+                    if let contact = viewModel.selectedContact {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(contact.nickname)
@@ -85,18 +81,14 @@ struct CreateProposeView: View {
                                     .foregroundStyle(.secondary)
                                     .fontDesign(.monospaced)
                             }
-
                             Spacer()
-
-                            Button("Change") {
-                                showContactPicker = true
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.blue)
+                            Button("Change") { viewModel.showContactPicker = true }
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(.blue)
                         }
                     } else {
                         Button {
-                            showContactPicker = true
+                            viewModel.showContactPicker = true
                         } label: {
                             HStack {
                                 Image(systemName: "person.crop.circle.badge.plus")
@@ -109,15 +101,13 @@ struct CreateProposeView: View {
                     }
                 }
 
-                // MARK: - Message Section
                 Section("Propose Message") {
-                    TextField("Message", text: $message, axis: .vertical)
+                    TextField("Message", text: $viewModel.message, axis: .vertical)
                         .autocorrectionDisabled()
                         .lineLimit(3...10)
                 }
 
-                // MARK: - Error Message
-                if let errorMessage = errorMessage {
+                if let errorMessage = viewModel.errorMessage {
                     Section {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -135,105 +125,41 @@ struct CreateProposeView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .disabled(isSaving)
+                    Button("Cancel") { dismiss() }
+                        .disabled(viewModel.isSaving)
                 }
-
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
-                        Task {
-                            await createPropose()
-                        }
+                        Task { await viewModel.createPropose() }
                     }
-                    .disabled(!canSave)
+                    .disabled(!viewModel.canSave)
                 }
             }
-            .disabled(isSaving)
-            .sheet(isPresented: $showContactPicker) {
-                ContactPickerSheet(selectedContact: $selectedContact)
+            .disabled(viewModel.isSaving)
+            .sheet(isPresented: $viewModel.showContactPicker) {
+                ContactPickerSheet(selectedContact: $viewModel.selectedContact)
             }
-            .sheet(isPresented: $showIdentityPicker) {
+            .sheet(isPresented: $viewModel.showIdentityPicker) {
                 IdentityPickerSheet(
-                    identities: identities,
-                    selectedIdentity: $selectedIdentity
+                    identities: viewModel.identities,
+                    selectedIdentity: $viewModel.selectedIdentity
                 )
             }
             .task {
-                loadIdentities()
+                viewModel.loadIdentities()
+            }
+            .onChange(of: viewModel.shouldDismiss) { _, should in
+                if should { dismiss() }
             }
         }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 500)
 #endif
     }
-
-    private func loadIdentities() {
-        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
-        do {
-            let all = try useCase.execute()
-            identities = all
-            // Default to the space's default identity, fall back to the first available
-            if let defaultID = space.defaultIdentityID,
-               let defaultIdentity = all.first(where: { $0.id == defaultID }) {
-                selectedIdentity = defaultIdentity
-            } else {
-                selectedIdentity = all.first
-            }
-        } catch {
-            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
-        }
-    }
-
-    private func createPropose() async {
-        await MainActor.run {
-            isSaving = true
-            errorMessage = nil
-        }
-
-        guard let contact = selectedContact, let identity = selectedIdentity else {
-            await MainActor.run {
-                errorMessage = "No Counterparty or Identity selected"
-                isSaving = false
-            }
-            return
-        }
-
-        let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            spaceRepository: deps.spaceRepository,
-            proposeRepository: deps.proposeRepository
-        )
-
-        do {
-            try await createProposeUseCaseImpl.execute(
-                identityID: identity.id,
-                spaceID: space.id,
-                message: message,
-                counterpartyPublicKey: contact.publicKey
-            )
-
-            // Close the screen regardless of result
-            await MainActor.run {
-                isSaving = false
-                onSuccess()
-                dismiss()
-            }
-
-        } catch {
-            Logger.propose.error("Error creating propose: \(error, privacy: .public)")
-            await MainActor.run {
-                errorMessage = "Failed to create propose: \(error.localizedDescription)"
-                isSaving = false
-            }
-        }
-    }
 }
 
 // MARK: - ContactPickerSheet
 
-/// Sheet for selecting a Contact
 struct ContactPickerSheet: View {
     @Binding var selectedContact: Contact?
     @Environment(\.dismiss) private var dismiss
@@ -282,9 +208,7 @@ struct ContactPickerSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    Button("Cancel") { dismiss() }
                 }
             }
             .task {

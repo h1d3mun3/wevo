@@ -8,44 +8,36 @@
 import SwiftUI
 import os
 
+// MARK: - Container
+
 struct AddSpaceView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
 
-    @State private var name: String = ""
-    @State private var urlString: String = ""
-    @State private var identities: [Identity] = []
-    @State private var selectedIdentityID: UUID?
+    var body: some View {
+        AddSpaceContent(viewModel: AddSpaceViewModel(deps: deps))
+    }
+}
 
-    private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        selectedIdentityID != nil &&
-        !isSaving
-    }
-    @State private var isSaving: Bool = false
-    @State private var saveError: String?
+// MARK: - Content
 
-    private var addSpaceUseCase: any AddSpaceUseCase {
-        AddSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
-    }
-    private var loadIdentitiesUseCase: any LoadIdentitiesWithDefaultSelectionUseCase {
-        LoadIdentitiesWithDefaultSelectionUseCaseImpl(keychainRepository: deps.keychainRepository)
-    }
+private struct AddSpaceContent: View {
+    @State var viewModel: AddSpaceViewModel
+
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Space Name") {
-                    TextField("Space Name", text: $name)
+                    TextField("Space Name", text: $viewModel.name)
                 }
 
                 Section("Space URL") {
-                    TextField("Space URL", text: $urlString)
+                    TextField("Space URL", text: $viewModel.urlString)
                 }
 
                 Section("Default Identity") {
-                    if identities.isEmpty {
+                    if viewModel.identities.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("No identities available")
                                 .foregroundStyle(.secondary)
@@ -55,9 +47,9 @@ struct AddSpaceView: View {
                         }
                         .padding(.vertical, 4)
                     } else {
-                        Picker("Default Identity", selection: $selectedIdentityID) {
+                        Picker("Default Identity", selection: $viewModel.selectedIdentityID) {
                             Text("None").tag(nil as UUID?)
-                            ForEach(identities) { identity in
+                            ForEach(viewModel.identities) { identity in
                                 Text(identity.nickname).tag(identity.id as UUID?)
                             }
                         }
@@ -68,59 +60,37 @@ struct AddSpaceView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .disabled(isSaving)
+                        .disabled(viewModel.isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add Space") {
-                        Task { await add() }
+                        Task { await viewModel.add() }
                     }
-                    .disabled(!canSave)
+                    .disabled(!viewModel.canSave)
                 }
             }
             .task {
-                await loadIdentities()
+                await viewModel.loadIdentities()
+            }
+            .onChange(of: viewModel.shouldDismiss) { _, should in
+                if should { dismiss() }
             }
         }
         .alert("Error", isPresented: .init(
-            get: { saveError != nil },
-            set: { if !$0 { saveError = nil } }
+            get: { viewModel.saveError != nil },
+            set: { if !$0 { viewModel.saveError = nil } }
         )) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(saveError ?? "")
+            Text(viewModel.saveError ?? "")
         }
 #if os(macOS)
         .frame(minWidth: 400, minHeight: 450)
 #endif
     }
-
-    private func loadIdentities() async {
-        do {
-            let (loadedIdentities, defaultSelectedID) = try loadIdentitiesUseCase.execute()
-            await MainActor.run {
-                identities = loadedIdentities
-                if selectedIdentityID == nil {
-                    selectedIdentityID = defaultSelectedID
-                }
-            }
-        } catch {
-            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
-            await MainActor.run { identities = [] }
-        }
-    }
-
-    private func add() async {
-        guard canSave else { return }
-        isSaving = true
-        do {
-            try await addSpaceUseCase.execute(name: name, primaryURL: urlString, defaultIdentityID: selectedIdentityID)
-            await MainActor.run { isSaving = false; dismiss() }
-        } catch {
-            Logger.space.error("Error saving space: \(error, privacy: .public)")
-            await MainActor.run { isSaving = false; saveError = error.localizedDescription }
-        }
-    }
 }
+
+// MARK: - Preview
 
 #Preview {
     AddSpaceView()
