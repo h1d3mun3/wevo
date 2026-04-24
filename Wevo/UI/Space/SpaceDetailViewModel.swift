@@ -61,7 +61,8 @@ final class SpaceDetailViewModel {
             proposes = loaded
             isLoading = false
             if loaded.isEmpty {
-                Logger.propose.info("No proposes found locally: \(currentSpace.name, privacy: .private)")
+                let spaceName = currentSpace.name
+                Logger.propose.info("No proposes found locally: \(spaceName, privacy: .private)")
             } else {
                 Logger.propose.info("Loaded \(loaded.count) propose(s) from local storage")
             }
