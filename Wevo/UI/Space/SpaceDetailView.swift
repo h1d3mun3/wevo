@@ -8,58 +8,39 @@
 import SwiftUI
 import os
 
+// MARK: - Container
+
 struct SpaceDetailView: View {
     let space: Space
 
     @Environment(\.dependencies) private var deps
+
+    var body: some View {
+        SpaceDetailContent(
+            viewModel: SpaceDetailViewModel(space: space, deps: deps)
+        )
+    }
+}
+
+// MARK: - Content
+
+private struct SpaceDetailContent: View {
+    @State var viewModel: SpaceDetailViewModel
+
     @Environment(\.dismiss) private var dismiss
-
-    @State private var proposes: [Propose] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var defaultIdentity: Identity?
-    @State private var shouldShowCreatePropose = false
-    @State private var shouldShowEditSpace = false
-    @State private var currentSpace: Space
-    @State private var serverCheckTrigger = UUID()
-
-    /// Tab for switching between active / completed
-    @State private var selectedTab: ProposeTab = .active
-
-    private enum ProposeTab: String, CaseIterable {
-        case active = "Active"
-        case completed = "Completed"
-    }
-
-    /// List of active (proposed / signed) Proposes
-    private var activeProposes: [Propose] {
-        proposes.filter { $0.localStatus.isActive }
-    }
-
-    /// List of completed (honored / parted / dissolved) Proposes
-    private var completedProposes: [Propose] {
-        proposes.filter { !$0.localStatus.isActive }
-    }
-
-    init(space: Space) {
-        self.space = space
-        _currentSpace = State(initialValue: space)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             SpaceHeaderView(
-                space: currentSpace,
-                defaultIdentity: defaultIdentity,
-                onEditTapped: { shouldShowEditSpace = true }
+                space: viewModel.currentSpace,
+                defaultIdentity: viewModel.defaultIdentity,
+                onEditTapped: { viewModel.shouldShowEditSpace = true }
             )
 
             Divider()
 
-            // SegmentedControl (Active / Completed)
-            Picker("", selection: $selectedTab) {
-                ForEach(ProposeTab.allCases, id: \.self) { tab in
+            Picker("", selection: $viewModel.selectedTab) {
+                ForEach(SpaceDetailTab.allCases, id: \.self) { tab in
                     Text(tab.rawValue).tag(tab)
                 }
             }
@@ -69,31 +50,36 @@ struct SpaceDetailView: View {
 
             Divider()
 
-            // Content
-            if isLoading {
+            if viewModel.isLoading {
                 Spacer()
                 ProgressView("Loading proposes...")
                     .progressViewStyle(.circular)
                 Spacer()
-            } else if let errorMessage = errorMessage {
+            } else if let errorMessage = viewModel.errorMessage {
                 Spacer()
                 ProposeErrorView(
                     errorMessage: errorMessage,
-                    onRetry: loadProposesFromLocal
+                    onRetry: viewModel.loadProposesFromLocal
                 )
                 Spacer()
             } else {
-                let displayProposes = selectedTab == .active ? activeProposes : completedProposes
+                let displayProposes = viewModel.selectedTab == .active
+                    ? viewModel.activeProposes
+                    : viewModel.completedProposes
 
                 if displayProposes.isEmpty {
                     Spacer()
-                    EmptyProposeView(hasDefaultIdentity: defaultIdentity != nil)
+                    EmptyProposeView(hasDefaultIdentity: viewModel.defaultIdentity != nil)
                     Spacer()
                 } else {
                     List {
                         ForEach(displayProposes) { propose in
-                            ProposeRowView(propose: propose, space: space, serverCheckTrigger: serverCheckTrigger) {
-                                loadProposesFromLocal()
+                            ProposeRowView(
+                                propose: propose,
+                                space: viewModel.currentSpace,
+                                serverCheckTrigger: viewModel.serverCheckTrigger
+                            ) {
+                                viewModel.loadProposesFromLocal()
                             }
                         }
                     }
@@ -101,100 +87,51 @@ struct SpaceDetailView: View {
                 }
             }
         }
-        .navigationTitle(currentSpace.name)
+        .navigationTitle(viewModel.currentSpace.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    shouldShowCreatePropose = true
+                    viewModel.shouldShowCreatePropose = true
                 } label: {
                     Label("Create Propose", systemImage: "plus")
                 }
             }
         }
-        .task(id: space.id) {
-            await loadDefaultIdentity()
-            loadProposesFromLocal()
+        .task {
+            await viewModel.loadDefaultIdentity()
+            viewModel.loadProposesFromLocal()
         }
         .refreshable {
-            loadProposesFromLocal()
-            serverCheckTrigger = UUID()
+            viewModel.refresh()
         }
         .onCloudKitImport {
-            loadProposesFromLocal()
-            Task { await reloadSpace() }
+            viewModel.loadProposesFromLocal()
+            Task { await viewModel.reloadSpace() }
         }
-        .sheet(isPresented: $shouldShowCreatePropose) {
-            CreateProposeView(space: currentSpace) {
+        .sheet(isPresented: $viewModel.shouldShowCreatePropose) {
+            CreateProposeView(space: viewModel.currentSpace) {
                 Task {
-                    loadProposesFromLocal()
+                    viewModel.loadProposesFromLocal()
                 }
             }
         }
-        .sheet(isPresented: $shouldShowEditSpace) {
-            EditSpaceView(space: currentSpace) {
+        .sheet(isPresented: $viewModel.shouldShowEditSpace) {
+            EditSpaceView(space: viewModel.currentSpace) {
                 Task {
-                    await reloadSpace()
+                    await viewModel.reloadSpace()
                 }
             }
         }
-    }
-
-    private func loadDefaultIdentity() async {
-        let useCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
-        do {
-            let identity = try useCase.execute(space: currentSpace)
-            self.defaultIdentity = identity
-        } catch {
-            Logger.identity.error("Error loading default Identity: \(error, privacy: .public)")
-            await MainActor.run {
-                self.defaultIdentity = nil
-            }
+        .onChange(of: viewModel.shouldDismiss) { _, should in
+            if should { dismiss() }
         }
-    }
-
-    private func loadProposesFromLocal() {
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let loadAllProposesUseCase = LoadAllProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
-            let loadedProposes = try loadAllProposesUseCase.execute(id: currentSpace.id)
-
-            proposes = loadedProposes
-            isLoading = false
-
-            if loadedProposes.isEmpty {
-                Logger.propose.info("No proposes found locally: \(currentSpace.name, privacy: .private)")
-            } else {
-                Logger.propose.info("Loaded \(loadedProposes.count) propose(s) from local storage")
-            }
-        } catch {
-            Logger.propose.error("Error loading proposes from local storage: \(error, privacy: .public)")
-            isLoading = false
-            errorMessage = "Failed to load proposes: \(error.localizedDescription)"
-            proposes = []
-        }
-    }
-
-    private func reloadSpace() async {
-        await MainActor.run {
-            let getSpaceUseCase = GetSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
-            do {
-                let updatedSpace = try getSpaceUseCase.execute(id: space.id)
-                currentSpace = updatedSpace
-                Logger.space.info("Space reload complete: \(updatedSpace.name, privacy: .private)")
-            } catch SpaceRepositoryError.spaceNotFound {
-                dismiss()
-            } catch {
-                Logger.space.error("Failed to reload Space: \(error, privacy: .public)")
-            }
-        }
-        await loadDefaultIdentity()
     }
 }
+
+// MARK: - Preview
 
 #Preview("Space Detail") {
     let space = Space(
