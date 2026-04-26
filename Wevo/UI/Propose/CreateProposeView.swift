@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 import os
 
 struct CreateProposeView: View {
@@ -80,7 +79,7 @@ struct CreateProposeView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(contact.nickname)
                                     .font(.body)
-                                Text(contact.publicKey.prefix(16) + "...")
+                                Text(contact.fingerprintDisplay)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .fontDesign(.monospaced)
@@ -170,17 +169,12 @@ struct CreateProposeView: View {
     }
 
     private func loadIdentities() {
-        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let allUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let defaultUseCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let all = try useCase.execute()
+            let all = try allUseCase.execute()
             identities = all
-            // Default to the space's default identity, fall back to the first available
-            if let defaultID = space.defaultIdentityID,
-               let defaultIdentity = all.first(where: { $0.id == defaultID }) {
-                selectedIdentity = defaultIdentity
-            } else {
-                selectedIdentity = all.first
-            }
+            selectedIdentity = (try? defaultUseCase.execute(space: space)) ?? all.first
         } catch {
             Logger.identity.error("Error loading identities: \(error, privacy: .public)")
         }
@@ -266,7 +260,7 @@ struct ContactPickerSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(contact.nickname)
                                     .font(.body)
-                                Text(contact.publicKey.prefix(24) + "...")
+                                Text(contact.fingerprintDisplay)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .fontDesign(.monospaced)
