@@ -156,65 +156,6 @@ private struct CreateProposeContent: View {
         .frame(minWidth: 400, minHeight: 500)
 #endif
     }
-<<<<<<< HEAD
-=======
-
-    private func loadIdentities() {
-        let allUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
-        let defaultUseCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
-        do {
-            let all = try allUseCase.execute()
-            identities = all
-            selectedIdentity = (try? defaultUseCase.execute(space: space)) ?? all.first
-        } catch {
-            Logger.identity.error("Error loading identities: \(error, privacy: .public)")
-        }
-    }
-
-    private func createPropose() async {
-        await MainActor.run {
-            isSaving = true
-            errorMessage = nil
-        }
-
-        guard let contact = selectedContact, let identity = selectedIdentity else {
-            await MainActor.run {
-                errorMessage = "No Counterparty or Identity selected"
-                isSaving = false
-            }
-            return
-        }
-
-        let createProposeUseCaseImpl = CreateProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            spaceRepository: deps.spaceRepository,
-            proposeRepository: deps.proposeRepository
-        )
-
-        do {
-            try await createProposeUseCaseImpl.execute(
-                identityID: identity.id,
-                spaceID: space.id,
-                message: message,
-                counterpartyPublicKey: contact.publicKey
-            )
-
-            // Close the screen regardless of result
-            await MainActor.run {
-                isSaving = false
-                onSuccess()
-                dismiss()
-            }
-
-        } catch {
-            Logger.propose.error("Error creating propose: \(error, privacy: .public)")
-            await MainActor.run {
-                errorMessage = "Failed to create propose: \(error.localizedDescription)"
-                isSaving = false
-            }
-        }
-    }
->>>>>>> rc-1.1.0
 }
 
 // MARK: - ContactPickerSheet

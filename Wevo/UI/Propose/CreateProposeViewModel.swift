@@ -37,16 +37,12 @@ final class CreateProposeViewModel {
     }
 
     func loadIdentities() {
-        let useCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let allUseCase = GetAllIdentitiesUseCaseImpl(keychainRepository: deps.keychainRepository)
+        let defaultUseCase = GetDefaultIdentityForSpaceUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            let all = try useCase.execute()
+            let all = try allUseCase.execute()
             identities = all
-            if let defaultID = space.defaultIdentityID,
-               let defaultIdentity = all.first(where: { $0.id == defaultID }) {
-                selectedIdentity = defaultIdentity
-            } else {
-                selectedIdentity = all.first
-            }
+            selectedIdentity = (try? defaultUseCase.execute(space: space)) ?? all.first
         } catch {
             Logger.identity.error("Error loading identities: \(error, privacy: .public)")
         }
