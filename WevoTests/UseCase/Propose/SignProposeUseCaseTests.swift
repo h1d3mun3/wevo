@@ -239,6 +239,21 @@ struct SignProposeUseCaseTests {
         #expect(mockPropose.updateCalled == true)
     }
 
+    @Test func testThrowsWhenProposeIsNotProposed() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+
+        let propose = makePropose(counterpartySignSignature: "alreadySigned")
+
+        let useCase = SignProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: SignProposeUseCaseError.proposeStatusIsNotProposed) {
+            try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.signProposeCalled == false)
+    }
+
     @Test func testThrowsInvalidServerURLWhenURLsEmpty() async throws {
         // Arrange
         let mockKeychain = MockKeychainRepository()

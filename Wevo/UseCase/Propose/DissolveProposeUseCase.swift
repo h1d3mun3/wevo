@@ -16,6 +16,7 @@ enum DissolveProposeUseCaseError: Error {
     case invalidServerURL
     /// The identity is not a participant (neither creator nor counterparty)
     case notParticipant
+    case proposeStatusIsNotProposed
 }
 
 struct DissolveProposeUseCaseImpl {
@@ -34,6 +35,10 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
         guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw DissolveProposeUseCaseError.invalidServerURL
+        }
+
+        guard propose.localStatus == .proposed else {
+            throw DissolveProposeUseCaseError.proposeStatusIsNotProposed
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)

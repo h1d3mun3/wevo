@@ -14,6 +14,7 @@ protocol PartProposeUseCase {
 
 enum PartProposeUseCaseError: Error {
     case invalidServerURL
+    case proposeStatusIsNotSigned
 }
 
 struct PartProposeUseCaseImpl {
@@ -32,6 +33,10 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
         guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw PartProposeUseCaseError.invalidServerURL
+        }
+
+        guard propose.localStatus == .signed else {
+            throw PartProposeUseCaseError.proposeStatusIsNotSigned
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)

@@ -212,6 +212,31 @@ struct DissolveProposeUseCaseTests {
         #expect(mockAPI.dissolveProposeCalled == false)
     }
 
+    @Test func testThrowsWhenProposeIsNotProposed() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+
+        let propose = Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: "signedSig",
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: DissolveProposeUseCaseError.proposeStatusIsNotProposed) {
+            try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.dissolveProposeCalled == false)
+    }
+
     @Test func testThrowsWhenUpdateFails() async throws {
         let mockKeychain = MockKeychainRepository()
         let mockAPI = MockProposeAPIClient()

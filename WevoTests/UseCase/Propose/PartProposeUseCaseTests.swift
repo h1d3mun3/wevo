@@ -171,6 +171,31 @@ struct PartProposeUseCaseTests {
         #expect(mockRepo.updatedPropose?.creatorPartSignature == nil)
     }
 
+    @Test func testThrowsWhenProposeIsNotSigned() async throws {
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+
+        let propose = Propose(
+            id: UUID(),
+            spaceID: UUID(),
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: nil,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+
+        await #expect(throws: PartProposeUseCaseError.proposeStatusIsNotSigned) {
+            try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
+        }
+        #expect(mockAPI.partProposeCalled == false)
+    }
+
     @Test func testThrowsWhenUpdateFails() async throws {
         let mockKeychain = MockKeychainRepository()
         let mockAPI = MockProposeAPIClient()
