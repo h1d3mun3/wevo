@@ -231,7 +231,7 @@ struct DissolveProposeUseCaseTests {
 
         let useCase = DissolveProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        await #expect(throws: DissolveProposeUseCaseError.proposeStatusIsNotProposed) {
+        await #expect(throws: DissolveProposeUseCaseError.statusIsNotProposed) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.dissolveProposeCalled == false)

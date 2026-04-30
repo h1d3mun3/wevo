@@ -13,7 +13,7 @@ enum SignProposeUseCaseError: Error {
     /// The identity attempting to sign is not the Counterparty
     case notCounterparty
     case invalidServerURL
-    case proposeStatusIsNotProposed
+    case statusIsNotProposed
 }
 
 protocol SignProposeUseCase {
@@ -39,7 +39,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         }
 
         guard propose.localStatus == .proposed else {
-            throw SignProposeUseCaseError.proposeStatusIsNotProposed
+            throw SignProposeUseCaseError.statusIsNotProposed
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)

@@ -190,7 +190,7 @@ struct PartProposeUseCaseTests {
 
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        await #expect(throws: PartProposeUseCaseError.proposeStatusIsNotSigned) {
+        await #expect(throws: PartProposeUseCaseError.statusIsNotSigned) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.partProposeCalled == false)

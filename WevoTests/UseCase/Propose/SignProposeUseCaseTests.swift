@@ -248,7 +248,7 @@ struct SignProposeUseCaseTests {
 
         let useCase = SignProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        await #expect(throws: SignProposeUseCaseError.proposeStatusIsNotProposed) {
+        await #expect(throws: SignProposeUseCaseError.statusIsNotProposed) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)

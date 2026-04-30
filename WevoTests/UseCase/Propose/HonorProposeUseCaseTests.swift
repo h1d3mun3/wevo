@@ -189,7 +189,7 @@ struct HonorProposeUseCaseTests {
 
         let useCase = HonorProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        await #expect(throws: HonorProposeUseCaseError.proposeStatusIsNotSigned) {
+        await #expect(throws: HonorProposeUseCaseError.statusIsNotSigned) {
             try await useCase.execute(propose: propose, identityID: UUID(), serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.honorProposeCalled == false)

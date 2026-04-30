@@ -14,7 +14,7 @@ protocol PartProposeUseCase {
 
 enum PartProposeUseCaseError: Error {
     case invalidServerURL
-    case proposeStatusIsNotSigned
+    case statusIsNotSigned
 }
 
 struct PartProposeUseCaseImpl {
@@ -36,7 +36,7 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
         }
 
         guard propose.localStatus == .signed else {
-            throw PartProposeUseCaseError.proposeStatusIsNotSigned
+            throw PartProposeUseCaseError.statusIsNotSigned
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)
