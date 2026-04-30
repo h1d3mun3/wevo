@@ -23,6 +23,6 @@ struct GetContactNicknamesMapUseCaseImpl {
 extension GetContactNicknamesMapUseCaseImpl: GetContactNicknamesMapUseCase {
     func execute() throws -> [String: String] {
         let contacts = try contactRepository.fetchAll()
-        return Dictionary(uniqueKeysWithValues: contacts.map { ($0.publicKey, $0.nickname) })
+        return Dictionary(contacts.map { ($0.publicKey, $0.nickname) }, uniquingKeysWith: { first, _ in first })
     }
 }
