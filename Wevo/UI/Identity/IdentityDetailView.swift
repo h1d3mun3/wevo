@@ -7,50 +7,40 @@
 
 import SwiftUI
 
+// MARK: - Container
+
 struct IdentityDetailView: View {
     let identity: Identity
 
     @Environment(\.dependencies) private var deps
 
-    private var authenticateAndExportUseCase: any AuthenticateAndExportIdentityUseCase {
-        AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
+    var body: some View {
+        IdentityDetailContent(
+            viewModel: IdentityDetailViewModel(identity: identity, deps: deps)
+        )
     }
-    private var exportIdentityAsContactUseCase: any ExportIdentityAsContactUseCase {
-        ExportIdentityAsContactUseCaseImpl()
-    }
-    private var cleanupExportFileUseCase: any CleanupExportFileUseCase {
-        CleanupExportFileUseCaseImpl()
-    }
+}
 
-    @State private var errorMessage: String?
-    @State private var exportError: String?
-    @State private var showingEditSheet = false
-    @State private var shareURL: URL?
-    @State private var isAuthenticating = false
-    @State private var contactShareURL: URL?
-    @State private var contactExportError: String?
+// MARK: - Content
+
+private struct IdentityDetailContent: View {
+    @State var viewModel: IdentityDetailViewModel
 
     var body: some View {
         List {
             Section("Information") {
-                LabeledContent("Nickname", value: identity.nickname)
-                LabeledContent("ID", value: identity.id.uuidString)
+                LabeledContent("Nickname", value: viewModel.identity.nickname)
+                LabeledContent("ID", value: viewModel.identity.id.uuidString)
                     .font(.system(.caption, design: .monospaced))
             }
-            
+
             Section("Fingerprint") {
-                Text(identity.fingerprintDisplay)
+                Text(viewModel.identity.fingerprintDisplay)
                     .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
-
-                if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                }
             }
-            
-            if let base64 = identity.publicKeyBase64 {
+
+            if let base64 = viewModel.identity.publicKeyBase64 {
                 Section("Public Key (base64)") {
                     Text(base64)
                         .font(.system(.caption, design: .monospaced))
@@ -60,7 +50,7 @@ struct IdentityDetailView: View {
 
             Section {
                 Button(action: {
-                    showingEditSheet = true
+                    viewModel.showingEditSheet = true
                 }) {
                     Label("Edit Nickname", systemImage: "pencil")
                 }
@@ -68,33 +58,33 @@ struct IdentityDetailView: View {
 
             Section("Share") {
                 Button {
-                    Task { await authenticateAndExport() }
+                    Task { await viewModel.authenticateAndExport() }
                 } label: {
                     Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
                 }
-                .disabled(isAuthenticating)
-                .alert("Export Error", isPresented: .constant(exportError != nil)) {
-                    Button("OK", role: .cancel) { exportError = nil }
+                .disabled(viewModel.isAuthenticating)
+                .alert("Export Error", isPresented: .constant(viewModel.exportError != nil)) {
+                    Button("OK", role: .cancel) { viewModel.exportError = nil }
                 } message: {
-                    Text(exportError ?? "")
+                    Text(viewModel.exportError ?? "")
                 }
-                if let shareURL = shareURL {
+                if let shareURL = viewModel.shareURL {
                     ShareLink(item: shareURL) {
                         Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
                 }
 
                 Button {
-                    prepareContactExport()
+                    viewModel.prepareContactExport()
                 } label: {
                     Label("Share Public Key as Contact", systemImage: "person.badge.plus")
                 }
-                .alert("Export Error", isPresented: .constant(contactExportError != nil)) {
-                    Button("OK", role: .cancel) { contactExportError = nil }
+                .alert("Export Error", isPresented: .constant(viewModel.contactExportError != nil)) {
+                    Button("OK", role: .cancel) { viewModel.contactExportError = nil }
                 } message: {
-                    Text(contactExportError ?? "")
+                    Text(viewModel.contactExportError ?? "")
                 }
-                if let contactShareURL {
+                if let contactShareURL = viewModel.contactShareURL {
                     ShareLink(item: contactShareURL) {
                         Label("Open Share Sheet", systemImage: "square.and.arrow.up.on.square")
                     }
@@ -105,42 +95,13 @@ struct IdentityDetailView: View {
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
-        .sheet(isPresented: $showingEditSheet) {
-            EditIdentityView(identity: identity)
+        .sheet(isPresented: $viewModel.showingEditSheet) {
+            EditIdentityView(identity: viewModel.identity)
         }
         .onDisappear {
-            cleanupExportFile()
+            viewModel.cleanupExportFile()
         }
     }
-    
-    private func authenticateAndExport() async {
-        isAuthenticating = true
-        defer { isAuthenticating = false }
-        do {
-            let url = try await authenticateAndExportUseCase.execute(identity: identity)
-            await MainActor.run { shareURL = url }
-        } catch {
-            await MainActor.run {
-                exportError = "Failed to export identity: \(error.localizedDescription)"
-            }
-        }
-    }
-
-    private func prepareContactExport() {
-        guard contactShareURL == nil else { return }
-        do {
-            contactShareURL = try exportIdentityAsContactUseCase.execute(identity: identity)
-        } catch {
-            contactExportError = "Failed to export: \(error.localizedDescription)"
-        }
-    }
-
-    private func cleanupExportFile() {
-        cleanupExportFileUseCase.execute(urls: [shareURL, contactShareURL])
-        shareURL = nil
-        contactShareURL = nil
-    }
-
 }
 
 #Preview("Identity Detail") {

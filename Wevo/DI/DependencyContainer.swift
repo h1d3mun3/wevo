@@ -16,6 +16,9 @@ protocol DependencyContainer {
     var spaceRepository: SpaceRepository { get }
     var proposeRepository: ProposeRepository { get }
     var contactRepository: ContactRepository { get }
+    var authenticateAndExportIdentityUseCase: any AuthenticateAndExportIdentityUseCase { get }
+    var exportIdentityAsContactUseCase: any ExportIdentityAsContactUseCase { get }
+    var cleanupExportFileUseCase: any CleanupExportFileUseCase { get }
 }
 
 // MARK: - App Implementation
@@ -28,6 +31,9 @@ final class AppDependencyContainer: DependencyContainer {
     private(set) lazy var spaceRepository: SpaceRepository = SpaceRepositoryImpl(modelContext: modelContext)
     private(set) lazy var proposeRepository: ProposeRepository = ProposeRepositoryImpl(modelContext: modelContext)
     private(set) lazy var contactRepository: ContactRepository = ContactRepositoryImpl(modelContext: modelContext)
+    private(set) lazy var authenticateAndExportIdentityUseCase: any AuthenticateAndExportIdentityUseCase = AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: keychainRepository)
+    private(set) lazy var exportIdentityAsContactUseCase: any ExportIdentityAsContactUseCase = ExportIdentityAsContactUseCaseImpl()
+    private(set) lazy var cleanupExportFileUseCase: any CleanupExportFileUseCase = CleanupExportFileUseCaseImpl()
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -61,6 +67,15 @@ private final class PlaceholderDependencyContainer: DependencyContainer {
         fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
     }
     var contactRepository: ContactRepository {
+        fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
+    }
+    var authenticateAndExportIdentityUseCase: any AuthenticateAndExportIdentityUseCase {
+        fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
+    }
+    var exportIdentityAsContactUseCase: any ExportIdentityAsContactUseCase {
+        fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
+    }
+    var cleanupExportFileUseCase: any CleanupExportFileUseCase {
         fatalError("DependencyContainer not configured. Set .environment(\\.dependencies, ...) in WevoApp.")
     }
 }
