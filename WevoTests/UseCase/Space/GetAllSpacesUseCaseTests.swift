@@ -21,7 +21,7 @@ struct GetAllSpacesUseCaseTests {
         ]
         mockRepository.fetchAllResult = testSpaces
 
-        let useCase = GetAllSpaceUseCaseImpl(spaceRepository: mockRepository)
+        let useCase = GetAllSpacesUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
         let result = try useCase.execute()
@@ -37,7 +37,7 @@ struct GetAllSpacesUseCaseTests {
         let mockRepository = MockSpaceRepository()
         mockRepository.fetchAllResult = []
 
-        let useCase = GetAllSpaceUseCaseImpl(spaceRepository: mockRepository)
+        let useCase = GetAllSpacesUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
         let result = try useCase.execute()
@@ -51,7 +51,7 @@ struct GetAllSpacesUseCaseTests {
         let mockRepository = MockSpaceRepository()
         mockRepository.fetchAllError = NSError(domain: "Test", code: -1)
 
-        let useCase = GetAllSpaceUseCaseImpl(spaceRepository: mockRepository)
+        let useCase = GetAllSpacesUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert
         #expect(throws: NSError.self) {
