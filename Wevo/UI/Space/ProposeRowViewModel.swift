@@ -283,7 +283,7 @@ final class ProposeRowViewModel {
         guard let identity = defaultIdentity else { return }
         isResendingLocalSignature = true
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl()
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl()
         do {
             try await useCase.execute(
                 propose: propose,
@@ -302,7 +302,7 @@ final class ProposeRowViewModel {
     func acceptServerPropose(_ serverPropose: HashedPropose) async {
         isApplyingServerUpdate = true
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
             isApplyingServerUpdate = false

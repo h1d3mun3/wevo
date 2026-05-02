@@ -8,26 +8,30 @@
 import SwiftUI
 import os
 
+// MARK: - Container
+
 struct ContentView: View {
-    @State private var shouldShowIdentityList = false
-    @State private var shouldShowContactList = false
-    @State private var shouldShowAddSpace = false
-    @State private var shouldShowSettings = false
-    @State private var spaces: [Space] = []
-    @State private var orphanedProposeGroups: [OrphanedProposeGroup] = []
-    @State private var deleteSpaceError: String?
     @Environment(\.dependencies) private var deps
+
+    var body: some View {
+        ContentViewContent(viewModel: ContentViewModel(deps: deps))
+    }
+}
+
+// MARK: - Content
+
+private struct ContentViewContent: View {
+    @State var viewModel: ContentViewModel
 
     var body: some View {
         NavigationSplitView {
             List {
-                // Spaces Section
-                if spaces.isEmpty {
+                if viewModel.spaces.isEmpty {
                     Text("No spaces available")
                         .foregroundStyle(.secondary)
                 } else {
                     Section("Spaces") {
-                        ForEach(spaces) { space in
+                        ForEach(viewModel.spaces) { space in
                             NavigationLink {
                                 SpaceDetailView(space: space)
                             } label: {
@@ -40,14 +44,13 @@ struct ContentView: View {
                                 }
                             }
                         }
-                        .onDelete(perform: deleteSpace)
+                        .onDelete(perform: viewModel.deleteSpace)
                     }
                 }
 
-                // Orphaned Proposes Section
-                if !orphanedProposeGroups.isEmpty {
+                if !viewModel.orphanedProposeGroups.isEmpty {
                     Section("Orphaned Proposes") {
-                        ForEach(orphanedProposeGroups, id: \.spaceID) { group in
+                        ForEach(viewModel.orphanedProposeGroups, id: \.spaceID) { group in
                             NavigationLink {
                                 OrphanedProposeGroupView(spaceID: group.spaceID, proposes: group.proposes)
                             } label: {
@@ -68,60 +71,56 @@ struct ContentView: View {
 #endif
             .toolbar {
                 ToolbarItem(placement: .navigation) {
-                    Button(action: { shouldShowSettings = true }) {
+                    Button(action: { viewModel.shouldShowSettings = true }) {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
                 }
-                
                 ToolbarItem {
-                    Button(action: { shouldShowContactList = true }) {
+                    Button(action: { viewModel.shouldShowContactList = true }) {
                         Label("Contacts", systemImage: "person.2.fill")
                     }
                 }
-
                 ToolbarItem {
-                    Button(action: { shouldShowIdentityList = true }) {
+                    Button(action: { viewModel.shouldShowIdentityList = true }) {
                         Label("Manage Keys", systemImage: "key.fill")
                     }
                 }
-
                 ToolbarItem {
-                    Button(action: { shouldShowAddSpace = true }) {
+                    Button(action: { viewModel.shouldShowAddSpace = true }) {
                         Label("Add Space", systemImage: "globe")
                     }
                 }
             }
             .task {
-                await loadSpaces()
+                await viewModel.loadSpaces()
             }
             .onCloudKitImport {
-                Task { await loadSpaces() }
+                Task { await viewModel.loadSpaces() }
             }
         } detail: {
             Text("Select an item")
         }
-        .sheet(isPresented: $shouldShowSettings) {
+        .sheet(isPresented: $viewModel.shouldShowSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $shouldShowIdentityList) {
+        .sheet(isPresented: $viewModel.shouldShowIdentityList) {
             IdentityListView()
         }
-        .sheet(isPresented: $shouldShowContactList) {
+        .sheet(isPresented: $viewModel.shouldShowContactList) {
             ContactListView()
         }
-        .sheet(isPresented: $shouldShowAddSpace, onDismiss: {
-            Task {
-                await loadSpaces()
-            }
+        .sheet(isPresented: $viewModel.shouldShowAddSpace, onDismiss: {
+            Task { await viewModel.loadSpaces() }
         }) {
             AddSpaceView()
         }
         .alert("Error", isPresented: .init(
-            get: { deleteSpaceError != nil },
-            set: { if !$0 { deleteSpaceError = nil } }
+            get: { viewModel.deleteSpaceError != nil },
+            set: { if !$0 { viewModel.deleteSpaceError = nil } }
         )) {
             Button("OK", role: .cancel) {}
         } message: {
+<<<<<<< HEAD
             Text(deleteSpaceError ?? "")
         }
     }
@@ -163,9 +162,14 @@ struct ContentView: View {
                     deleteSpaceError = error.localizedDescription
                 }
             }
+=======
+            Text(viewModel.deleteSpaceError ?? "")
+>>>>>>> rc-1.1.0
         }
     }
 }
+
+// MARK: - Preview
 
 #Preview {
     ContentView()

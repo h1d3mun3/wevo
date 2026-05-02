@@ -1,5 +1,5 @@
 //
-//  AppendServerSignaturesToLocalProposeUseCaseTests.swift
+//  MergeServerSignaturesIntoLocalProposeUseCaseTests.swift
 //  WevoTests
 //
 //  Created by hidemune on 3/10/26.
@@ -10,7 +10,7 @@ import Foundation
 @testable import Wevo
 
 @MainActor
-struct AppendServerSignaturesToLocalProposeUseCaseTests {
+struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
 
     /// Helper to generate a test Propose
     private func makePropose(
@@ -66,7 +66,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
@@ -84,7 +84,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID, signTimestamp: "2026-03-01T00:00:00Z"))
@@ -100,7 +100,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
@@ -116,7 +116,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartyPublicKey: "cpartyKey", counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(
@@ -134,7 +134,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchByIDError = NSError(domain: "Test", code: -1)
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
         #expect(throws: NSError.self) {
@@ -150,7 +150,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         mockRepository.fetchByIDResult = existingPropose
         mockRepository.updateError = NSError(domain: "Test", code: -1)
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act & Assert
         #expect(throws: NSError.self) {
@@ -199,7 +199,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
@@ -252,7 +252,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
@@ -294,7 +294,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
 
         #expect(mockRepository.updatedPropose?.creatorDissolveSignature == "creatorDissolveSig")
@@ -317,7 +317,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
         )
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
 
         #expect(mockRepository.updatedPropose?.signatureVersion == 2)
@@ -349,7 +349,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = AppendServerSignaturesToLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
