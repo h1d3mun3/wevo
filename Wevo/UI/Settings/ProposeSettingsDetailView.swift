@@ -8,33 +8,43 @@
 import SwiftUI
 import os
 
+// MARK: - Container
+
 struct ProposeSettingsDetailView: View {
     let propose: Propose
 
     @Environment(\.dependencies) private var deps
 
-    @State private var isHashValid: Bool?
-    @State private var contactNicknames: [String: String] = [:]
+    var body: some View {
+        ProposeSettingsDetailContent(
+            viewModel: ProposeSettingsDetailViewModel(propose: propose, deps: deps)
+        )
+    }
+}
+
+// MARK: - Content
+
+private struct ProposeSettingsDetailContent: View {
+    @State var viewModel: ProposeSettingsDetailViewModel
 
     var body: some View {
         List {
             Section("Message") {
-                Text(propose.message)
+                Text(viewModel.propose.message)
                     .font(.body)
             }
 
             Section("Hash") {
                 LabeledContent("Payload Hash") {
                     HStack {
-                        Text(propose.payloadHash)
+                        Text(viewModel.propose.payloadHash)
                             .font(.caption)
                             .fontDesign(.monospaced)
                             .textSelection(.enabled)
 
                         Spacer()
 
-                        // Hash verification result
-                        if let isValid = isHashValid {
+                        if let isValid = viewModel.isHashValid {
                             Image(systemName: isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundStyle(isValid ? .green : .red)
                                 .font(.title3)
@@ -45,7 +55,7 @@ struct ProposeSettingsDetailView: View {
                     }
                 }
 
-                if let isValid = isHashValid, !isValid {
+                if let isValid = viewModel.isHashValid, !isValid {
                     Text("⚠️ Hash mismatch: The payload hash does not match the message")
                         .font(.caption)
                         .foregroundStyle(.red)
@@ -54,14 +64,14 @@ struct ProposeSettingsDetailView: View {
 
             Section("IDs") {
                 LabeledContent("Propose ID") {
-                    Text(propose.id.uuidString)
+                    Text(viewModel.propose.id.uuidString)
                         .font(.caption)
                         .fontDesign(.monospaced)
                         .textSelection(.enabled)
                 }
 
                 LabeledContent("Space ID") {
-                    Text(propose.spaceID.uuidString)
+                    Text(viewModel.propose.spaceID.uuidString)
                         .font(.caption)
                         .fontDesign(.monospaced)
                         .textSelection(.enabled)
@@ -70,79 +80,66 @@ struct ProposeSettingsDetailView: View {
 
             Section("Local Record") {
                 LabeledContent("Created") {
-                    Text(propose.createdAt, format: .dateTime)
+                    Text(viewModel.propose.createdAt, format: .dateTime)
                 }
                 LabeledContent("Last Modified") {
-                    Text(propose.updatedAt, format: .dateTime)
+                    Text(viewModel.propose.updatedAt, format: .dateTime)
                 }
             }
 
-            let hasEventTimestamps = propose.counterpartySignTimestamp != nil
-                || propose.creatorHonorTimestamp != nil
-                || propose.counterpartyHonorTimestamp != nil
-                || propose.creatorPartTimestamp != nil
-                || propose.counterpartyPartTimestamp != nil
-                || propose.creatorDissolveTimestamp != nil
-                || propose.counterpartyDissolveTimestamp != nil
-            if hasEventTimestamps {
+            if viewModel.hasEventTimestamps {
                 Section("Event Timestamps") {
-                    if let ts = propose.counterpartySignTimestamp {
+                    if let ts = viewModel.propose.counterpartySignTimestamp {
                         timestampRow("Counterparty Signed At", iso8601: ts)
                     }
-                    if let ts = propose.creatorHonorTimestamp {
+                    if let ts = viewModel.propose.creatorHonorTimestamp {
                         timestampRow("Creator Honored At", iso8601: ts)
                     }
-                    if let ts = propose.counterpartyHonorTimestamp {
+                    if let ts = viewModel.propose.counterpartyHonorTimestamp {
                         timestampRow("Counterparty Honored At", iso8601: ts)
                     }
-                    if let ts = propose.creatorPartTimestamp {
+                    if let ts = viewModel.propose.creatorPartTimestamp {
                         timestampRow("Creator Parted At", iso8601: ts)
                     }
-                    if let ts = propose.counterpartyPartTimestamp {
+                    if let ts = viewModel.propose.counterpartyPartTimestamp {
                         timestampRow("Counterparty Parted At", iso8601: ts)
                     }
-                    if let ts = propose.creatorDissolveTimestamp {
+                    if let ts = viewModel.propose.creatorDissolveTimestamp {
                         timestampRow("Creator Dissolved At", iso8601: ts)
                     }
-                    if let ts = propose.counterpartyDissolveTimestamp {
+                    if let ts = viewModel.propose.counterpartyDissolveTimestamp {
                         timestampRow("Counterparty Dissolved At", iso8601: ts)
                     }
                 }
             }
 
-            // MARK: - Participants Section (replaces the old Signatures section)
             Section("Participants") {
-                // Creator row (always signed)
                 participantRow(
-                    publicKey: propose.creatorPublicKey,
+                    publicKey: viewModel.propose.creatorPublicKey,
                     role: "Creator",
                     isSigned: true
                 )
 
-                // Counterparty row (icon based on localStatus)
                 participantRow(
-                    publicKey: propose.counterpartyPublicKey,
+                    publicKey: viewModel.propose.counterpartyPublicKey,
                     role: "Counterparty",
-                    isSigned: propose.counterpartySignSignature != nil
+                    isSigned: viewModel.propose.counterpartySignSignature != nil
                 )
             }
 
-            // MARK: - Status Section
             Section("Status") {
                 LabeledContent("Local Status") {
                     HStack(spacing: 4) {
-                        // localStatus icon (proposed=⏳, signed=✅)
-                        Image(systemName: propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
-                            .foregroundStyle(propose.localStatus == .proposed ? .orange : .green)
-                        Text(propose.localStatus.rawValue.capitalized)
+                        Image(systemName: viewModel.propose.localStatus == .proposed ? "clock" : "checkmark.circle.fill")
+                            .foregroundStyle(viewModel.propose.localStatus == .proposed ? .orange : .green)
+                        Text(viewModel.propose.localStatus.rawValue.capitalized)
                             .font(.caption)
                     }
                 }
             }
         }
         .task {
-            await verifyHash()
-            await loadContactNicknames()
+            await viewModel.load()
         }
         .navigationTitle("Propose Details")
         #if os(iOS)
@@ -150,7 +147,6 @@ struct ProposeSettingsDetailView: View {
         #endif
     }
 
-    /// Renders a LabeledContent row for an ISO8601 timestamp string
     @ViewBuilder
     private func timestampRow(_ label: String, iso8601: String) -> some View {
         LabeledContent(label) {
@@ -164,18 +160,14 @@ struct ProposeSettingsDetailView: View {
         }
     }
 
-    /// Participant row (Creator / Counterparty)
     @ViewBuilder
     private func participantRow(publicKey: String, role: String, isSigned: Bool) -> some View {
         HStack(spacing: 8) {
-            // Signature status icon (proposed=⏳, signed=✅)
             Image(systemName: isSigned ? "checkmark.circle.fill" : "clock")
                 .foregroundStyle(isSigned ? .green : .orange)
 
             VStack(alignment: .leading, spacing: 2) {
-                // Nickname or prefix of PublicKey
-                let nickname = contactNicknames[publicKey] ?? String(publicKey.prefix(16)) + "..."
-                Text(nickname)
+                Text(viewModel.nickname(for: publicKey))
                     .font(.body)
 
                 Text(role)
@@ -195,28 +187,9 @@ struct ProposeSettingsDetailView: View {
     private func fingerprintDisplay(for jwkPublicKey: String) -> String {
         GetFingerprintUseCaseImpl().execute(jwkPublicKey: jwkPublicKey)
     }
-
-    private func verifyHash() async {
-        let useCase = VerifyProposeHashUseCaseImpl()
-        let isValid = useCase.execute(message: propose.message, payloadHash: propose.payloadHash)
-
-        await MainActor.run {
-            isHashValid = isValid
-        }
-    }
-
-    private func loadContactNicknames() async {
-        let useCase = GetContactNicknamesMapUseCaseImpl(contactRepository: deps.contactRepository)
-        do {
-            let dict = try useCase.execute()
-            await MainActor.run {
-                contactNicknames = dict
-            }
-        } catch {
-            Logger.contact.error("Error loading contact nicknames: \(error, privacy: .public)")
-        }
-    }
 }
+
+// MARK: - Preview
 
 #Preview("Propose Settings Detail") {
     let propose = Propose(

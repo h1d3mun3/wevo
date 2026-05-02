@@ -38,6 +38,15 @@ private struct IdentityDetailContent: View {
                 Text(viewModel.identity.fingerprintDisplay)
                     .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
+<<<<<<< HEAD
+=======
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                }
+>>>>>>> rc-1.1.0
             }
 
             if let base64 = viewModel.identity.publicKeyBase64 {
@@ -49,9 +58,13 @@ private struct IdentityDetailContent: View {
             }
 
             Section {
+<<<<<<< HEAD
                 Button(action: {
                     viewModel.showingEditSheet = true
                 }) {
+=======
+                Button(action: { viewModel.showingEditSheet = true }) {
+>>>>>>> rc-1.1.0
                     Label("Edit Nickname", systemImage: "pencil")
                 }
             }
@@ -103,6 +116,8 @@ private struct IdentityDetailContent: View {
         }
     }
 }
+
+// MARK: - Preview
 
 #Preview("Identity Detail") {
     NavigationStack {

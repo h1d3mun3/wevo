@@ -13,6 +13,7 @@ enum SignProposeUseCaseError: Error {
     /// The identity attempting to sign is not the Counterparty
     case notCounterparty
     case invalidServerURL
+    case statusIsNotProposed
 }
 
 protocol SignProposeUseCase {
@@ -35,6 +36,10 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
         guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw SignProposeUseCaseError.invalidServerURL
+        }
+
+        guard propose.localStatus == .proposed else {
+            throw SignProposeUseCaseError.statusIsNotProposed
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)
