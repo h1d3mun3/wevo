@@ -120,51 +120,7 @@ private struct ContentViewContent: View {
         )) {
             Button("OK", role: .cancel) {}
         } message: {
-<<<<<<< HEAD
-            Text(deleteSpaceError ?? "")
-        }
-    }
-
-    private func loadSpaces() async {
-        let getAllSpacesUseCase = GetAllSpacesUseCaseImpl(spaceRepository: deps.spaceRepository)
-        let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
-
-        do {
-            let loadedSpaces = try getAllSpacesUseCase.execute()
-            let spaceIDs = Set(loadedSpaces.map { $0.id })
-            let groups = try getOrphanedProposesUseCase.execute(validSpaceIDs: spaceIDs)
-
-            await MainActor.run {
-                spaces = loadedSpaces
-                orphanedProposeGroups = groups
-            }
-        } catch {
-            Logger.space.error("Error loading spaces: \(error, privacy: .public)")
-            await MainActor.run {
-                spaces = []
-                orphanedProposeGroups = []
-            }
-        }
-    }
-    
-    private func deleteSpace(offsets: IndexSet) {
-        let deleteSpaceUseCase = DeleteSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
-        Task {
-            do {
-                for index in offsets {
-                    let space = spaces[index]
-                    try deleteSpaceUseCase.execute(id: space.id)
-                }
-                await loadSpaces()
-            } catch {
-                Logger.space.error("Error deleting space: \(error, privacy: .public)")
-                await MainActor.run {
-                    deleteSpaceError = error.localizedDescription
-                }
-            }
-=======
             Text(viewModel.deleteSpaceError ?? "")
->>>>>>> rc-1.1.0
         }
     }
 }
