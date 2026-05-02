@@ -24,7 +24,7 @@ final class ContentViewModel {
     }
 
     func loadSpaces() async {
-        let getAllSpacesUseCase = GetAllSpaceUseCaseImpl(spaceRepository: deps.spaceRepository)
+        let getAllSpacesUseCase = GetAllSpacesUseCaseImpl(spaceRepository: deps.spaceRepository)
         let getOrphanedProposesUseCase = GetOrphanedProposesUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             let loadedSpaces = try getAllSpacesUseCase.execute()
