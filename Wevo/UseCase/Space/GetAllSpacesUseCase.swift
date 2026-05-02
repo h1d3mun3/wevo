@@ -11,7 +11,7 @@ protocol GetAllSpacesUseCase {
     func execute() throws -> [Space]
 }
 
-struct GetAllSpaceUseCaseImpl {
+struct GetAllSpacesUseCaseImpl {
     let spaceRepository: SpaceRepository
 
     init(spaceRepository: SpaceRepository) {
@@ -19,7 +19,7 @@ struct GetAllSpaceUseCaseImpl {
     }
 }
 
-extension GetAllSpaceUseCaseImpl: GetAllSpacesUseCase {
+extension GetAllSpacesUseCaseImpl: GetAllSpacesUseCase {
     func execute() throws -> [Space] {
         try spaceRepository.fetchAll()
     }
