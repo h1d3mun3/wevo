@@ -1,5 +1,5 @@
 //
-//  SendLocalSignaturesToServerUseCaseTests.swift
+//  ResendMissingLocalSignaturesToServerUseCaseTests.swift
 //  WevoTests
 //
 //  Created on 3/11/26.
@@ -10,7 +10,7 @@ import Foundation
 @testable import Wevo
 
 @MainActor
-struct SendLocalSignaturesToServerUseCaseTests {
+struct ResendMissingLocalSignaturesToServerUseCaseTests {
 
     private let counterpartyPublicKey = "counterpartyKey"
 
@@ -76,7 +76,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Server does not have the sign signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: when IdentityPublicKey matches CounterpartyPublicKey
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
@@ -94,7 +94,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let propose = makePropose(counterpartySignSignature: "mySig")
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act: third-party key (neither creator nor counterparty) is silently skipped
         try await useCase.execute(propose: propose, identityPublicKey: "thirdPartyKey", serverURLs: ["https://example.com"])
@@ -109,10 +109,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let propose = makePropose()
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert: creator with no pending signatures → noSignatureFound
-        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+        await #expect(throws: ResendMissingLocalSignaturesToServerUseCaseError.noSignatureFound) {
             try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
@@ -125,10 +125,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let propose = makePropose(counterpartySignSignature: nil)
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert
-        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+        await #expect(throws: ResendMissingLocalSignaturesToServerUseCaseError.noSignatureFound) {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
@@ -139,10 +139,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let mockAPI = MockProposeAPIClient()
         let propose = makePropose()
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert: URL check fires before getPropose, so getProposeResult is not needed
-        await #expect(throws: SendLocalSignaturesToServerUseCaseError.invalidServerURL) {
+        await #expect(throws: ResendMissingLocalSignaturesToServerUseCaseError.invalidServerURL) {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: [])
         }
         #expect(mockAPI.signProposeCalled == false)
@@ -156,7 +156,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Server does not have the sign signature, so signPropose will be called (and fail)
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert
         await #expect(throws: ProposeAPIClient.APIError.self) {
@@ -170,10 +170,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let propose = makePropose(counterpartySignSignature: "counterpartySig", counterpartySignTimestamp: nil)
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert
-        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+        await #expect(throws: ResendMissingLocalSignaturesToServerUseCaseError.noSignatureFound) {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
@@ -197,7 +197,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         let propose = makeProposeWithCreatorHonor()
         // Server does not have the creator honor signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
 
@@ -217,7 +217,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
         // Server does not have the creator part signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
 
@@ -237,7 +237,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
         // Server does not have the creator dissolve signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: "creatorKey", serverURLs: ["https://example.com"])
 
@@ -259,7 +259,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
         // Server does not have the counterparty honor signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
@@ -279,7 +279,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
         // Server does not have the counterparty part signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
@@ -299,7 +299,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         )
         // Server does not have the counterparty dissolve signature yet
         mockAPI.getProposeResult = makeServerPropose(id: propose.id)
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 
@@ -316,10 +316,10 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Server already has the sign signature
         mockAPI.getProposeResult = makeServerPropose(id: propose.id, counterpartySignSignature: "myCounterpartySig")
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         // Act & Assert: nothing to send → noSignatureFound
-        await #expect(throws: SendLocalSignaturesToServerUseCaseError.noSignatureFound) {
+        await #expect(throws: ResendMissingLocalSignaturesToServerUseCaseError.noSignatureFound) {
             try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
         }
         #expect(mockAPI.signProposeCalled == false)
@@ -341,7 +341,7 @@ struct SendLocalSignaturesToServerUseCaseTests {
         // Server has sign but not honor
         mockAPI.getProposeResult = makeServerPropose(id: propose.id, counterpartySignSignature: "cpSignSig")
 
-        let useCase = SendLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
+        let useCase = ResendMissingLocalSignaturesToServerUseCaseImpl(apiClient: mockAPI)
 
         try await useCase.execute(propose: propose, identityPublicKey: counterpartyPublicKey, serverURLs: ["https://example.com"])
 

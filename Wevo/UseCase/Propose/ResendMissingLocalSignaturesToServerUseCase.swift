@@ -1,5 +1,5 @@
 //
-//  SendLocalSignaturesToServerUseCase.swift
+//  ResendMissingLocalSignaturesToServerUseCase.swift
 //  Wevo
 //
 //  Created on 3/11/26.
@@ -8,7 +8,7 @@
 import Foundation
 import os
 
-protocol SendLocalSignaturesToServerUseCase {
+protocol ResendMissingLocalSignaturesToServerUseCase {
     /// Compares local signatures against the current server state and sends all missing ones.
     /// Covers all operations: sign, honor, part, dissolve (creator and counterparty).
     /// - Parameters:
@@ -18,12 +18,12 @@ protocol SendLocalSignaturesToServerUseCase {
     func execute(propose: Propose, identityPublicKey: String, serverURLs: [String]) async throws
 }
 
-enum SendLocalSignaturesToServerUseCaseError: Error {
+enum ResendMissingLocalSignaturesToServerUseCaseError: Error {
     case invalidServerURL
     case noSignatureFound
 }
 
-struct SendLocalSignaturesToServerUseCaseImpl {
+struct ResendMissingLocalSignaturesToServerUseCaseImpl {
     let apiClient: ProposeAPIClientProtocol?
 
     init(apiClient: ProposeAPIClientProtocol? = nil) {
@@ -31,10 +31,10 @@ struct SendLocalSignaturesToServerUseCaseImpl {
     }
 }
 
-extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUseCase {
+extension ResendMissingLocalSignaturesToServerUseCaseImpl: ResendMissingLocalSignaturesToServerUseCase {
     func execute(propose: Propose, identityPublicKey: String, serverURLs: [String]) async throws {
         guard !serverURLs.isEmpty else {
-            throw SendLocalSignaturesToServerUseCaseError.invalidServerURL
+            throw ResendMissingLocalSignaturesToServerUseCaseError.invalidServerURL
         }
 
         let client = apiClient ?? ResilientProposeAPIClient(urls: serverURLs)
@@ -107,7 +107,7 @@ extension SendLocalSignaturesToServerUseCaseImpl: SendLocalSignaturesToServerUse
         }
 
         if !sent {
-            throw SendLocalSignaturesToServerUseCaseError.noSignatureFound
+            throw ResendMissingLocalSignaturesToServerUseCaseError.noSignatureFound
         }
     }
 }
