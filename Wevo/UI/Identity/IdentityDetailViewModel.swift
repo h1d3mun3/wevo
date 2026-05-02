@@ -28,9 +28,9 @@ final class IdentityDetailViewModel {
     func authenticateAndExport() async {
         isAuthenticating = true
         defer { isAuthenticating = false }
-        let useCase = AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            shareURL = try await useCase.execute(identity: identity)
+            shareURL = try await deps.authenticateAndExportIdentityUseCase.execute(identity: identity)
+            exportError = nil
         } catch {
             exportError = "Failed to export identity: \(error.localizedDescription)"
         }
@@ -38,17 +38,16 @@ final class IdentityDetailViewModel {
 
     func prepareContactExport() {
         guard contactShareURL == nil else { return }
-        let useCase = ExportIdentityAsContactUseCaseImpl()
         do {
-            contactShareURL = try useCase.execute(identity: identity)
+            contactShareURL = try deps.exportIdentityAsContactUseCase.execute(identity: identity)
+            contactExportError = nil
         } catch {
             contactExportError = "Failed to export: \(error.localizedDescription)"
         }
     }
 
     func cleanupExportFile() {
-        let useCase = CleanupExportFileUseCaseImpl()
-        useCase.execute(urls: [shareURL, contactShareURL])
+        deps.cleanupExportFileUseCase.execute(urls: [shareURL, contactShareURL])
         shareURL = nil
         contactShareURL = nil
     }
