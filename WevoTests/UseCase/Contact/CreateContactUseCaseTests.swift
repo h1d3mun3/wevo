@@ -51,6 +51,19 @@ struct CreateContactUseCaseTests {
         #expect(mockRepository.createdContact?.id != nil)
     }
 
+    @Test func testThrowsWhenFetchAllThrows() throws {
+        // Arrange
+        let mockRepository = MockContactRepository()
+        mockRepository.fetchAllError = NSError(domain: "Test", code: -1)
+        let useCase = CreateContactUseCaseImpl(contactRepository: mockRepository)
+
+        // Act & Assert
+        #expect(throws: NSError.self) {
+            try useCase.execute(nickname: "Alice", publicKey: "pk1")
+        }
+        #expect(mockRepository.createCalled == false)
+    }
+
     @Test func testThrowsWhenRepositoryThrows() throws {
         // Arrange
         let mockRepository = MockContactRepository()
@@ -60,6 +73,35 @@ struct CreateContactUseCaseTests {
         // Act & Assert
         #expect(throws: NSError.self) {
             try useCase.execute(nickname: "Alice", publicKey: "pk1")
+        }
+    }
+
+    @Test func testThrowsDuplicatePublicKeyWhenSameKeyAlreadyExists() throws {
+        // Arrange
+        let mockRepository = MockContactRepository()
+        mockRepository.fetchAllResult = [
+            Contact(id: UUID(), nickname: "Alice", publicKey: "pk1", createdAt: .now)
+        ]
+        let useCase = CreateContactUseCaseImpl(contactRepository: mockRepository)
+
+        // Act & Assert
+        #expect(throws: CreateContactUseCaseError.self) {
+            try useCase.execute(nickname: "Bob", publicKey: "pk1")
+        }
+        #expect(mockRepository.createCalled == false)
+    }
+
+    @Test func testThrowsDuplicatePublicKeyAfterTrimmingWhitespace() throws {
+        // Arrange
+        let mockRepository = MockContactRepository()
+        mockRepository.fetchAllResult = [
+            Contact(id: UUID(), nickname: "Alice", publicKey: "pk1", createdAt: .now)
+        ]
+        let useCase = CreateContactUseCaseImpl(contactRepository: mockRepository)
+
+        // Act & Assert
+        #expect(throws: CreateContactUseCaseError.self) {
+            try useCase.execute(nickname: "Bob", publicKey: "  pk1  ")
         }
     }
 }

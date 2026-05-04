@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import CryptoKit
 
 // MARK: - Share Main View
 
@@ -40,6 +39,7 @@ struct ShareMainView: View {
 struct SignView: View {
     let textToSign: String
     let onDismiss: () -> Void
+    private let signingService: any IdentitySigningService
 
     @State private var identities: [ExtensionIdentity] = []
     @State private var selectedID: UUID?
@@ -48,7 +48,15 @@ struct SignView: View {
     @State private var isSigning = false
     @State private var copied = false
 
-    private let keychain = ExtensionKeychainService()
+    init(
+        textToSign: String,
+        onDismiss: @escaping () -> Void,
+        signingService: any IdentitySigningService = ExtensionKeychainService()
+    ) {
+        self.textToSign = textToSign
+        self.onDismiss = onDismiss
+        self.signingService = signingService
+    }
 
     var body: some View {
         if let result = signedText {
@@ -83,7 +91,7 @@ struct SignView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(identity.nickname)
                                         .foregroundStyle(.primary)
-                                    Text(fingerprintFor(identity))
+                                    Text(ExtensionKeychainService.fingerprint(jwkPublicKey: identity.publicKeyJWK))
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -165,7 +173,7 @@ struct SignView: View {
 
     private func loadIdentities() {
         do {
-            identities = try keychain.getAllIdentities()
+            identities = try signingService.getAllIdentities()
             if identities.count == 1 { selectedID = identities[0].id }
         } catch {
             errorMessage = error.localizedDescription
@@ -178,8 +186,8 @@ struct SignView: View {
         errorMessage = nil
         Task {
             do {
-                let sig = try keychain.signText(textToSign, withIdentityId: id)
-                let pubKey = try keychain.getPublicKeyRawBase64(forIdentityId: id)
+                let sig = try signingService.signText(textToSign, withIdentityId: id)
+                let pubKey = try signingService.getPublicKeyRawBase64(forIdentityId: id)
                 let result = SignatureBlock.format(
                     text: textToSign,
                     publicKeyBase64: pubKey,
@@ -211,14 +219,6 @@ struct SignView: View {
             await MainActor.run { withAnimation { copied = false } }
         }
     }
-
-    private func fingerprintFor(_ identity: ExtensionIdentity) -> String {
-        guard let pk = P256.Signing.PublicKey(jwkString: identity.publicKeyJWK) else { return "---" }
-        let hash = SHA256.hash(data: pk.rawRepresentation)
-        return Array(hash.prefix(8))
-            .map { String(format: "%02X", $0) }
-            .joined(separator: ":")
-    }
 }
 
 // MARK: - Verify View
@@ -229,23 +229,24 @@ struct VerifyView: View {
     let signatureBase64: String
     let onDismiss: () -> Void
     let signerChecker: any SignerResolving
+    private let verifyingService: any SignatureVerifyingService
 
     @State private var result: VerificationResult = .loading
-
-    private let keychain = ExtensionKeychainService()
 
     init(
         originalText: String,
         publicKeyBase64: String,
         signatureBase64: String,
         onDismiss: @escaping () -> Void,
-        signerChecker: any SignerResolving = SignerChecker()
+        signerChecker: any SignerResolving = SignerChecker(),
+        verifyingService: any SignatureVerifyingService = ExtensionKeychainService()
     ) {
         self.originalText = originalText
         self.publicKeyBase64 = publicKeyBase64
         self.signatureBase64 = signatureBase64
         self.onDismiss = onDismiss
         self.signerChecker = signerChecker
+        self.verifyingService = verifyingService
     }
 
     enum VerificationResult {
@@ -318,7 +319,7 @@ struct VerifyView: View {
     private func verify() {
         Task {
             do {
-                let isValid = try keychain.verifyText(
+                let isValid = try verifyingService.verifyText(
                     originalText,
                     publicKeyBase64: publicKeyBase64,
                     signatureBase64: signatureBase64

@@ -6,6 +6,10 @@
 import Foundation
 import os
 
+protocol RefreshSpacePeersUseCase {
+    func execute() async
+}
+
 /// Refreshes peer node URLs for all Spaces by calling /info on each Space's primary URL.
 /// Called once at app startup. Failures are logged and silently ignored per Space.
 struct RefreshSpacePeersUseCaseImpl {
@@ -17,6 +21,9 @@ struct RefreshSpacePeersUseCaseImpl {
         self.httpClient = httpClient
     }
 
+}
+
+extension RefreshSpacePeersUseCaseImpl: RefreshSpacePeersUseCase {
     func execute() async {
         let spaces: [Space]
         do {

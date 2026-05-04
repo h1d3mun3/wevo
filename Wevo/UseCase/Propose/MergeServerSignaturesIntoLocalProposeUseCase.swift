@@ -1,5 +1,5 @@
 //
-//  AppendServerSignaturesToLocalProposeUseCase.swift
+//  MergeServerSignaturesIntoLocalProposeUseCase.swift
 //  Wevo
 //
 //  Created by hidemune on 3/9/26.
@@ -8,7 +8,7 @@
 import Foundation
 import os
 
-protocol AppendServerSignaturesToLocalProposeUseCase {
+protocol MergeServerSignaturesIntoLocalProposeUseCase {
     /// Reflect server signatures and timestamps in the local Propose
     /// - Parameters:
     ///   - proposeID: ID of the target Propose
@@ -16,7 +16,7 @@ protocol AppendServerSignaturesToLocalProposeUseCase {
     func execute(proposeID: UUID, serverPropose: HashedPropose) throws
 }
 
-struct AppendServerSignaturesToLocalProposeUseCaseImpl {
+struct MergeServerSignaturesIntoLocalProposeUseCaseImpl {
     let proposeRepository: ProposeRepository
 
     init(proposeRepository: ProposeRepository) {
@@ -24,7 +24,7 @@ struct AppendServerSignaturesToLocalProposeUseCaseImpl {
     }
 }
 
-extension AppendServerSignaturesToLocalProposeUseCaseImpl: AppendServerSignaturesToLocalProposeUseCase {
+extension MergeServerSignaturesIntoLocalProposeUseCaseImpl: MergeServerSignaturesIntoLocalProposeUseCase {
     func execute(proposeID: UUID, serverPropose: HashedPropose) throws {
         let localPropose = try proposeRepository.fetch(by: proposeID)
 

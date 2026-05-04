@@ -14,6 +14,7 @@ protocol HonorProposeUseCase {
 
 enum HonorProposeUseCaseError: Error {
     case invalidServerURL
+    case statusIsNotSigned
 }
 
 struct HonorProposeUseCaseImpl {
@@ -32,6 +33,10 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
         guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
             throw HonorProposeUseCaseError.invalidServerURL
+        }
+
+        guard propose.localStatus == .signed else {
+            throw HonorProposeUseCaseError.statusIsNotSigned
         }
 
         let identity = try keychainRepository.getIdentity(id: identityID)

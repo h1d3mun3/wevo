@@ -55,6 +55,23 @@ struct GetContactNicknamesMapUseCaseTests {
         }
     }
 
+    @Test func testDoesNotCrashWithDuplicatePublicKeys() throws {
+        // Arrange
+        let mockRepository = MockContactRepository()
+        mockRepository.fetchAllResult = [
+            Contact(id: UUID(), nickname: "Alice", publicKey: "pk1", createdAt: .now),
+            Contact(id: UUID(), nickname: "Alice2", publicKey: "pk1", createdAt: .now)
+        ]
+        let useCase = GetContactNicknamesMapUseCaseImpl(contactRepository: mockRepository)
+
+        // Act
+        let result = try useCase.execute()
+
+        // Assert
+        #expect(result.count == 1)
+        #expect(result["pk1"] == "Alice")
+    }
+
     @Test func testUsesPublicKeyAsKey() throws {
         // Arrange
         let mockRepository = MockContactRepository()
