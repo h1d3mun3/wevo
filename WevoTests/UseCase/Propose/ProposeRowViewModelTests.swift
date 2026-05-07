@@ -13,18 +13,27 @@ struct ProposeRowViewModelTests {
     // MARK: - Helpers
 
     private func makePropose(
+        id: UUID = UUID(),
+        spaceID: UUID = UUID(),
         creatorPublicKey: String = "creatorPubKey",
         counterpartyPublicKey: String = "counterpartyPubKey",
-        counterpartySignSignature: String? = nil
+        counterpartySignSignature: String? = nil,
+        creatorHonorSignature: String? = nil,
+        counterpartyHonorSignature: String? = nil,
+        creatorPartSignature: String? = nil,
+        counterpartyPartSignature: String? = nil
     ) -> Propose {
         Propose(
-            id: UUID(),
-            spaceID: UUID(),
+            id: id,
+            spaceID: spaceID,
             message: "test message",
             creatorPublicKey: creatorPublicKey,
             creatorSignature: "creatorSig",
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
+            counterpartyHonorSignature: counterpartyHonorSignature,
+            counterpartyPartSignature: counterpartyPartSignature, creatorHonorSignature: creatorHonorSignature,
+            creatorPartSignature: creatorPartSignature,
             createdAt: .now,
             updatedAt: .now
         )
@@ -239,5 +248,125 @@ struct ProposeRowViewModelTests {
         vm.loadContactNicknames()
 
         #expect(vm.contactNicknames.isEmpty)
+    }
+
+    // MARK: - hasLocallyHonored
+
+    @Test func testHasLocallyHonoredFalseWhenNoIdentity() {
+        let vm = makeViewModel()
+        vm.defaultIdentity = nil
+        #expect(vm.hasLocallyHonored == false)
+    }
+
+    @Test func testHasLocallyHonoredTrueWhenCreatorHasHonorSignature() {
+        let propose = makePropose(creatorPublicKey: "myKey", creatorHonorSignature: "honorSig")
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyHonored == true)
+    }
+
+    @Test func testHasLocallyHonoredFalseWhenCreatorHasNoHonorSignature() {
+        let propose = makePropose(creatorPublicKey: "myKey")
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyHonored == false)
+    }
+
+    @Test func testHasLocallyHonoredTrueWhenCounterpartyHasHonorSignature() {
+        let propose = makePropose(
+            counterpartyPublicKey: "myKey",
+            counterpartySignSignature: "signSig",
+            counterpartyHonorSignature: "honorSig"
+        )
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyHonored == true)
+    }
+
+    @Test func testHasLocallyHonoredFalseWhenCounterpartyHasNoHonorSignature() {
+        let propose = makePropose(counterpartyPublicKey: "myKey", counterpartySignSignature: "signSig")
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyHonored == false)
+    }
+
+    // MARK: - hasLocallyParted
+
+    @Test func testHasLocallyPartedFalseWhenNoIdentity() {
+        let vm = makeViewModel()
+        vm.defaultIdentity = nil
+        #expect(vm.hasLocallyParted == false)
+    }
+
+    @Test func testHasLocallyPartedTrueWhenCreatorHasPartSignature() {
+        let propose = makePropose(creatorPublicKey: "myKey", creatorPartSignature: "partSig")
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyParted == true)
+    }
+
+    @Test func testHasLocallyPartedFalseWhenCreatorHasNoPartSignature() {
+        let propose = makePropose(creatorPublicKey: "myKey")
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyParted == false)
+    }
+
+    @Test func testHasLocallyPartedTrueWhenCounterpartyHasPartSignature() {
+        let propose = makePropose(
+            counterpartyPublicKey: "myKey",
+            counterpartySignSignature: "signSig",
+            counterpartyPartSignature: "partSig"
+        )
+        let vm = makeViewModel(propose: propose)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+        #expect(vm.hasLocallyParted == true)
+    }
+
+    // MARK: - acceptServerPropose
+
+    @Test func testAcceptServerProposeOnSuccessClearsPendingUpdateAndReloadsPropose() async {
+        let proposeID = UUID()
+        let spaceID = UUID()
+        let originalPropose = makePropose(id: proposeID, spaceID: spaceID)
+        let reloadedPropose = makePropose(
+            id: proposeID,
+            spaceID: spaceID,
+            counterpartySignSignature: "signSig"
+        )
+        let serverPropose = makeHashedPropose(for: originalPropose)
+
+        let deps = MockDependencyContainer()
+        let mockRepo = deps.proposeRepository as! MockProposeRepository
+        mockRepo.fetchByIDResult = reloadedPropose
+
+        let vm = makeViewModel(propose: originalPropose, deps: deps)
+        vm.pendingServerUpdate = serverPropose
+
+        await vm.acceptServerPropose(serverPropose)
+
+        #expect(vm.pendingServerUpdate == nil)
+        #expect(vm.isApplyingServerUpdate == false)
+        #expect(vm.propose.counterpartySignSignature == "signSig")
+    }
+
+    @Test func testAcceptServerProposeOnUseCaseFailureKeepsPendingUpdateAndResetsState() async {
+        let proposeID = UUID()
+        let originalPropose = makePropose(id: proposeID)
+        let serverPropose = makeHashedPropose(for: originalPropose)
+
+        let deps = MockDependencyContainer()
+        let mockRepo = deps.proposeRepository as! MockProposeRepository
+        // fetch fails → MergeServerSignaturesIntoLocalProposeUseCase throws → error path
+        mockRepo.fetchByIDError = ProposeRepositoryError.proposeNotFound(proposeID)
+
+        let vm = makeViewModel(propose: originalPropose, deps: deps)
+        vm.pendingServerUpdate = serverPropose
+
+        await vm.acceptServerPropose(serverPropose)
+
+        #expect(vm.pendingServerUpdate != nil)
+        #expect(vm.isApplyingServerUpdate == false)
+        #expect(vm.propose.counterpartySignSignature == nil)
     }
 }

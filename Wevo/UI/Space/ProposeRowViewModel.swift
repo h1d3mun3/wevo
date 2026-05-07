@@ -67,6 +67,20 @@ final class ProposeRowViewModel {
         return canSign && pendingServerUpdate == nil && signSuccess != true
     }
 
+    var hasLocallyHonored: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorHonorSignature != nil
+            : propose.counterpartyHonorSignature != nil
+    }
+
+    var hasLocallyParted: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorPartSignature != nil
+            : propose.counterpartyPartSignature != nil
+    }
+
     init(propose: Propose, space: Space, deps: any DependencyContainer) {
         self.propose = propose
         self.space = space
@@ -173,6 +187,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isSigning = false
             signSuccess = true
 
@@ -210,6 +228,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isDissolving = false
             dissolveSuccess = true
             try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -236,6 +258,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isHonoring = false
             honorSuccess = true
             myHonorSigned = true
@@ -263,6 +289,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isParting = false
             partSuccess = true
             myPartSigned = true
@@ -305,6 +335,9 @@ final class ProposeRowViewModel {
         let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
             isApplyingServerUpdate = false
             pendingServerUpdate = nil
             Logger.propose.info("Accepted server signatures and reflected them locally")
