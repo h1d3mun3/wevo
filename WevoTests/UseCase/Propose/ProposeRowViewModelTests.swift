@@ -32,7 +32,8 @@ struct ProposeRowViewModelTests {
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
             counterpartyHonorSignature: counterpartyHonorSignature,
-            counterpartyPartSignature: counterpartyPartSignature, creatorHonorSignature: creatorHonorSignature,
+            counterpartyPartSignature: counterpartyPartSignature,
+            creatorHonorSignature: creatorHonorSignature,
             creatorPartSignature: creatorPartSignature,
             createdAt: .now,
             updatedAt: .now
@@ -84,20 +85,18 @@ struct ProposeRowViewModelTests {
         #expect(vm.shareURL == nil)
         #expect(vm.showShareSheet == false)
         #expect(vm.shareError == nil)
-        #expect(vm.isResending == false)
-        #expect(vm.resendSuccess == nil)
+        #expect(vm.resendState == .idle)
         #expect(vm.serverStatus == .unknown)
         #expect(vm.isCheckingServer == false)
-        #expect(vm.isSigning == false)
-        #expect(vm.signSuccess == nil)
+        #expect(vm.signState == .idle)
         #expect(vm.defaultIdentity == nil)
         #expect(vm.showProposeDetail == false)
         #expect(vm.contactNicknames.isEmpty)
         #expect(vm.pendingServerUpdate == nil)
         #expect(vm.isApplyingServerUpdate == false)
-        #expect(vm.isHonoring == false)
-        #expect(vm.isParting == false)
-        #expect(vm.isDissolving == false)
+        #expect(vm.honorState == .idle)
+        #expect(vm.partState == .idle)
+        #expect(vm.dissolveState == .idle)
         #expect(vm.pendingLocalResend == false)
         #expect(vm.isResendingLocalSignature == false)
     }
@@ -155,7 +154,7 @@ struct ProposeRowViewModelTests {
         let vm = makeViewModel(propose: propose)
         vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
         vm.pendingServerUpdate = nil
-        vm.signSuccess = nil
+        vm.signState = .idle
 
         #expect(vm.shouldShowSignButton == true)
     }
@@ -181,7 +180,7 @@ struct ProposeRowViewModelTests {
         let propose = makePropose(counterpartyPublicKey: "myKey", counterpartySignSignature: nil)
         let vm = makeViewModel(propose: propose)
         vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
-        vm.signSuccess = true
+        vm.signState = .succeeded
 
         #expect(vm.shouldShowSignButton == false)
     }
