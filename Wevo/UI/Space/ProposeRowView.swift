@@ -245,19 +245,7 @@ private struct ProposeRowContent: View {
 
     @ViewBuilder
     private var statusMessages: some View {
-        switch viewModel.resendState {
-        case .succeeded:
-            HStack {
-                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-                Text("Sent to server").font(.caption2).foregroundStyle(.green)
-            }
-        case .failed(let message):
-            HStack {
-                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
-                Text(message).font(.caption2).foregroundStyle(.red)
-            }
-        default: EmptyView()
-        }
+        OperationStatusRow(state: viewModel.resendState, successLabel: "Sent to server")
 
         if let shareError = viewModel.shareError {
             Text(shareError)
@@ -265,61 +253,10 @@ private struct ProposeRowContent: View {
                 .foregroundStyle(.red)
         }
 
-        switch viewModel.signState {
-        case .succeeded:
-            HStack {
-                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-                Text("Signed").font(.caption2).foregroundStyle(.green)
-            }
-        case .failed(let message):
-            HStack {
-                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
-                Text(message).font(.caption2).foregroundStyle(.red)
-            }
-        default: EmptyView()
-        }
-
-        switch viewModel.honorState {
-        case .succeeded:
-            HStack {
-                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-                Text("Honor sent").font(.caption2).foregroundStyle(.green)
-            }
-        case .failed(let message):
-            HStack {
-                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
-                Text(message).font(.caption2).foregroundStyle(.red)
-            }
-        default: EmptyView()
-        }
-
-        switch viewModel.partState {
-        case .succeeded:
-            HStack {
-                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-                Text("Part sent").font(.caption2).foregroundStyle(.green)
-            }
-        case .failed(let message):
-            HStack {
-                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
-                Text(message).font(.caption2).foregroundStyle(.red)
-            }
-        default: EmptyView()
-        }
-
-        switch viewModel.dissolveState {
-        case .succeeded:
-            HStack {
-                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-                Text("Dissolved").font(.caption2).foregroundStyle(.green)
-            }
-        case .failed(let message):
-            HStack {
-                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
-                Text(message).font(.caption2).foregroundStyle(.red)
-            }
-        default: EmptyView()
-        }
+        OperationStatusRow(state: viewModel.signState, successLabel: "Signed")
+        OperationStatusRow(state: viewModel.honorState, successLabel: "Honor sent")
+        OperationStatusRow(state: viewModel.partState, successLabel: "Part sent")
+        OperationStatusRow(state: viewModel.dissolveState, successLabel: "Dissolved")
     }
 
     @ViewBuilder
@@ -422,6 +359,30 @@ private struct ProposeRowContent: View {
                 || viewModel.hasLocallyParted
                 || viewModel.hasLocallyHonored
             )
+        }
+    }
+}
+
+// MARK: - OperationStatusRow
+
+private struct OperationStatusRow: View {
+    let state: AsyncOperationState
+    let successLabel: String
+
+    var body: some View {
+        switch state {
+        case .succeeded:
+            HStack {
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text(successLabel).font(.caption2).foregroundStyle(.green)
+            }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default:
+            EmptyView()
         }
     }
 }
