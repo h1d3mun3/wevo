@@ -67,6 +67,20 @@ final class ProposeRowViewModel {
         return canSign && pendingServerUpdate == nil && signSuccess != true
     }
 
+    var hasLocallyHonored: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorHonorSignature != nil
+            : propose.counterpartyHonorSignature != nil
+    }
+
+    var hasLocallyParted: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorPartSignature != nil
+            : propose.counterpartyPartSignature != nil
+    }
+
     init(propose: Propose, space: Space, deps: any DependencyContainer) {
         self.propose = propose
         self.space = space

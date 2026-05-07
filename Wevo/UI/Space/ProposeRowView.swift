@@ -367,7 +367,7 @@ private struct ProposeRowContent: View {
             } label: {
                 if viewModel.isHonoring {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.myHonorSigned {
+                } else if viewModel.myHonorSigned || viewModel.hasLocallyHonored {
                     Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
                 } else {
                     Label("Honor", systemImage: "checkmark.seal").font(.caption)
@@ -375,12 +375,14 @@ private struct ProposeRowContent: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(viewModel.myHonorSigned ? .green : .primary)
+            .tint(viewModel.myHonorSigned || viewModel.hasLocallyHonored ? .green : .primary)
             .disabled(
                 viewModel.isHonoring
                 || viewModel.defaultIdentity == nil
                 || viewModel.myHonorSigned
                 || viewModel.myPartSigned
+                || viewModel.hasLocallyHonored
+                || viewModel.hasLocallyParted
             )
 
             Button {
@@ -389,7 +391,7 @@ private struct ProposeRowContent: View {
             } label: {
                 if viewModel.isParting {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.myPartSigned {
+                } else if viewModel.myPartSigned || viewModel.hasLocallyParted {
                     Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
                 } else {
                     Label("Part", systemImage: "xmark.seal").font(.caption)
@@ -397,8 +399,14 @@ private struct ProposeRowContent: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(viewModel.myPartSigned ? .orange : .primary)
-            .disabled(viewModel.isParting || viewModel.defaultIdentity == nil || viewModel.myPartSigned)
+            .tint(viewModel.myPartSigned || viewModel.hasLocallyParted ? .orange : .primary)
+            .disabled(
+                viewModel.isParting
+                || viewModel.defaultIdentity == nil
+                || viewModel.myPartSigned
+                || viewModel.hasLocallyParted
+                || viewModel.hasLocallyHonored
+            )
         }
     }
 }
