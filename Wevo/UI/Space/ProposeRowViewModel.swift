@@ -169,7 +169,6 @@ final class ProposeRowViewModel {
     }
 
     func signPropose(with identity: Identity) async {
-<<<<<<< HEAD
         await performAction(state: \.signState, label: "Sign") {
             let useCase = SignProposeUseCaseImpl(
                 keychainRepository: deps.keychainRepository,
@@ -182,45 +181,6 @@ final class ProposeRowViewModel {
             }
             reloadPropose()
             pendingServerUpdate = nil
-=======
-        isSigning = true
-        signSuccess = nil
-        signErrorMessage = nil
-
-        let useCase = SignProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
-            pendingServerUpdate = nil
-            isSigning = false
-            signSuccess = true
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            signSuccess = nil
-        } catch SignProposeUseCaseError.notCounterparty {
-            Logger.propose.warning("This identity is not the Counterparty and cannot sign")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = "This identity is not the Counterparty"
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
-        } catch {
-            Logger.propose.error("Signing error: \(error, privacy: .public)")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = error.localizedDescription
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
->>>>>>> rc-2.0.0
         }
     }
 
@@ -231,27 +191,8 @@ final class ProposeRowViewModel {
                 proposeRepository: deps.proposeRepository
             )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-<<<<<<< HEAD
             reloadPropose()
             pendingServerUpdate = nil
-=======
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
-            pendingServerUpdate = nil
-            isDissolving = false
-            dissolveSuccess = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            dissolveSuccess = nil
-        } catch {
-            Logger.propose.error("Dissolve error: \(error, privacy: .public)")
-            isDissolving = false
-            dissolveSuccess = false
-            dissolveErrorMessage = error.localizedDescription
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            dissolveSuccess = nil
-            dissolveErrorMessage = nil
->>>>>>> rc-2.0.0
         }
     }
 
@@ -262,17 +203,8 @@ final class ProposeRowViewModel {
                 proposeRepository: deps.proposeRepository
             )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-<<<<<<< HEAD
             reloadPropose()
             pendingServerUpdate = nil
-=======
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
-            pendingServerUpdate = nil
-            isHonoring = false
-            honorSuccess = true
->>>>>>> rc-2.0.0
             myHonorSigned = true
         }
     }
@@ -284,17 +216,8 @@ final class ProposeRowViewModel {
                 proposeRepository: deps.proposeRepository
             )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-<<<<<<< HEAD
             reloadPropose()
             pendingServerUpdate = nil
-=======
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
-            pendingServerUpdate = nil
-            isParting = false
-            partSuccess = true
->>>>>>> rc-2.0.0
             myPartSigned = true
         }
     }
