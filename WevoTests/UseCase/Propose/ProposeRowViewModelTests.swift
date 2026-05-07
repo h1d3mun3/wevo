@@ -32,9 +32,8 @@ struct ProposeRowViewModelTests {
             counterpartyPublicKey: counterpartyPublicKey,
             counterpartySignSignature: counterpartySignSignature,
             counterpartyHonorSignature: counterpartyHonorSignature,
-            creatorHonorSignature: creatorHonorSignature,
+            counterpartyPartSignature: counterpartyPartSignature, creatorHonorSignature: creatorHonorSignature,
             creatorPartSignature: creatorPartSignature,
-            counterpartyPartSignature: counterpartyPartSignature,
             createdAt: .now,
             updatedAt: .now
         )
