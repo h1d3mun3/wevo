@@ -154,7 +154,7 @@ struct ProposeRowViewModelTests {
         let vm = makeViewModel(propose: propose)
         vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
         vm.pendingServerUpdate = nil
-        vm.signSuccess = nil
+        vm.signState = .idle
 
         #expect(vm.shouldShowSignButton == true)
     }
