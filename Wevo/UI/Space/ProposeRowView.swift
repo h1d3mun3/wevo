@@ -353,12 +353,17 @@ private struct ProposeRowContent: View {
             .controlSize(.small)
             .tint(viewModel.myPartSigned || viewModel.hasLocallyParted ? .orange : .primary)
             .disabled(
+<<<<<<< HEAD
                 viewModel.partState == .running
+=======
+                viewModel.isParting
+>>>>>>> rc-2.0.0
                 || viewModel.defaultIdentity == nil
                 || viewModel.myPartSigned
                 || viewModel.hasLocallyParted
                 || viewModel.hasLocallyHonored
             )
+<<<<<<< HEAD
         }
     }
 }
@@ -383,6 +388,8 @@ private struct OperationStatusRow: View {
             }
         default:
             EmptyView()
+=======
+>>>>>>> rc-2.0.0
         }
     }
 }
