@@ -120,7 +120,7 @@ private struct ProposeRowContent: View {
 
             // Honor / Part buttons (when in signed state)
             if viewModel.propose.localStatus == .signed {
-                honorPartStubButtons
+                honorPartButtons
             }
         }
         .padding(.vertical, 8)
@@ -309,7 +309,7 @@ private struct ProposeRowContent: View {
     }
 
     @ViewBuilder
-    private var honorPartStubButtons: some View {
+    private var honorPartButtons: some View {
         HStack(spacing: 8) {
             Spacer()
 
