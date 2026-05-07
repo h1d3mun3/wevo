@@ -222,7 +222,7 @@ final class ProposeRowViewModel {
     }
 
     private func performAction(
-        state keyPath: WritableKeyPath<ProposeRowViewModel, AsyncOperationState>,
+        state keyPath: ReferenceWritableKeyPath<ProposeRowViewModel, AsyncOperationState>,
         label: String,
         action: () async throws -> Void
     ) async {
