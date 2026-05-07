@@ -185,7 +185,7 @@ private struct ProposeRowContent: View {
             Button {
                 Task { await viewModel.resendToServer() }
             } label: {
-                if viewModel.isResending {
+                if viewModel.resendState == .running {
                     ProgressView()
                         .scaleEffect(0.7)
                 } else {
@@ -195,8 +195,8 @@ private struct ProposeRowContent: View {
                 }
             }
             .buttonStyle(.borderless)
-            .disabled(viewModel.isResending || viewModel.serverStatus == .exists)
-            .opacity((viewModel.isResending || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
+            .disabled(viewModel.resendState == .running || viewModel.serverStatus == .exists)
+            .opacity((viewModel.resendState == .running || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
 
 #if os(iOS)
             if #available(iOS 16.0, *) {
@@ -245,15 +245,18 @@ private struct ProposeRowContent: View {
 
     @ViewBuilder
     private var statusMessages: some View {
-        if let resendSuccess = viewModel.resendSuccess {
+        switch viewModel.resendState {
+        case .succeeded:
             HStack {
-                Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(resendSuccess ? .green : .red)
-                Text(resendSuccess ? "Sent to server" : (viewModel.resendErrorMessage ?? "Failed to send"))
-                    .font(.caption2)
-                    .foregroundStyle(resendSuccess ? .green : .red)
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text("Sent to server").font(.caption2).foregroundStyle(.green)
             }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default: EmptyView()
         }
 
         if let shareError = viewModel.shareError {
@@ -262,48 +265,60 @@ private struct ProposeRowContent: View {
                 .foregroundStyle(.red)
         }
 
-        if let signSuccess = viewModel.signSuccess {
+        switch viewModel.signState {
+        case .succeeded:
             HStack {
-                Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(signSuccess ? .green : .red)
-                Text(signSuccess ? "Signed" : (viewModel.signErrorMessage ?? "Failed to sign"))
-                    .font(.caption2)
-                    .foregroundStyle(signSuccess ? .green : .red)
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text("Signed").font(.caption2).foregroundStyle(.green)
             }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default: EmptyView()
         }
 
-        if let honorSuccess = viewModel.honorSuccess {
+        switch viewModel.honorState {
+        case .succeeded:
             HStack {
-                Image(systemName: honorSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(honorSuccess ? .green : .red)
-                Text(honorSuccess ? "Honor sent" : (viewModel.honorErrorMessage ?? "Failed to honor"))
-                    .font(.caption2)
-                    .foregroundStyle(honorSuccess ? .green : .red)
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text("Honor sent").font(.caption2).foregroundStyle(.green)
             }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default: EmptyView()
         }
 
-        if let partSuccess = viewModel.partSuccess {
+        switch viewModel.partState {
+        case .succeeded:
             HStack {
-                Image(systemName: partSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(partSuccess ? .green : .red)
-                Text(partSuccess ? "Part sent" : (viewModel.partErrorMessage ?? "Failed to part"))
-                    .font(.caption2)
-                    .foregroundStyle(partSuccess ? .green : .red)
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text("Part sent").font(.caption2).foregroundStyle(.green)
             }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default: EmptyView()
         }
 
-        if let dissolveSuccess = viewModel.dissolveSuccess {
+        switch viewModel.dissolveState {
+        case .succeeded:
             HStack {
-                Image(systemName: dissolveSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(dissolveSuccess ? .green : .red)
-                Text(dissolveSuccess ? "Dissolved" : (viewModel.dissolveErrorMessage ?? "Failed to dissolve"))
-                    .font(.caption2)
-                    .foregroundStyle(dissolveSuccess ? .green : .red)
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text("Dissolved").font(.caption2).foregroundStyle(.green)
             }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default: EmptyView()
         }
     }
 
@@ -315,7 +330,7 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.signPropose(with: identity) }
             } label: {
-                if viewModel.isSigning {
+                if viewModel.signState == .running {
                     HStack(spacing: 4) {
                         ProgressView()
                             .scaleEffect(0.6)
@@ -329,7 +344,7 @@ private struct ProposeRowContent: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(viewModel.isSigning)
+            .disabled(viewModel.signState == .running)
         }
     }
 
@@ -341,9 +356,9 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.dissolvePropose(with: identity) }
             } label: {
-                if viewModel.isDissolving {
+                if viewModel.dissolveState == .running {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.dissolveSuccess == true {
+                } else if viewModel.dissolveState == .succeeded {
                     Label("Dissolved", systemImage: "trash.circle.fill").font(.caption)
                 } else {
                     Label("Dissolve", systemImage: "trash.circle").font(.caption)
@@ -352,7 +367,7 @@ private struct ProposeRowContent: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(.red)
-            .disabled(viewModel.isDissolving || viewModel.defaultIdentity == nil)
+            .disabled(viewModel.dissolveState == .running || viewModel.defaultIdentity == nil)
         }
     }
 
@@ -365,7 +380,7 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.honorPropose(with: identity) }
             } label: {
-                if viewModel.isHonoring {
+                if viewModel.honorState == .running {
                     ProgressView().scaleEffect(0.7)
                 } else if viewModel.myHonorSigned || viewModel.hasLocallyHonored {
                     Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
@@ -377,7 +392,7 @@ private struct ProposeRowContent: View {
             .controlSize(.small)
             .tint(viewModel.myHonorSigned || viewModel.hasLocallyHonored ? .green : .primary)
             .disabled(
-                viewModel.isHonoring
+                viewModel.honorState == .running
                 || viewModel.defaultIdentity == nil
                 || viewModel.myHonorSigned
                 || viewModel.myPartSigned
@@ -389,7 +404,7 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.partPropose(with: identity) }
             } label: {
-                if viewModel.isParting {
+                if viewModel.partState == .running {
                     ProgressView().scaleEffect(0.7)
                 } else if viewModel.myPartSigned || viewModel.hasLocallyParted {
                     Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
@@ -401,7 +416,7 @@ private struct ProposeRowContent: View {
             .controlSize(.small)
             .tint(viewModel.myPartSigned || viewModel.hasLocallyParted ? .orange : .primary)
             .disabled(
-                viewModel.isParting
+                viewModel.partState == .running
                 || viewModel.defaultIdentity == nil
                 || viewModel.myPartSigned
                 || viewModel.hasLocallyParted

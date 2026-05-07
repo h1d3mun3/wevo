@@ -6,6 +6,13 @@
 import SwiftUI
 import os
 
+enum AsyncOperationState: Equatable {
+    case idle
+    case running
+    case succeeded
+    case failed(String)
+}
+
 @Observable
 @MainActor
 final class ProposeRowViewModel {
@@ -17,16 +24,11 @@ final class ProposeRowViewModel {
     var showShareSheet = false
     var shareError: String?
 
-    var isResending = false
-    var resendSuccess: Bool?
-    var resendErrorMessage: String?
-
+    var resendState: AsyncOperationState = .idle
     var serverStatus: ProposeServerStatus = .unknown
     var isCheckingServer = false
 
-    var isSigning = false
-    var signSuccess: Bool?
-    var signErrorMessage: String?
+    var signState: AsyncOperationState = .idle
 
     var defaultIdentity: Identity?
     var showProposeDetail = false
@@ -35,19 +37,13 @@ final class ProposeRowViewModel {
     var pendingServerUpdate: HashedPropose?
     var isApplyingServerUpdate = false
 
-    var isHonoring = false
-    var honorSuccess: Bool?
-    var honorErrorMessage: String?
+    var honorState: AsyncOperationState = .idle
     var myHonorSigned = false
 
-    var isParting = false
-    var partSuccess: Bool?
-    var partErrorMessage: String?
+    var partState: AsyncOperationState = .idle
     var myPartSigned = false
 
-    var isDissolving = false
-    var dissolveSuccess: Bool?
-    var dissolveErrorMessage: String?
+    var dissolveState: AsyncOperationState = .idle
 
     var pendingLocalResend = false
     var isResendingLocalSignature = false
@@ -64,7 +60,7 @@ final class ProposeRowViewModel {
     var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
         let canSign = CanSignProposeUseCaseImpl().execute(identity: identity, propose: propose)
-        return canSign && pendingServerUpdate == nil && signSuccess != true
+        return canSign && pendingServerUpdate == nil && signState != .succeeded
     }
 
     var hasLocallyHonored: Bool {
@@ -106,28 +102,22 @@ final class ProposeRowViewModel {
     }
 
     func resendToServer() async {
-        isResending = true
-        resendSuccess = nil
-        resendErrorMessage = nil
+        resendState = .running
 
         let useCase = ResendProposeToServerUseCaseImpl()
         do {
             try await useCase.execute(propose: propose, serverURLs: space.urls)
-            isResending = false
-            resendSuccess = true
+            resendState = .succeeded
             serverStatus = .exists
 
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            resendSuccess = nil
+            resendState = .idle
         } catch {
             Logger.propose.error("Propose resend error: \(error, privacy: .public)")
-            isResending = false
-            resendSuccess = false
-            resendErrorMessage = error.localizedDescription
+            resendState = .failed(error.localizedDescription)
 
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            resendSuccess = nil
-            resendErrorMessage = nil
+            resendState = .idle
         }
     }
 
@@ -177,9 +167,7 @@ final class ProposeRowViewModel {
     }
 
     func signPropose(with identity: Identity) async {
-        isSigning = true
-        signSuccess = nil
-        signErrorMessage = nil
+        signState = .running
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: deps.keychainRepository,
@@ -191,36 +179,27 @@ final class ProposeRowViewModel {
                 self.propose = latest
             }
             pendingServerUpdate = nil
-            isSigning = false
-            signSuccess = true
+            signState = .succeeded
 
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            signSuccess = nil
+            signState = .idle
         } catch SignProposeUseCaseError.notCounterparty {
             Logger.propose.warning("This identity is not the Counterparty and cannot sign")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = "This identity is not the Counterparty"
+            signState = .failed("This identity is not the Counterparty")
 
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
+            signState = .idle
         } catch {
             Logger.propose.error("Signing error: \(error, privacy: .public)")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = error.localizedDescription
+            signState = .failed(error.localizedDescription)
 
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
+            signState = .idle
         }
     }
 
     func dissolvePropose(with identity: Identity) async {
-        isDissolving = true
-        dissolveSuccess = nil
-        dissolveErrorMessage = nil
+        dissolveState = .running
 
         let useCase = DissolveProposeUseCaseImpl(
             keychainRepository: deps.keychainRepository,
@@ -232,25 +211,19 @@ final class ProposeRowViewModel {
                 self.propose = latest
             }
             pendingServerUpdate = nil
-            isDissolving = false
-            dissolveSuccess = true
+            dissolveState = .succeeded
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            dissolveSuccess = nil
+            dissolveState = .idle
         } catch {
             Logger.propose.error("Dissolve error: \(error, privacy: .public)")
-            isDissolving = false
-            dissolveSuccess = false
-            dissolveErrorMessage = error.localizedDescription
+            dissolveState = .failed(error.localizedDescription)
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            dissolveSuccess = nil
-            dissolveErrorMessage = nil
+            dissolveState = .idle
         }
     }
 
     func honorPropose(with identity: Identity) async {
-        isHonoring = true
-        honorSuccess = nil
-        honorErrorMessage = nil
+        honorState = .running
 
         let useCase = HonorProposeUseCaseImpl(
             keychainRepository: deps.keychainRepository,
@@ -262,26 +235,20 @@ final class ProposeRowViewModel {
                 self.propose = latest
             }
             pendingServerUpdate = nil
-            isHonoring = false
-            honorSuccess = true
+            honorState = .succeeded
             myHonorSigned = true
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            honorSuccess = nil
+            honorState = .idle
         } catch {
             Logger.propose.error("Honor error: \(error, privacy: .public)")
-            isHonoring = false
-            honorSuccess = false
-            honorErrorMessage = error.localizedDescription
+            honorState = .failed(error.localizedDescription)
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            honorSuccess = nil
-            honorErrorMessage = nil
+            honorState = .idle
         }
     }
 
     func partPropose(with identity: Identity) async {
-        isParting = true
-        partSuccess = nil
-        partErrorMessage = nil
+        partState = .running
 
         let useCase = PartProposeUseCaseImpl(
             keychainRepository: deps.keychainRepository,
@@ -293,19 +260,15 @@ final class ProposeRowViewModel {
                 self.propose = latest
             }
             pendingServerUpdate = nil
-            isParting = false
-            partSuccess = true
+            partState = .succeeded
             myPartSigned = true
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            partSuccess = nil
+            partState = .idle
         } catch {
             Logger.propose.error("Part error: \(error, privacy: .public)")
-            isParting = false
-            partSuccess = false
-            partErrorMessage = error.localizedDescription
+            partState = .failed(error.localizedDescription)
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            partSuccess = nil
-            partErrorMessage = nil
+            partState = .idle
         }
     }
 
