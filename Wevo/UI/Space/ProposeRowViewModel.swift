@@ -102,22 +102,10 @@ final class ProposeRowViewModel {
     }
 
     func resendToServer() async {
-        resendState = .running
-
-        let useCase = ResendProposeToServerUseCaseImpl()
-        do {
+        await performAction(state: \.resendState, label: "Resend") {
+            let useCase = ResendProposeToServerUseCaseImpl()
             try await useCase.execute(propose: propose, serverURLs: space.urls)
-            resendState = .succeeded
             serverStatus = .exists
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            resendState = .idle
-        } catch {
-            Logger.propose.error("Propose resend error: \(error, privacy: .public)")
-            resendState = .failed(error.localizedDescription)
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            resendState = .idle
         }
     }
 
@@ -167,109 +155,88 @@ final class ProposeRowViewModel {
     }
 
     func signPropose(with identity: Identity) async {
-        signState = .running
-
-        let useCase = SignProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
+        await performAction(state: \.signState, label: "Sign") {
+            let useCase = SignProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
+            do {
+                try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            } catch SignProposeUseCaseError.notCounterparty {
+                throw ActionError("This identity is not the Counterparty")
             }
+            reloadPropose()
             pendingServerUpdate = nil
-            signState = .succeeded
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            signState = .idle
-        } catch SignProposeUseCaseError.notCounterparty {
-            Logger.propose.warning("This identity is not the Counterparty and cannot sign")
-            signState = .failed("This identity is not the Counterparty")
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signState = .idle
-        } catch {
-            Logger.propose.error("Signing error: \(error, privacy: .public)")
-            signState = .failed(error.localizedDescription)
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signState = .idle
         }
     }
 
     func dissolvePropose(with identity: Identity) async {
-        dissolveState = .running
-
-        let useCase = DissolveProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.dissolveState, label: "Dissolve") {
+            let useCase = DissolveProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
+            reloadPropose()
             pendingServerUpdate = nil
-            dissolveState = .succeeded
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            dissolveState = .idle
-        } catch {
-            Logger.propose.error("Dissolve error: \(error, privacy: .public)")
-            dissolveState = .failed(error.localizedDescription)
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            dissolveState = .idle
         }
     }
 
     func honorPropose(with identity: Identity) async {
-        honorState = .running
-
-        let useCase = HonorProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.honorState, label: "Honor") {
+            let useCase = HonorProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
+            reloadPropose()
             pendingServerUpdate = nil
-            honorState = .succeeded
             myHonorSigned = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            honorState = .idle
-        } catch {
-            Logger.propose.error("Honor error: \(error, privacy: .public)")
-            honorState = .failed(error.localizedDescription)
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            honorState = .idle
         }
     }
 
     func partPropose(with identity: Identity) async {
-        partState = .running
-
-        let useCase = PartProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.partState, label: "Part") {
+            let useCase = PartProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
-                self.propose = latest
-            }
+            reloadPropose()
             pendingServerUpdate = nil
-            partState = .succeeded
             myPartSigned = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            partState = .idle
-        } catch {
-            Logger.propose.error("Part error: \(error, privacy: .public)")
-            partState = .failed(error.localizedDescription)
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            partState = .idle
         }
+    }
+
+    // MARK: - Private Helpers
+
+    private struct ActionError: LocalizedError {
+        let errorDescription: String?
+        init(_ message: String) { errorDescription = message }
+    }
+
+    private func reloadPropose() {
+        if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+            self.propose = latest
+        }
+    }
+
+    private func performAction(
+        state keyPath: WritableKeyPath<ProposeRowViewModel, AsyncOperationState>,
+        label: String,
+        action: () async throws -> Void
+    ) async {
+        self[keyPath: keyPath] = .running
+        do {
+            try await action()
+            self[keyPath: keyPath] = .succeeded
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+        } catch {
+            Logger.propose.error("\(label) error: \(error.localizedDescription, privacy: .public)")
+            self[keyPath: keyPath] = .failed(error.localizedDescription)
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+        self[keyPath: keyPath] = .idle
     }
 
     func resendLocalSignature() async {
