@@ -321,6 +321,9 @@ final class ProposeRowViewModel {
         let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
         do {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
             isApplyingServerUpdate = false
             pendingServerUpdate = nil
             Logger.propose.info("Accepted server signatures and reflected them locally")
