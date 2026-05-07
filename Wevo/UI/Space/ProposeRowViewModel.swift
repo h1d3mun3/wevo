@@ -173,6 +173,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isSigning = false
             signSuccess = true
 
@@ -210,6 +214,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isDissolving = false
             dissolveSuccess = true
             try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -236,6 +244,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isHonoring = false
             honorSuccess = true
             myHonorSigned = true
@@ -263,6 +275,10 @@ final class ProposeRowViewModel {
         )
         do {
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            pendingServerUpdate = nil
             isParting = false
             partSuccess = true
             myPartSigned = true
