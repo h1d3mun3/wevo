@@ -46,6 +46,19 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 - File-based transfer (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) for peer-to-peer key exchange via AirDrop
 - A Space stores all node URLs for a WevoSpace cluster; on registration the app calls `/info` on the entered URL to automatically discover peer nodes. All API operations use `ResilientProposeAPIClient`, which retries across nodes on network errors or 5xx responses and fails immediately on 4xx client errors
 
+## Known Limitations
+
+### Timestamps are not cryptographically verified
+
+Wevo's cryptographic guarantees cover:
+
+- **What** — the content of a Propose, via SHA-256 hash
+- **Who** — the identity of each signer, via P-256 ECDSA signatures
+
+**When** is not guaranteed. Timestamps on Proposes are asserted by the client device or the WevoSpace server and are not cryptographically bound to the signatures. A party with a manipulated system clock can create or sign a Propose with an arbitrary timestamp. This also means any future expiry or time-based enforcement mechanism would be gameable by clock manipulation.
+
+The standard remedy is a trusted timestamp authority (RFC 3161), but that would introduce an external party into every signing operation — which conflicts with Wevo's design principle of not depending on platform-owned or third-party infrastructure. This is therefore a known design trade-off, not a bug to fix.
+
 ## Getting Started
 
 1. Open `Wevo.xcodeproj` in Xcode 15 or later.
@@ -124,6 +137,19 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 - SwiftData とオプションの CloudKit 同期でデータをデバイス上に保持
 - ファイルベースの転送（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）でAirDrop経由のP2P鍵交換が可能
 - Space は WevoSpace クラスターの全ノード URL を保持する。登録時に入力 URL の `/info` を呼び出してピアノードを自動発見する。API 操作はすべて `ResilientProposeAPIClient` 経由で行われ、ネットワークエラーや 5xx 応答時は次のノードにリトライし、4xx クライアントエラーは即時 throw する
+
+## 既知の制限事項
+
+### タイムスタンプは暗号学的に検証されない
+
+Wevo の暗号学的保証が対象とするのは以下の2点です：
+
+- **What（何を）** — Propose の内容（SHA-256 ハッシュによる保証）
+- **Who（誰が）** — 各署名者の Identity（P-256 ECDSA 署名による保証）
+
+**When（いつ）** は保証されません。Propose のタイムスタンプはクライアントデバイスまたは WevoSpace サーバーが主張するものであり、署名と暗号学的に紐付いていません。そのため、システムクロックを操作した当事者は任意のタイムスタンプで Propose を作成・署名することができます。将来的に有効期限や時刻ベースの制御を導入した場合も、クロック操作によって回避される可能性があります。
+
+標準的な解決策は信頼できるタイムスタンプ局（RFC 3161）の利用ですが、これはすべての署名操作に外部の第三者を介在させることになり、Wevo の「プラットフォームや外部インフラに依存しない」という設計原則と相容れません。これはバグではなく、設計上の既知のトレードオフです。
 
 ## Getting Started
 
