@@ -20,7 +20,6 @@ final class EditSpaceViewModel {
 
     var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isSaving &&
         (name != space.name || url != space.url || selectedIdentity?.id != space.defaultIdentityID)
     }

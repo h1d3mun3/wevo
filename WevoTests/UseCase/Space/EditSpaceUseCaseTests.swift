@@ -145,6 +145,26 @@ struct EditSpaceUseCaseTests {
         #expect(mockSpaceRepository.updatedSpace?.urls == ["https://example.com"])
     }
 
+    @Test func testClearsURLsWhenPrimaryURLIsEmpty() async throws {
+        let mockSpaceRepository = MockSpaceRepository()
+        let mockGetSpaceUseCase = MockGetSpaceUseCase()
+        let spaceID = UUID()
+        mockGetSpaceUseCase.result = Space(
+            id: spaceID, name: "Space", url: "https://example.com",
+            defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now
+        )
+
+        let useCase = EditSpaceUseCaseImpl(
+            spaceRepository: mockSpaceRepository,
+            getSpaceUseCase: mockGetSpaceUseCase,
+            fetchServerInfoUseCase: MockFetchServerInfoUseCase()
+        )
+
+        try await useCase.execute(id: spaceID, name: "Space", primaryURL: "", defaultIdentityID: nil)
+
+        #expect(mockSpaceRepository.updatedSpace?.urls == [])
+    }
+
     @Test func testThrowsWhenGetSpaceFails() async throws {
         let mockSpaceRepository = MockSpaceRepository()
         let mockGetSpaceUseCase = MockGetSpaceUseCase()
