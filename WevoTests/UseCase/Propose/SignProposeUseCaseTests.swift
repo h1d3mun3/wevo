@@ -254,20 +254,26 @@ struct SignProposeUseCaseTests {
         #expect(mockAPI.signProposeCalled == false)
     }
 
-    @Test func testThrowsInvalidServerURLWhenURLsEmpty() async throws {
+    @Test func testLocalOnlyModeWhenServerURLsEmpty() async throws {
         // Arrange
         let mockKeychain = MockKeychainRepository()
-        let mockPropose = MockProposeRepository()
+        let mockRepo = MockProposeRepository()
+        let mockAPI = MockProposeAPIClient()
+
+        let counterpartyID = UUID()
+        mockKeychain.getIdentityResult = Identity(id: counterpartyID, nickname: "Bob", publicKey: "counterpartyKey")
 
         let useCase = SignProposeUseCaseImpl(
             keychainRepository: mockKeychain,
-            proposeRepository: mockPropose,
-            apiClient: MockProposeAPIClient()
+            proposeRepository: mockRepo,
+            apiClient: mockAPI
         )
 
-        // Act & Assert
-        await #expect(throws: SignProposeUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: [])
-        }
+        // Act
+        try await useCase.execute(propose: makePropose(), identityID: counterpartyID, serverURLs: [])
+
+        // Assert: saved locally, server not called
+        #expect(mockRepo.updateCalled == true)
+        #expect(mockAPI.signProposeCalled == false)
     }
 }

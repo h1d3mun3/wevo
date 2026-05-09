@@ -75,7 +75,7 @@ struct PartProposeUseCaseTests {
         #expect(signedMessage.contains("creatorKey"))  // signerPublicKey embedded in v1 message
     }
 
-    @Test func testThrowsInvalidServerURL() async throws {
+    @Test func testLocalOnlyModeWhenServerURLsInvalid() async throws {
         let mockKeychain = MockKeychainRepository()
         let mockAPI = MockProposeAPIClient()
 
@@ -84,9 +84,10 @@ struct PartProposeUseCaseTests {
         let mockRepo = MockProposeRepository()
         let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
 
-        await #expect(throws: PartProposeUseCaseError.invalidServerURL) {
-            try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["not a url"])
-        }
+        try await useCase.execute(propose: makePropose(), identityID: UUID(), serverURLs: ["not a url"])
+
+        #expect(mockRepo.updateCalled == true)
+        #expect(mockAPI.partProposeCalled == false)
     }
 
     @Test func testThrowsWhenGetIdentityFails() async throws {

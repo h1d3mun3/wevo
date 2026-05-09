@@ -13,7 +13,6 @@ protocol HonorProposeUseCase {
 }
 
 enum HonorProposeUseCaseError: Error {
-    case invalidServerURL
     case statusIsNotSigned
 }
 
@@ -31,10 +30,6 @@ struct HonorProposeUseCaseImpl {
 
 extension HonorProposeUseCaseImpl: HonorProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
-        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
-            throw HonorProposeUseCaseError.invalidServerURL
-        }
-
         guard propose.localStatus == .signed else {
             throw HonorProposeUseCaseError.statusIsNotSigned
         }
@@ -76,7 +71,13 @@ extension HonorProposeUseCaseImpl: HonorProposeUseCase {
         try proposeRepository.update(updatedPropose)
         Logger.propose.info("Saved Honor signature locally: \(propose.id, privacy: .private)")
 
-        // Send to server
+        // Send to server if server URLs are configured
+        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
+        guard hasValidServerURLs else {
+            Logger.propose.info("Local-only mode: honored locally without server sync: \(propose.id, privacy: .private)")
+            return
+        }
+
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,
