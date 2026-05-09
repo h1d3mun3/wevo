@@ -38,9 +38,11 @@ private struct ContentViewContent: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(space.name)
                                         .font(.headline)
-                                    Text(space.url)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    if let url = space.url {
+                                        Text(url)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
                         }

@@ -21,7 +21,7 @@ final class EditSpaceViewModel {
     var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isSaving &&
-        (name != space.name || url != space.url || selectedIdentity?.id != space.defaultIdentityID)
+        (name != space.name || url != (space.url ?? "") || selectedIdentity?.id != space.defaultIdentityID)
     }
 
     let space: Space
@@ -33,7 +33,7 @@ final class EditSpaceViewModel {
         self.onUpdate = onUpdate
         self.deps = deps
         self.name = space.name
-        self.url = space.url
+        self.url = space.url ?? ""
     }
 
     func loadIdentities() {
