@@ -21,8 +21,6 @@ final class ProposeRowViewModel {
     private let deps: any DependencyContainer
 
     var shareURL: URL?
-    var showShareSheet = false
-    var shareError: String?
 
     var resendState: AsyncOperationState = .idle
     var serverStatus: ProposeServerStatus = .unknown
@@ -86,19 +84,8 @@ final class ProposeRowViewModel {
     // MARK: - Actions
 
     func prepareShare() {
-        let useCase = ExportProposeUseCaseImpl()
-        do {
-            shareURL = try useCase.execute(propose: propose, space: space)
-            shareError = nil
-        } catch {
-            Logger.propose.error("Propose export error: \(error, privacy: .public)")
-            shareError = "Export failed"
-        }
-    }
-
-    func sharePropose() {
-        if shareURL == nil { prepareShare() }
-        showShareSheet = true
+        guard let url = try? ExportProposeUseCaseImpl().execute(propose: propose, space: space) else { return }
+        shareURL = url
     }
 
     func resendToServer() async {
