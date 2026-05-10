@@ -187,15 +187,17 @@ private struct ProposeRowContent: View {
             .disabled(viewModel.resendState == .running || viewModel.serverStatus == .exists)
             .opacity((viewModel.resendState == .running || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
 
-            if let shareURL = viewModel.shareURL {
-                ShareLink(item: shareURL) {
+            if let url = viewModel.shareURL {
+                ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
             } else {
-                Button { viewModel.prepareShare() } label: {
+                Button {
+                    viewModel.prepareShare()
+                } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
@@ -208,13 +210,6 @@ private struct ProposeRowContent: View {
     @ViewBuilder
     private var statusMessages: some View {
         OperationStatusRow(state: viewModel.resendState, successLabel: "Sent to server")
-
-        if let shareError = viewModel.shareError {
-            Text(shareError)
-                .font(.caption2)
-                .foregroundStyle(.red)
-        }
-
         OperationStatusRow(state: viewModel.signState, successLabel: "Signed")
         OperationStatusRow(state: viewModel.honorState, successLabel: "Honor sent")
         OperationStatusRow(state: viewModel.partState, successLabel: "Part sent")
