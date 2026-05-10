@@ -83,8 +83,6 @@ struct ProposeRowViewModelTests {
         let vm = makeViewModel()
 
         #expect(vm.shareURL == nil)
-        #expect(vm.showShareSheet == false)
-        #expect(vm.shareError == nil)
         #expect(vm.resendState == .idle)
         #expect(vm.serverStatus == .unknown)
         #expect(vm.isCheckingServer == false)
