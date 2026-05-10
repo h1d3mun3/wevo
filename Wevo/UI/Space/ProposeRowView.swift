@@ -194,32 +194,6 @@ private struct ProposeRowContent: View {
             .disabled(viewModel.resendState == .running || viewModel.serverStatus == .exists)
             .opacity((viewModel.resendState == .running || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
 
-#if os(iOS)
-            if #available(iOS 16.0, *) {
-                if let shareURL = viewModel.shareURL {
-                    ShareLink(item: shareURL) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                } else {
-                    Button { viewModel.prepareShare() } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                }
-            } else {
-                Button { viewModel.sharePropose() } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .labelStyle(.iconOnly)
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-            }
-#else
             if let shareURL = viewModel.shareURL {
                 ShareLink(item: shareURL) {
                     Label("Share", systemImage: "square.and.arrow.up")
@@ -235,7 +209,6 @@ private struct ProposeRowContent: View {
                 }
                 .buttonStyle(.borderless)
             }
-#endif
         }
     }
 
