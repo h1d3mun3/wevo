@@ -134,9 +134,6 @@ private struct ProposeRowContent: View {
             await viewModel.checkServerStatus()
         }
         .task {
-            viewModel.prepareShare()
-        }
-        .task {
             await viewModel.loadDefaultIdentity()
         }
         .task {
@@ -148,13 +145,6 @@ private struct ProposeRowContent: View {
         .sheet(isPresented: $viewModel.showProposeDetail) {
             ProposeDetailView(propose: viewModel.propose, space: viewModel.space)
         }
-#if os(iOS)
-        .sheet(isPresented: $viewModel.showShareSheet) {
-            if let shareURL = viewModel.shareURL {
-                ShareSheetView(items: [shareURL])
-            }
-        }
-#endif
     }
 
     // MARK: - Sub Views
@@ -197,61 +187,29 @@ private struct ProposeRowContent: View {
             .disabled(viewModel.resendState == .running || viewModel.serverStatus == .exists)
             .opacity((viewModel.resendState == .running || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
 
-#if os(iOS)
-            if #available(iOS 16.0, *) {
-                if let shareURL = viewModel.shareURL {
-                    ShareLink(item: shareURL) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                } else {
-                    Button { viewModel.prepareShare() } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                }
-            } else {
-                Button { viewModel.sharePropose() } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .labelStyle(.iconOnly)
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-            }
-#else
-            if let shareURL = viewModel.shareURL {
-                ShareLink(item: shareURL) {
+            if let url = viewModel.shareURL {
+                ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
             } else {
-                Button { viewModel.prepareShare() } label: {
+                Button {
+                    viewModel.prepareShare()
+                } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
             }
-#endif
         }
     }
 
     @ViewBuilder
     private var statusMessages: some View {
         OperationStatusRow(state: viewModel.resendState, successLabel: "Sent to server")
-
-        if let shareError = viewModel.shareError {
-            Text(shareError)
-                .font(.caption2)
-                .foregroundStyle(.red)
-        }
-
         OperationStatusRow(state: viewModel.signState, successLabel: "Signed")
         OperationStatusRow(state: viewModel.honorState, successLabel: "Honor sent")
         OperationStatusRow(state: viewModel.partState, successLabel: "Part sent")
