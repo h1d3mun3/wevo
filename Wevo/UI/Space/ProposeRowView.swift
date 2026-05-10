@@ -253,8 +253,8 @@ private struct ProposeRowContent: View {
         }
 
         OperationStatusRow(state: viewModel.signState, successLabel: "Signed")
-        OperationStatusRow(state: viewModel.honorState, successLabel: "Honor sent")
-        OperationStatusRow(state: viewModel.partState, successLabel: "Part sent")
+        OperationStatusRow(state: viewModel.honorState, successLabel: "Honored")
+        OperationStatusRow(state: viewModel.partState, successLabel: "Parted")
         OperationStatusRow(state: viewModel.dissolveState, successLabel: "Dissolved")
     }
 
@@ -319,7 +319,7 @@ private struct ProposeRowContent: View {
                 if viewModel.honorState == .running {
                     ProgressView().scaleEffect(0.7)
                 } else if viewModel.myHonorSigned || viewModel.hasLocallyHonored {
-                    Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
+                    Label("Honored", systemImage: "checkmark.seal.fill").font(.caption)
                 } else {
                     Label("Honor", systemImage: "checkmark.seal").font(.caption)
                 }
@@ -343,7 +343,7 @@ private struct ProposeRowContent: View {
                 if viewModel.partState == .running {
                     ProgressView().scaleEffect(0.7)
                 } else if viewModel.myPartSigned || viewModel.hasLocallyParted {
-                    Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
+                    Label("Parted", systemImage: "xmark.seal.fill").font(.caption)
                 } else {
                     Label("Part", systemImage: "xmark.seal").font(.caption)
                 }
