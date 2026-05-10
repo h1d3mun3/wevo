@@ -145,13 +145,6 @@ private struct ProposeRowContent: View {
         .sheet(isPresented: $viewModel.showProposeDetail) {
             ProposeDetailView(propose: viewModel.propose, space: viewModel.space)
         }
-#if os(iOS)
-        .sheet(isPresented: $viewModel.showShareSheet) {
-            if let shareURL = viewModel.shareURL {
-                ShareSheetView(items: [shareURL])
-            }
-        }
-#endif
     }
 
     // MARK: - Sub Views
