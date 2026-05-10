@@ -134,9 +134,6 @@ private struct ProposeRowContent: View {
             await viewModel.checkServerStatus()
         }
         .task {
-            viewModel.prepareShare()
-        }
-        .task {
             await viewModel.loadDefaultIdentity()
         }
         .task {
