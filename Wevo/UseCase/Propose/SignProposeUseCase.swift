@@ -12,7 +12,6 @@ enum SignProposeUseCaseError: Error {
     case failedToSavePropose
     /// The identity attempting to sign is not the Counterparty
     case notCounterparty
-    case invalidServerURL
     case statusIsNotProposed
 }
 
@@ -34,10 +33,6 @@ struct SignProposeUseCaseImpl {
 
 extension SignProposeUseCaseImpl: SignProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
-        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
-            throw SignProposeUseCaseError.invalidServerURL
-        }
-
         guard propose.localStatus == .proposed else {
             throw SignProposeUseCaseError.statusIsNotProposed
         }
@@ -95,7 +90,13 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
             throw SignProposeUseCaseError.failedToSavePropose
         }
 
-        // Send to server
+        // Send to server if server URLs are configured
+        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
+        guard hasValidServerURLs else {
+            Logger.propose.info("Local-only mode: signed locally without server sync: \(propose.id, privacy: .private)")
+            return
+        }
+
         let input = ProposeAPIClient.SignInput(
             signerPublicKey: identity.publicKey,
             signature: signatureData,

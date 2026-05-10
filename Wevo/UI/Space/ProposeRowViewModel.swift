@@ -98,6 +98,10 @@ final class ProposeRowViewModel {
 
     func checkServerStatus() async {
         guard !isCheckingServer else { return }
+        guard !space.urls.isEmpty else {
+            serverStatus = .localOnly
+            return
+        }
         isCheckingServer = true
         serverStatus = .checking
 

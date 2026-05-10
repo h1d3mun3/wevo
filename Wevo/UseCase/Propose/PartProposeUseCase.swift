@@ -13,7 +13,6 @@ protocol PartProposeUseCase {
 }
 
 enum PartProposeUseCaseError: Error {
-    case invalidServerURL
     case statusIsNotSigned
 }
 
@@ -31,10 +30,6 @@ struct PartProposeUseCaseImpl {
 
 extension PartProposeUseCaseImpl: PartProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
-        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
-            throw PartProposeUseCaseError.invalidServerURL
-        }
-
         guard propose.localStatus == .signed else {
             throw PartProposeUseCaseError.statusIsNotSigned
         }
@@ -76,7 +71,13 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
         try proposeRepository.update(updatedPropose)
         Logger.propose.info("Saved Part signature locally: \(propose.id, privacy: .private)")
 
-        // Send to server
+        // Send to server if server URLs are configured
+        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
+        guard hasValidServerURLs else {
+            Logger.propose.info("Local-only mode: parted locally without server sync: \(propose.id, privacy: .private)")
+            return
+        }
+
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,

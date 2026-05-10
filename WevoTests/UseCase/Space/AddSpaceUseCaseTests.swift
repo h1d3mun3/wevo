@@ -161,4 +161,20 @@ struct AddSpaceUseCaseTests {
 
         #expect(mockRepository.createdSpace?.urls == ["https://example.com"])
     }
+
+    @Test func testCreatesLocalOnlySpaceWhenURLIsEmpty() async throws {
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(
+            spaceRepository: mockRepository,
+            fetchServerInfoUseCase: MockFetchServerInfoUseCase()
+        )
+
+        try await useCase.execute(name: "Local Space", primaryURL: "", defaultIdentityID: nil)
+
+        #expect(mockRepository.createCalled == true)
+        #expect(mockRepository.createdSpace?.name == "Local Space")
+        #expect(mockRepository.createdSpace?.urls == [])
+    }
 }

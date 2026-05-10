@@ -13,7 +13,6 @@ protocol DissolveProposeUseCase {
 }
 
 enum DissolveProposeUseCaseError: Error {
-    case invalidServerURL
     /// The identity is not a participant (neither creator nor counterparty)
     case notParticipant
     case statusIsNotProposed
@@ -33,10 +32,6 @@ struct DissolveProposeUseCaseImpl {
 
 extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
     func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
-        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
-            throw DissolveProposeUseCaseError.invalidServerURL
-        }
-
         guard propose.localStatus == .proposed else {
             throw DissolveProposeUseCaseError.statusIsNotProposed
         }
@@ -85,7 +80,13 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
         try proposeRepository.update(updatedPropose)
         Logger.propose.info("Saved Dissolve signature locally: \(propose.id, privacy: .private)")
 
-        // Send to server
+        // Send to server if server URLs are configured
+        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
+        guard hasValidServerURLs else {
+            Logger.propose.info("Local-only mode: dissolved locally without server sync: \(propose.id, privacy: .private)")
+            return
+        }
+
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,

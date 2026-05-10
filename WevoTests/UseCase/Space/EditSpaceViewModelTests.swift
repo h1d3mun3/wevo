@@ -56,7 +56,7 @@ struct EditSpaceViewModelTests {
         let vm = makeViewModel(space: space)
         vm.name = "New Name"
         vm.url = ""
-        #expect(vm.canSave == false)
+        #expect(vm.canSave == true)
     }
 
     @Test func testCanSaveFalseWhenSaving() {

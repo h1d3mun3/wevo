@@ -29,7 +29,7 @@ struct AddSpaceViewModelTests {
         vm.name = "My Space"
         vm.urlString = ""
         vm.selectedIdentityID = UUID()
-        #expect(vm.canSave == false)
+        #expect(vm.canSave == true)
     }
 
     @Test func testCanSaveFalseWhenNoIdentity() {

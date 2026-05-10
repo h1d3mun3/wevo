@@ -17,8 +17,8 @@ struct Space: Identifiable {
     let createdAt: Date
     let updatedAt: Date
 
-    /// Primary URL (first in the list). Used for display and single-URL callers.
-    var url: String { urls.first ?? "" }
+    /// Primary URL (first in the list). Nil when no server is configured.
+    var url: String? { urls.first }
 
     init(
         id: UUID,
