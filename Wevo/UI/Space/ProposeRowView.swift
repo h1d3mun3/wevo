@@ -195,8 +195,8 @@ private struct ProposeRowContent: View {
                 }
             }
             .buttonStyle(.borderless)
-            .disabled(viewModel.isResending || viewModel.serverStatus == .exists)
-            .opacity((viewModel.isResending || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
+            .disabled(viewModel.isResending || viewModel.serverStatus == .exists || viewModel.serverStatus == .localOnly)
+            .opacity((viewModel.isResending || viewModel.serverStatus == .exists || viewModel.serverStatus == .localOnly) ? 0.5 : 1.0)
 
 #if os(iOS)
             if #available(iOS 16.0, *) {

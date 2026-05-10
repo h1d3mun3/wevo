@@ -12,6 +12,7 @@ enum ProposeServerStatus: Equatable {
     case checking
     case exists
     case notFound
+    case localOnly
     case error(String)
 
     var icon: String {
@@ -20,6 +21,7 @@ enum ProposeServerStatus: Equatable {
         case .checking: return "circle.dotted"
         case .exists: return "checkmark.circle.fill"
         case .notFound: return "xmark.circle"
+        case .localOnly: return "iphone"
         case .error: return "exclamationmark.triangle"
         }
     }
@@ -30,6 +32,7 @@ enum ProposeServerStatus: Equatable {
         case .checking: return .blue
         case .exists: return .green
         case .notFound: return .orange
+        case .localOnly: return .secondary
         case .error: return .red
         }
     }
@@ -40,6 +43,7 @@ enum ProposeServerStatus: Equatable {
         case .checking: return "Checking..."
         case .exists: return "On server"
         case .notFound: return "Not on server"
+        case .localOnly: return "Local only"
         case .error(let message): return "Error: \(message)"
         }
     }
