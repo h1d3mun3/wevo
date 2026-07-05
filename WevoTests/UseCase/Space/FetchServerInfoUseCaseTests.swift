@@ -41,6 +41,16 @@ struct FetchServerInfoUseCaseTests {
         #expect(info.peers == ["https://node-b.example.com", "https://node-c.example.com"])
     }
 
+    @Test func testSanitizesInvalidAndDuplicatePeers() async throws {
+        // Valid https/http kept (http allowed); duplicate, empty, hostless, non-URL, odd-scheme dropped.
+        let json = #"{"version":"0.2.0","peers":["https://node-b.example.com","http://192.168.0.2:8080","https://node-b.example.com","","not a url","ftp://x","https://ok.example.com"]}"#
+        let useCase = FetchServerInfoUseCaseImpl(httpClient: MockHTTPClient.responding(statusCode: 200, body: json))
+
+        let info = try await useCase.execute(urlString: "https://node-a.example.com")
+
+        #expect(info.peers == ["https://node-b.example.com", "http://192.168.0.2:8080", "https://ok.example.com"])
+    }
+
     @Test func testReturnsEmptyPeersWhenNoneConfigured() async throws {
         let json = #"{"version":"0.2.0","peers":[]}"#
         let useCase = FetchServerInfoUseCaseImpl(httpClient: MockHTTPClient.responding(statusCode: 200, body: json))
