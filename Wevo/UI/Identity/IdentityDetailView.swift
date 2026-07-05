@@ -26,6 +26,15 @@ struct IdentityDetailView: View {
 private struct IdentityDetailContent: View {
     @State var viewModel: IdentityDetailViewModel
 
+    @State private var showingPassphrasePrompt = false
+    @State private var passphrase = ""
+    @State private var confirmPassphrase = ""
+
+    private static let minPassphraseLength = 8
+    private var passphraseValid: Bool {
+        passphrase.count >= Self.minPassphraseLength && passphrase == confirmPassphrase
+    }
+
     var body: some View {
         List {
             Section("Information") {
@@ -62,9 +71,11 @@ private struct IdentityDetailContent: View {
 
             Section("Share") {
                 Button {
-                    Task { await viewModel.authenticateAndExport() }
+                    passphrase = ""
+                    confirmPassphrase = ""
+                    showingPassphrasePrompt = true
                 } label: {
-                    Label("Share Identity (Plain)", systemImage: "square.and.arrow.up")
+                    Label("Export Identity (Encrypted)", systemImage: "square.and.arrow.up")
                 }
                 .disabled(viewModel.isAuthenticating)
                 .alert("Export Error", isPresented: .constant(viewModel.exportError != nil)) {
@@ -101,6 +112,37 @@ private struct IdentityDetailContent: View {
 #endif
         .sheet(isPresented: $viewModel.showingEditSheet) {
             EditIdentityView(identity: viewModel.identity)
+        }
+        .sheet(isPresented: $showingPassphrasePrompt) {
+            NavigationStack {
+                Form {
+                    Section {
+                        SecureField("Passphrase", text: $passphrase)
+                        SecureField("Confirm passphrase", text: $confirmPassphrase)
+                    } footer: {
+                        Text("You'll need this passphrase to import the identity elsewhere. At least \(Self.minPassphraseLength) characters. It cannot be recovered if lost.")
+                    }
+                }
+                .navigationTitle("Set Export Passphrase")
+#if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+#endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingPassphrasePrompt = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Export") {
+                            showingPassphrasePrompt = false
+                            Task { await viewModel.authenticateAndExport(passphrase: passphrase) }
+                        }
+                        .disabled(!passphraseValid)
+                    }
+                }
+            }
+#if os(macOS)
+            .frame(minWidth: 400, minHeight: 240)
+#endif
         }
         .onDisappear {
             viewModel.cleanupExportFile()

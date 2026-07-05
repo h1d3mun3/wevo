@@ -38,7 +38,7 @@ struct WevoApp: App {
     
     @State private var importedIdentityURL: URL?
     @State private var showIdentityImportAlert = false
-    @State private var pendingIdentityPlain: IdentityPlainExport?
+    @State private var pendingIdentityExport: IdentityEncryptedExport?
     @State private var showIdentityImportSheet = false
 
     @State private var importedContactURL: URL?
@@ -80,7 +80,7 @@ struct WevoApp: App {
                     }
                 }
                 .sheet(isPresented: $showIdentityImportSheet) {
-                    if let export = pendingIdentityPlain {
+                    if let export = pendingIdentityExport {
                         IdentityImportView(exportData: export) {
                             // onComplete
                             cleanupIdentityImport()
@@ -186,7 +186,7 @@ struct WevoApp: App {
         do {
             let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: container.keychainRepository)
             let plain = try useCase.readFromFile(url: url)
-            pendingIdentityPlain = plain
+            pendingIdentityExport = plain
             showIdentityImportSheet = true
         } catch {
             Logger.app.error("Error preparing identity import: \(error, privacy: .public)")
@@ -199,7 +199,7 @@ struct WevoApp: App {
             try? FileManager.default.removeItem(at: url)
         }
         importedIdentityURL = nil
-        pendingIdentityPlain = nil
+        pendingIdentityExport = nil
         showIdentityImportSheet = false
         showIdentityImportAlert = false
     }
