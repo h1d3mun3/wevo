@@ -14,6 +14,7 @@ enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
     case unsupportedFormat
     case legacyPlaintextUnsupported
     case decryptionFailed
+    case publicKeyMismatch
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +28,8 @@ enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
             return "This is an old, unencrypted identity export and can no longer be imported. Please re-export it from an updated version of the app."
         case .decryptionFailed:
             return "Could not decrypt. The passphrase is incorrect or the file is corrupted."
+        case .publicKeyMismatch:
+            return "The file is inconsistent: the decrypted key does not match its stated public key."
         }
     }
 }
@@ -57,10 +60,18 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
         }
 
         // Validate as a P256 private key.
+        let privateKey: P256.Signing.PrivateKey
         do {
-            _ = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
+            privateKey = try P256.Signing.PrivateKey(rawRepresentation: privateKeyData)
         } catch {
             throw ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat
+        }
+
+        // The decrypted key is GCM-authenticated, but the cleartext publicKey is not. Reject if the
+        // key does not match the previewed public key, so a tampered envelope cannot import a key
+        // under a mismatched identity/preview.
+        guard privateKey.publicKey.jwkString == exportData.publicKey else {
+            throw ImportIdentityFromExportUseCaseError.publicKeyMismatch
         }
 
         // Delete existing Identity if present, then import.
@@ -85,6 +96,11 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
         if let export = try? decoder.decode(IdentityEncryptedExport.self, from: data),
            export.version == IdentityEncryptedExport.currentVersion,
            export.kdf == IdentityEncryptedExport.kdfName {
+            // Bound the untrusted iteration count: prevents a UInt32 overflow trap (crash) and an
+            // abusively slow PBKDF2 (CPU/UI DoS) when deriving the key below.
+            guard (IdentityExportCrypto.minIterations...IdentityExportCrypto.maxIterations).contains(export.iterations) else {
+                throw ImportIdentityFromExportUseCaseError.unsupportedFormat
+            }
             return export
         }
         // Give a clear message for the old plaintext format instead of a generic decode error.

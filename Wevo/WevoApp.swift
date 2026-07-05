@@ -40,6 +40,7 @@ struct WevoApp: App {
     @State private var showIdentityImportAlert = false
     @State private var pendingIdentityExport: IdentityEncryptedExport?
     @State private var showIdentityImportSheet = false
+    @State private var identityImportError: String?
 
     @State private var importedContactURL: URL?
     @State private var showContactImportAlert = false
@@ -122,6 +123,11 @@ struct WevoApp: App {
                 } message: {
                     Text("An Identity file has been received via AirDrop. Preview and import it?")
                 }
+                .alert("Import Failed", isPresented: .constant(identityImportError != nil)) {
+                    Button("OK", role: .cancel) { identityImportError = nil }
+                } message: {
+                    Text(identityImportError ?? "")
+                }
                 .alert("Contact Received", isPresented: $showContactImportAlert) {
                     Button("Preview") {
                         if let url = importedContactURL {
@@ -190,6 +196,7 @@ struct WevoApp: App {
             showIdentityImportSheet = true
         } catch {
             Logger.app.error("Error preparing identity import: \(error, privacy: .public)")
+            identityImportError = error.localizedDescription
             cleanupIdentityImport()
         }
     }

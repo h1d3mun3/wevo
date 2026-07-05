@@ -22,11 +22,14 @@ struct ImportIdentityFromExportUseCaseTests {
     ) throws -> (export: IdentityEncryptedExport, privateKey: Data) {
         let priv = privateKey ?? P256.Signing.PrivateKey().rawRepresentation
         let (salt, sealed) = try IdentityExportCrypto.encrypt(priv, passphrase: passphrase)
+        // Derive the matching JWK public key when the material is a valid P256 key (import now
+        // verifies the decrypted key against this field); fall back for deliberately-invalid keys.
+        let pubJWK = (try? P256.Signing.PrivateKey(rawRepresentation: priv).publicKey.jwkString) ?? "PK"
         let export = IdentityEncryptedExport(
             version: IdentityEncryptedExport.currentVersion,
             id: id,
             nickname: nickname,
-            publicKey: "PK",
+            publicKey: pubJWK,
             exportedAt: .now,
             kdf: IdentityEncryptedExport.kdfName,
             iterations: IdentityExportCrypto.iterations,
@@ -130,5 +133,42 @@ struct ImportIdentityFromExportUseCaseTests {
         let read = try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository).readFromFile(url: url)
         #expect(read.id == export.id)
         #expect(read.version == IdentityEncryptedExport.currentVersion)
+    }
+
+    @Test("Rejects when the decrypted key does not match the stated publicKey")
+    func executeRejectsPublicKeyMismatch() throws {
+        mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
+        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        // Same ciphertext/salt/passphrase, but a wrong cleartext publicKey.
+        let tampered = IdentityEncryptedExport(
+            version: valid.version, id: valid.id, nickname: valid.nickname,
+            publicKey: "WRONG-PUBLIC-KEY", exportedAt: valid.exportedAt, kdf: valid.kdf,
+            iterations: valid.iterations, salt: valid.salt, sealed: valid.sealed
+        )
+
+        #expect(throws: ImportIdentityFromExportUseCaseError.publicKeyMismatch) {
+            try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
+                .execute(exportData: tampered, passphrase: "pass1234")
+        }
+        #expect(!mockKeychainRepository.createIdentityCalled)
+    }
+
+    @Test("readFromFile rejects an out-of-range iteration count (crash / PBKDF2 DoS guard)")
+    func readFromFileRejectsBadIterations() throws {
+        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        // 5e9 exceeds UInt32.max (would trap in deriveKey) and the accepted range.
+        let bad = IdentityEncryptedExport(
+            version: valid.version, id: valid.id, nickname: valid.nickname,
+            publicKey: valid.publicKey, exportedAt: valid.exportedAt, kdf: valid.kdf,
+            iterations: 5_000_000_000, salt: valid.salt, sealed: valid.sealed
+        )
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("baditer-\(UUID()).wevo-identity")
+        try encoder.encode(bad).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        #expect(throws: ImportIdentityFromExportUseCaseError.unsupportedFormat) {
+            _ = try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository).readFromFile(url: url)
+        }
     }
 }
