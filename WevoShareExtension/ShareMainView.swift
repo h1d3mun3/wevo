@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Share Main View
 
@@ -208,7 +209,15 @@ struct SignView: View {
 
     private func copyToClipboard(_ text: String) {
         #if canImport(UIKit)
-        UIPasteboard.general.string = text
+        // Keep the signed block on this device only (no Universal Clipboard sync to other Apple
+        // devices) and expire it after 2 minutes so it doesn't linger in the system clipboard.
+        UIPasteboard.general.setItems(
+            [[UTType.utf8PlainText.identifier: text]],
+            options: [
+                .localOnly: true,
+                .expirationDate: Date().addingTimeInterval(120)
+            ]
+        )
         #elseif canImport(AppKit)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)

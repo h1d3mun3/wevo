@@ -188,7 +188,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
     }
 
     func readFromFile(url: URL) throws -> ProposeExportData {
-        let jsonData = try Data(contentsOf: url)
+        let jsonData = try readImportData(from: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()

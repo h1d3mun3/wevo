@@ -12,7 +12,7 @@ struct GetFingerprintUseCaseTests {
 
     private let useCase = GetFingerprintUseCaseImpl()
 
-    @Test func testReturnsEightByteColonSeparatedHexForValidJWK() {
+    @Test func testReturnsSixteenByteColonSeparatedHexForValidJWK() {
         // Arrange
         let key = P256.Signing.PrivateKey()
         let jwk = key.publicKey.jwkString
@@ -20,9 +20,9 @@ struct GetFingerprintUseCaseTests {
         // Act
         let fingerprint = useCase.execute(jwkPublicKey: jwk)
 
-        // Assert: format is "XX:XX:XX:XX:XX:XX:XX:XX"
+        // Assert: 16 colon-separated hex bytes (128-bit fingerprint)
         let parts = fingerprint.split(separator: ":", omittingEmptySubsequences: false)
-        #expect(parts.count == 8)
+        #expect(parts.count == 16)
         #expect(parts.allSatisfy { $0.count == 2 })
         #expect(parts.allSatisfy { $0.allSatisfy(\.isHexDigit) })
     }
