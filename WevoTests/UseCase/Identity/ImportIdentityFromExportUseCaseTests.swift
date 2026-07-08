@@ -45,7 +45,7 @@ struct ImportIdentityFromExportUseCaseTests {
         let (export, priv) = try Self.makeEncryptedExport(passphrase: "pass1234")
 
         try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-            .execute(exportData: export, passphrase: "pass1234")
+            .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
 
         #expect(mockKeychainRepository.createIdentityCalled)
         #expect(mockKeychainRepository.createdIdentityID == export.id)
@@ -60,7 +60,7 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.decryptionFailed) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: export, passphrase: "wrong-pass")
+                .execute(exportData: export, passphrase: "wrong-pass", overwriteConfirmed: false)
         }
         #expect(!mockKeychainRepository.createIdentityCalled)
     }
@@ -79,7 +79,7 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.decryptionFailed) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: tampered, passphrase: "pass1234")
+                .execute(exportData: tampered, passphrase: "pass1234", overwriteConfirmed: false)
         }
     }
 
@@ -91,22 +91,37 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: export, passphrase: "pass1234")
+                .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
         }
     }
 
-    @Test("Deletes existing Identity before importing when one exists")
-    func executeOverwritesExisting() throws {
+    @Test("Replaces an existing Identity only when overwrite is confirmed")
+    func executeOverwritesExistingWhenConfirmed() throws {
         let id = UUID()
         mockKeychainRepository.getIdentityResult = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
         let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234")
 
         try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-            .execute(exportData: export, passphrase: "pass1234")
+            .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: true)
 
         #expect(mockKeychainRepository.deleteIdentityKeyCalled)
         #expect(mockKeychainRepository.deletedIdentityID == id)
         #expect(mockKeychainRepository.createIdentityCalled)
+    }
+
+    @Test("Throws identityAlreadyExists (and does not overwrite) when one exists and overwrite is not confirmed")
+    func executeThrowsWhenExistsWithoutConfirmation() throws {
+        let id = UUID()
+        mockKeychainRepository.getIdentityResult = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
+        let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234")
+
+        let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
+        #expect(throws: ImportIdentityFromExportUseCaseError.identityAlreadyExists) {
+            try useCase.execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
+        }
+        // The existing identity must remain untouched when overwrite is not confirmed.
+        #expect(!mockKeychainRepository.deleteIdentityKeyCalled)
+        #expect(!mockKeychainRepository.createIdentityCalled)
     }
 
     @Test("readFromFile rejects the legacy plaintext format (B案)")
@@ -148,7 +163,7 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.publicKeyMismatch) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: tampered, passphrase: "pass1234")
+                .execute(exportData: tampered, passphrase: "pass1234", overwriteConfirmed: false)
         }
         #expect(!mockKeychainRepository.createIdentityCalled)
     }

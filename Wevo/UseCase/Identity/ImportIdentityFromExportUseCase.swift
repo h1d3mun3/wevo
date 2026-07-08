@@ -11,6 +11,7 @@ import CryptoKit
 enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
     case invalidPrivateKeyEncoding
     case invalidPrivateKeyFormat
+    case identityAlreadyExists
     case unsupportedFormat
     case legacyPlaintextUnsupported
     case decryptionFailed
@@ -22,6 +23,8 @@ enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
             return "Invalid private key encoding."
         case .invalidPrivateKeyFormat:
             return "Invalid private key format. Not a valid P256 key."
+        case .identityAlreadyExists:
+            return "An identity with this ID already exists on this device."
         case .unsupportedFormat:
             return "Unrecognized or unsupported .wevo-identity format."
         case .legacyPlaintextUnsupported:
@@ -36,13 +39,13 @@ enum ImportIdentityFromExportUseCaseError: Error, LocalizedError {
 
 protocol ImportIdentityFromExportUseCase {
     func readFromFile(url: URL) throws -> IdentityEncryptedExport
-    func execute(exportData: IdentityEncryptedExport, passphrase: String) throws
+    func execute(exportData: IdentityEncryptedExport, passphrase: String, overwriteConfirmed: Bool) throws
 }
 
 struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
     let keychainRepository: KeychainRepository
 
-    func execute(exportData: IdentityEncryptedExport, passphrase: String) throws {
+    func execute(exportData: IdentityEncryptedExport, passphrase: String, overwriteConfirmed: Bool) throws {
         // Decode the encrypted envelope's fields.
         guard let salt = Data(base64Encoded: exportData.salt),
               let sealed = Data(base64Encoded: exportData.sealed) else {
@@ -74,12 +77,17 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
             throw ImportIdentityFromExportUseCaseError.publicKeyMismatch
         }
 
-        // Delete existing Identity if present, then import.
-        do {
-            _ = try keychainRepository.getIdentity(id: exportData.id)
-            try keychainRepository.deleteIdentityKey(id: exportData.id)
-        } catch {
-            // Not found or not deletable; continue
+        // Only after the import is fully validated: if an identity with this ID already exists,
+        // require explicit confirmation before replacing it — importing must never silently
+        // overwrite an existing private key, and a malformed/tampered file must never destroy one.
+        let existing = try? keychainRepository.getIdentity(id: exportData.id)
+        if existing != nil, !overwriteConfirmed {
+            throw ImportIdentityFromExportUseCaseError.identityAlreadyExists
+        }
+
+        // Replace the existing key (confirmed above) then import.
+        if existing != nil {
+            try? keychainRepository.deleteIdentityKey(id: exportData.id)
         }
         try keychainRepository.createIdentity(
             id: exportData.id,
@@ -89,7 +97,7 @@ struct ImportIdentityFromExportUseCaseImpl: ImportIdentityFromExportUseCase {
     }
 
     func readFromFile(url: URL) throws -> IdentityEncryptedExport {
-        let data = try Data(contentsOf: url)
+        let data = try readImportData(from: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 

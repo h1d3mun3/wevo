@@ -8,6 +8,7 @@ struct IdentityImportView: View {
     @State private var passphrase = ""
     @State private var loadError: String?
     @State private var isImporting = false
+    @State private var showOverwriteConfirm = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
 
@@ -57,9 +58,17 @@ struct IdentityImportView: View {
                     Button("Cancel") { onCancel(); dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Import") { Task { await importNow() } }
+                    Button("Import") { Task { await performImport(overwriteConfirmed: false) } }
                         .disabled(passphrase.isEmpty || isImporting)
                 }
+            }
+            .alert("Replace existing identity?", isPresented: $showOverwriteConfirm) {
+                Button("Replace", role: .destructive) {
+                    Task { await performImport(overwriteConfirmed: true) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("An identity with this ID already exists on this device. Importing will replace its private key. This cannot be undone.")
             }
         }
 #if os(macOS)
@@ -67,14 +76,17 @@ struct IdentityImportView: View {
 #endif
     }
 
-    private func importNow() async {
+    private func performImport(overwriteConfirmed: Bool) async {
         isImporting = true
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            try useCase.execute(exportData: exportData, passphrase: passphrase)
+            try useCase.execute(exportData: exportData, passphrase: passphrase, overwriteConfirmed: overwriteConfirmed)
             isImporting = false
             onComplete()
             dismiss()
+        } catch ImportIdentityFromExportUseCaseError.identityAlreadyExists {
+            isImporting = false
+            showOverwriteConfirm = true
         } catch {
             isImporting = false
             loadError = error.localizedDescription
