@@ -23,8 +23,9 @@ enum AuthenticateAndExportIdentityUseCaseError: Error, LocalizedError {
 }
 
 protocol AuthenticateAndExportIdentityUseCase {
-    /// Performs biometric authentication and, on success, exports the identity as a file URL
-    func execute(identity: Identity) async throws -> URL
+    /// Performs biometric authentication and, on success, exports the identity as a
+    /// passphrase-encrypted file URL.
+    func execute(identity: Identity, passphrase: String) async throws -> URL
 }
 
 struct AuthenticateAndExportIdentityUseCaseImpl {
@@ -36,7 +37,7 @@ struct AuthenticateAndExportIdentityUseCaseImpl {
 }
 
 extension AuthenticateAndExportIdentityUseCaseImpl: AuthenticateAndExportIdentityUseCase {
-    func execute(identity: Identity) async throws -> URL {
+    func execute(identity: Identity, passphrase: String) async throws -> URL {
         let context = LAContext()
         var error: NSError?
 
@@ -55,6 +56,6 @@ extension AuthenticateAndExportIdentityUseCaseImpl: AuthenticateAndExportIdentit
         }
 
         let exportUseCase = ExportIdentityUseCaseImpl(keychainRepository: keychainRepository)
-        return try exportUseCase.execute(identity: identity)
+        return try exportUseCase.execute(identity: identity, passphrase: passphrase)
     }
 }

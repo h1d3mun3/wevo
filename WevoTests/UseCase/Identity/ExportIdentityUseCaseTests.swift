@@ -2,11 +2,10 @@
 //  ExportIdentityUseCaseTests.swift
 //  WevoTests
 //
-//  Created on 3/11/26.
-//
 
 import Testing
 import Foundation
+import CryptoKit
 @testable import Wevo
 
 @MainActor
@@ -20,24 +19,48 @@ struct ExportIdentityUseCaseTests {
         publicKey: "TestPublicKey"
     )
 
-    @Test("Can retrieve private key, Base64-encode it, and export to file")
-    func executeSuccess() throws {
-        let privateKeyData = Data("test-private-key".utf8)
+    @Test("Exports an encrypted envelope that does NOT contain the plaintext private key")
+    func executeProducesEncryptedFile() throws {
+        let privateKeyData = P256.Signing.PrivateKey().rawRepresentation
         mockKeychainRepository.getPrivateKeyResult = privateKeyData
 
         let useCase = ExportIdentityUseCaseImpl(keychainRepository: mockKeychainRepository)
-        let url = try useCase.execute(identity: identity)
+        let url = try useCase.execute(identity: identity, passphrase: "correct-horse-battery")
+        defer { try? FileManager.default.removeItem(at: url) }
 
         #expect(url.pathExtension == "wevo-identity")
         #expect(FileManager.default.fileExists(atPath: url.path))
 
-        // File content contains the Base64-encoded private key
         let data = try Data(contentsOf: url)
-        let fileContent = String(data: data, encoding: .utf8)!
-        #expect(fileContent.contains(privateKeyData.base64EncodedString()))
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let export = try decoder.decode(IdentityEncryptedExport.self, from: data)
+        #expect(export.version == IdentityEncryptedExport.currentVersion)
+        #expect(export.id == identity.id)
+        #expect(export.publicKey == identity.publicKey)
 
-        // Cleanup
-        try? FileManager.default.removeItem(at: url)
+        // The plaintext private key must not appear anywhere in the file.
+        let content = String(data: data, encoding: .utf8)!
+        #expect(!content.contains(privateKeyData.base64EncodedString()))
+    }
+
+    @Test("Round-trips: export then decrypt recovers the same private key")
+    func exportRoundTrips() throws {
+        let privateKeyData = P256.Signing.PrivateKey().rawRepresentation
+        mockKeychainRepository.getPrivateKeyResult = privateKeyData
+
+        let url = try ExportIdentityUseCaseImpl(keychainRepository: mockKeychainRepository)
+            .execute(identity: identity, passphrase: "s3cr3t-pass")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let export = try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
+            .readFromFile(url: url)
+        let salt = Data(base64Encoded: export.salt)!
+        let sealed = Data(base64Encoded: export.sealed)!
+        let recovered = try IdentityExportCrypto.decrypt(
+            sealed: sealed, salt: salt, iterations: export.iterations, passphrase: "s3cr3t-pass"
+        )
+        #expect(recovered == privateKeyData)
     }
 
     @Test("Returns error when private key retrieval fails")
@@ -47,7 +70,7 @@ struct ExportIdentityUseCaseTests {
         let useCase = ExportIdentityUseCaseImpl(keychainRepository: mockKeychainRepository)
 
         #expect(throws: KeychainError.self) {
-            _ = try useCase.execute(identity: identity)
+            _ = try useCase.execute(identity: identity, passphrase: "whatever")
         }
     }
 }
