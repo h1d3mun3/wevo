@@ -7,10 +7,14 @@
 
 import Testing
 import Foundation
+import CryptoKit
 @testable import Wevo
 
 @MainActor
 struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
+
+    /// Verifies every signature (default returns true); a rejection test overrides it.
+    private let mockKeychain = MockKeychainRepository()
 
     /// Helper to generate a test Propose
     private func makePropose(
@@ -66,7 +70,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
@@ -84,7 +88,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID, signTimestamp: "2026-03-01T00:00:00Z"))
@@ -100,7 +104,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
@@ -116,7 +120,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         let existingPropose = makePropose(id: proposeID, counterpartyPublicKey: "cpartyKey", counterpartySignSignature: nil)
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(
@@ -134,7 +138,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         // Arrange
         let mockRepository = MockProposeRepository()
         mockRepository.fetchByIDError = NSError(domain: "Test", code: -1)
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act & Assert
         #expect(throws: NSError.self) {
@@ -150,7 +154,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         mockRepository.fetchByIDResult = existingPropose
         mockRepository.updateError = NSError(domain: "Test", code: -1)
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act & Assert
         #expect(throws: NSError.self) {
@@ -199,7 +203,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
@@ -252,7 +256,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
@@ -294,7 +298,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
 
         #expect(mockRepository.updatedPropose?.creatorDissolveSignature == "creatorDissolveSig")
@@ -317,7 +321,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         )
         mockRepository.fetchByIDResult = existingPropose
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
         try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
 
         #expect(mockRepository.updatedPropose?.signatureVersion == 2)
@@ -349,7 +353,7 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
             updatedAt: .now
         )
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: mockRepository, keychainRepository: mockKeychain)
 
         // Act
         try useCase.execute(proposeID: proposeID, serverPropose: serverPropose)
@@ -357,5 +361,61 @@ struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
         // Assert: server honor sig is applied
         #expect(mockRepository.updatedPropose?.counterpartyHonorSignature == "serverHonorSig")
         #expect(mockRepository.updatedPropose?.counterpartyHonorTimestamp == "2026-03-10T00:00:00Z")
+    }
+
+    @Test func testRejectsUnverifiedServerSignature() throws {
+        // Arrange: verifier rejects everything — server-provided signatures must NOT be adopted.
+        let rejectingKeychain = MockKeychainRepository()
+        rejectingKeychain.verifySignatureResult = false
+
+        let mockRepository = MockProposeRepository()
+        let proposeID = UUID()
+        mockRepository.fetchByIDResult = makePropose(id: proposeID, counterpartySignSignature: nil)
+
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(
+            proposeRepository: mockRepository, keychainRepository: rejectingKeychain
+        )
+
+        // Act: server presents a (forged) counterparty signature
+        try useCase.execute(proposeID: proposeID, serverPropose: makeServerPropose(proposeID: proposeID))
+
+        // Assert: the forged signature is rejected; local stays nil
+        #expect(mockRepository.updatedPropose?.counterpartySignSignature == nil)
+        #expect(mockRepository.updatedPropose?.localStatus != .signed)
+    }
+
+    /// End-to-end crypto test with the REAL verifier — validates that the reconstructed v1 message
+    /// format actually matches a genuine P-256 signature (a format bug would break legit merges).
+    @Test func testAdoptsGenuineServerSignatureWithRealVerifier() throws {
+        let cpPriv = P256.Signing.PrivateKey()
+        let cpJWK = cpPriv.publicKey.jwkString
+        let proposeID = UUID()
+        let ts = "2026-02-01T00:00:00Z"
+
+        let mockRepository = MockProposeRepository()
+        let local = Propose(
+            id: proposeID, spaceID: UUID(), message: "test",
+            creatorPublicKey: "creatorKey", creatorSignature: "creatorSig",
+            counterpartyPublicKey: cpJWK, counterpartySignSignature: nil,
+            createdAt: .now, updatedAt: .now
+        )
+        mockRepository.fetchByIDResult = local
+
+        // Genuine signature over the v1 "signed." message using the LOCAL propose's id + payloadHash.
+        let message = "signed." + proposeID.uuidString + local.payloadHash + cpJWK + ts
+        let genuineSig = try cpPriv.signature(for: Data(message.utf8)).derRepresentation.base64EncodedString()
+        let server = makeServerPropose(
+            proposeID: proposeID, counterpartyPublicKey: cpJWK,
+            signSignature: genuineSig, signTimestamp: ts
+        )
+
+        // Real verifier (no keychain access needed — it only checks the signature vs the JWK).
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(
+            proposeRepository: mockRepository, keychainRepository: KeychainRepositoryImpl()
+        )
+        try useCase.execute(proposeID: proposeID, serverPropose: server)
+
+        #expect(mockRepository.updatedPropose?.counterpartySignSignature == genuineSig)
+        #expect(mockRepository.updatedPropose?.localStatus == .signed)
     }
 }

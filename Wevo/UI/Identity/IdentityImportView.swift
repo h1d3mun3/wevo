@@ -1,17 +1,18 @@
 import SwiftUI
 
 struct IdentityImportView: View {
-    let exportData: IdentityPlainExport
+    let exportData: IdentityEncryptedExport
     let onComplete: () -> Void
     let onCancel: () -> Void
 
+    @State private var passphrase = ""
     @State private var loadError: String?
     @State private var isImporting = false
     @State private var showOverwriteConfirm = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencies) private var deps
 
-    init(exportData: IdentityPlainExport, onComplete: @escaping () -> Void, onCancel: @escaping () -> Void) {
+    init(exportData: IdentityEncryptedExport, onComplete: @escaping () -> Void, onCancel: @escaping () -> Void) {
         self.exportData = exportData
         self.onComplete = onComplete
         self.onCancel = onCancel
@@ -36,6 +37,13 @@ struct IdentityImportView: View {
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
+                Section {
+                    SecureField("Passphrase", text: $passphrase)
+                } header: {
+                    Text("Passphrase")
+                } footer: {
+                    Text("Enter the passphrase this identity was exported with.")
+                }
                 if let loadError = loadError {
                     Section {
                         Text(loadError)
@@ -51,7 +59,7 @@ struct IdentityImportView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Import") { Task { await performImport(overwriteConfirmed: false) } }
-                        .disabled(isImporting)
+                        .disabled(passphrase.isEmpty || isImporting)
                 }
             }
             .alert("Replace existing identity?", isPresented: $showOverwriteConfirm) {
@@ -72,7 +80,7 @@ struct IdentityImportView: View {
         isImporting = true
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
-            try useCase.execute(exportData: exportData, overwriteConfirmed: overwriteConfirmed)
+            try useCase.execute(exportData: exportData, passphrase: passphrase, overwriteConfirmed: overwriteConfirmed)
             isImporting = false
             onComplete()
             dismiss()
@@ -87,12 +95,16 @@ struct IdentityImportView: View {
 }
 
 #Preview("Identity Import") {
-    let exportData = IdentityPlainExport(
+    let exportData = IdentityEncryptedExport(
+        version: IdentityEncryptedExport.currentVersion,
         id: UUID(),
         nickname: "Preview Key",
         publicKey: "PreviewPublicKey",
-        privateKey: "PreviewPrivateKeyBase64",
-        exportedAt: .now
+        exportedAt: .now,
+        kdf: IdentityEncryptedExport.kdfName,
+        iterations: IdentityExportCrypto.iterations,
+        salt: "cHJldmlld3NhbHQ=",
+        sealed: "cHJldmlld3NlYWxlZA=="
     )
 
     IdentityImportView(

@@ -122,7 +122,7 @@ final class ProposeRowViewModel {
         isCheckingServer = true
         serverStatus = .checking
 
-        let useCase = CheckProposeServerStatusUseCaseImpl()
+        let useCase = CheckProposeServerStatusUseCaseImpl(keychainRepository: deps.keychainRepository)
         do {
             let myPublicKey = defaultIdentity?.publicKey
             let result = try await useCase.execute(propose: propose, serverURLs: space.urls, myPublicKey: myPublicKey)
@@ -302,7 +302,7 @@ final class ProposeRowViewModel {
     func acceptServerPropose(_ serverPropose: HashedPropose) async {
         isApplyingServerUpdate = true
 
-        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository)
+        let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository, keychainRepository: deps.keychainRepository)
         do {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
             isApplyingServerUpdate = false

@@ -38,8 +38,9 @@ struct WevoApp: App {
     
     @State private var importedIdentityURL: URL?
     @State private var showIdentityImportAlert = false
-    @State private var pendingIdentityPlain: IdentityPlainExport?
+    @State private var pendingIdentityExport: IdentityEncryptedExport?
     @State private var showIdentityImportSheet = false
+    @State private var identityImportError: String?
 
     @State private var importedContactURL: URL?
     @State private var showContactImportAlert = false
@@ -80,7 +81,7 @@ struct WevoApp: App {
                     }
                 }
                 .sheet(isPresented: $showIdentityImportSheet) {
-                    if let export = pendingIdentityPlain {
+                    if let export = pendingIdentityExport {
                         IdentityImportView(exportData: export) {
                             // onComplete
                             cleanupIdentityImport()
@@ -121,6 +122,11 @@ struct WevoApp: App {
                     }
                 } message: {
                     Text("An Identity file has been received via AirDrop. Preview and import it?")
+                }
+                .alert("Import Failed", isPresented: .constant(identityImportError != nil)) {
+                    Button("OK", role: .cancel) { identityImportError = nil }
+                } message: {
+                    Text(identityImportError ?? "")
                 }
                 .alert("Contact Received", isPresented: $showContactImportAlert) {
                     Button("Preview") {
@@ -186,10 +192,11 @@ struct WevoApp: App {
         do {
             let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: container.keychainRepository)
             let plain = try useCase.readFromFile(url: url)
-            pendingIdentityPlain = plain
+            pendingIdentityExport = plain
             showIdentityImportSheet = true
         } catch {
             Logger.app.error("Error preparing identity import: \(error, privacy: .public)")
+            identityImportError = error.localizedDescription
             cleanupIdentityImport()
         }
     }
@@ -199,7 +206,7 @@ struct WevoApp: App {
             try? FileManager.default.removeItem(at: url)
         }
         importedIdentityURL = nil
-        pendingIdentityPlain = nil
+        pendingIdentityExport = nil
         showIdentityImportSheet = false
         showIdentityImportAlert = false
     }
