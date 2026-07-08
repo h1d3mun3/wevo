@@ -8,9 +8,11 @@ on:
         required: true
         type: string
 
+# Branch protection for rc-* branches is handled by a standing repository
+# ruleset ("Protect RC branches", targeting refs/heads/rc-*), so this workflow
+# does not create per-branch rulesets and needs no administration permission.
 permissions:
   contents: write
-  administration: write
 
 jobs:
   create-rc:
@@ -45,54 +47,3 @@ jobs:
       - name: Push RC branch
         run: |
           git push origin rc-${{ github.event.inputs.version }}
-
-      - name: Create branch protection ruleset
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.inputs.version }}
-        run: |
-          jq -n \
-            --arg version "$VERSION" \
-            '{
-              name: ("Protect rc-" + $version),
-              target: "branch",
-              enforcement: "active",
-              conditions: {
-                ref_name: {
-                  include: [("refs/heads/rc-" + $version)],
-                  exclude: []
-                }
-              },
-              rules: [
-                {type: "deletion"},
-                {type: "non_fast_forward"},
-                {
-                  type: "pull_request",
-                  parameters: {
-                    required_approving_review_count: 0,
-                    dismiss_stale_reviews_on_push: false,
-                    required_reviewers: [],
-                    require_code_owner_review: false,
-                    require_last_push_approval: false,
-                    required_review_thread_resolution: false,
-                    allowed_merge_methods: ["squash"]
-                  }
-                },
-                {
-                  type: "required_status_checks",
-                  parameters: {
-                    strict_required_status_checks_policy: false,
-                    do_not_enforce_on_create: true,
-                    required_status_checks: [
-                      {context: "Wevo | Unit Test", integration_id: 117084}
-                    ]
-                  }
-                }
-              ],
-              bypass_actors: []
-            }' | \
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/rulesets \
-            --input -
