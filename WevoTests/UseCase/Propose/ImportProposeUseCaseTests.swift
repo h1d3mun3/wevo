@@ -163,6 +163,34 @@ struct ImportProposeUseCaseTests {
         #expect(mock.updatedPropose?.counterpartySignTimestamp == "2026-01-01T00:00:00Z")
     }
 
+    @Test func testMergeRejectsMismatchedCreatorKey() throws {
+        // An incoming file reusing a known Propose ID but with a different creator key is a
+        // forgery attempt: its signatures validate against the attacker's key, not the real one.
+        let mock = MockProposeRepository()
+        let proposeID = UUID()
+        mock.fetchByIDResult = makePropose(id: proposeID, creatorPublicKey: "realCreator")
+        let useCase = makeUseCase(proposeRepository: mock)
+        let incoming = makePropose(id: proposeID, creatorPublicKey: "attackerCreator")
+
+        #expect(throws: ImportProposeUseCaseError.conflictingProposeIdentity) {
+            try useCase.execute(propose: incoming, spaceID: UUID())
+        }
+        #expect(mock.updateCalled == false)
+    }
+
+    @Test func testMergeRejectsMismatchedCounterpartyKey() throws {
+        let mock = MockProposeRepository()
+        let proposeID = UUID()
+        mock.fetchByIDResult = makePropose(id: proposeID, counterpartyPublicKey: "realCounterparty")
+        let useCase = makeUseCase(proposeRepository: mock)
+        let incoming = makePropose(id: proposeID, counterpartyPublicKey: "attackerCounterparty")
+
+        #expect(throws: ImportProposeUseCaseError.conflictingProposeIdentity) {
+            try useCase.execute(propose: incoming, spaceID: UUID())
+        }
+        #expect(mock.updateCalled == false)
+    }
+
     @Test func testUpdateErrorThrowsFailedToSave() throws {
         let mock = MockProposeRepository()
         let proposeID = UUID()
