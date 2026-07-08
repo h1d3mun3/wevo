@@ -43,8 +43,30 @@ extension URLSession: HTTPDataFetching {}
 struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
     private let httpClient: any HTTPDataFetching
 
+    /// Upper bound on auto-discovered peers persisted from a single /info response.
+    static let maxPeers = 16
+
     init(httpClient: any HTTPDataFetching = URLSession.shared) {
         self.httpClient = httpClient
+    }
+
+    /// Constrains peer URLs advertised by a server before they are stored and later used for API
+    /// calls: keep only well-formed absolute http/https URLs with a host, de-duplicate, and cap the
+    /// count. Prevents a malicious/compromised primary from injecting malformed or odd-scheme
+    /// endpoints. (http is intentionally still allowed; ATS is disabled by product decision.)
+    static func sanitizePeers(_ peers: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for raw in peers {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let url = URL(string: trimmed),
+                  let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+                  let host = url.host, !host.isEmpty else { continue }
+            guard seen.insert(trimmed).inserted else { continue }
+            result.append(trimmed)
+            if result.count >= maxPeers { break }
+        }
+        return result
     }
 
     func execute(urlString: String) async throws -> WevoServerInfo {
@@ -62,7 +84,7 @@ struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
 
         do {
             let decoded = try JSONDecoder().decode(InfoResponse.self, from: data)
-            return WevoServerInfo(peers: decoded.peers)
+            return WevoServerInfo(peers: Self.sanitizePeers(decoded.peers))
         } catch {
             throw FetchServerInfoUseCaseError.decodingError(error)
         }

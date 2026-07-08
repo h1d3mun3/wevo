@@ -33,9 +33,11 @@ enum CheckProposeServerStatusUseCaseError: Error {
 }
 
 struct CheckProposeServerStatusUseCaseImpl {
+    let keychainRepository: KeychainRepository
     let apiClient: ProposeAPIClientProtocol?
 
-    init(apiClient: ProposeAPIClientProtocol? = nil) {
+    init(keychainRepository: KeychainRepository, apiClient: ProposeAPIClientProtocol? = nil) {
+        self.keychainRepository = keychainRepository
         self.apiClient = apiClient
     }
 }
@@ -59,16 +61,31 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
 
         Logger.propose.debug("Server status: \(hashedPropose.status.rawValue, privacy: .public)")
 
+        // Verify a server-provided signature against the LOCAL participant key before trusting any
+        // "server has an update" signal — so a hostile server/MITM cannot drive the UI with forged
+        // signatures or a fabricated terminal state. (v1: "<verb>." + id + hash + signerKey + ts)
+        let proposeIDString = propose.id.uuidString
+        let payloadHash = propose.payloadHash
+        func verify(_ sig: String?, _ ts: String?, _ signerKey: String, _ verb: String) -> Bool {
+            guard let sig, let ts else { return false }
+            let message = verb + "." + proposeIDString + payloadHash + signerKey + ts
+            return (try? keychainRepository.verifySignature(sig, for: message, withPublicKeyString: signerKey)) == true
+        }
+
         // Check if the Counterparty has signed on the server but it has not yet been reflected locally (PoC has only 1 counterparty)
         var hasPendingCounterpartySignature = false
         if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == propose.counterpartyPublicKey }),
            counterparty.signSignature != nil,
-           propose.counterpartySignSignature == nil {
+           propose.counterpartySignSignature == nil,
+           verify(counterparty.signSignature, counterparty.signTimestamp, propose.counterpartyPublicKey, "signed") {
             hasPendingCounterpartySignature = true
             Logger.propose.info("Detected Counterparty signature from server: not yet reflected locally")
         }
 
-        // Check if the server has reached a terminal state (honored/parted/dissolved) not yet reflected locally
+        // Check if the server has reached a terminal state (honored/parted/dissolved) not yet
+        // reflected locally. The prompt this drives leads to acceptServerPropose →
+        // MergeServerSignatures, which verifies every adopted signature, so a forged terminal
+        // status cannot corrupt local state even though the prompt itself is not gated here.
         var hasPendingTerminalStatus = false
         let terminalStatuses: Set<ProposeStatus> = [.honored, .parted, .dissolved]
         if terminalStatuses.contains(hashedPropose.status),
