@@ -23,7 +23,9 @@ struct CreateIdentityUseCaseImpl {
 
 extension CreateIdentityUseCaseImpl: CreateIdentityUseCase {
     func execute(nickname: String) throws {
-        // Generate P256 key pair (for SecureEnclave compatibility)
+        // Generate a P-256 key pair. Note: this is a software key stored as raw bytes in the
+        // Keychain (exportable for the .wevo-identity portability feature) — it is NOT a Secure
+        // Enclave key, which cannot be exported.
         let privateKey = P256.Signing.PrivateKey()
         let privateKeyData = privateKey.rawRepresentation
         

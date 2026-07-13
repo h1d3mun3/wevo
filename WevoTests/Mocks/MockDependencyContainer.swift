@@ -15,10 +15,12 @@ class MockAuthenticateAndExportIdentityUseCase: AuthenticateAndExportIdentityUse
     var executeError: Error?
     var executeCalled = false
     var executeCalledWithIdentity: Identity?
+    var executeCalledWithPassphrase: String?
 
-    func execute(identity: Identity) async throws -> URL {
+    func execute(identity: Identity, passphrase: String) async throws -> URL {
         executeCalled = true
         executeCalledWithIdentity = identity
+        executeCalledWithPassphrase = passphrase
         if let error = executeError { throw error }
         return executeResult
     }

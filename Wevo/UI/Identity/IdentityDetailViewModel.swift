@@ -25,11 +25,11 @@ final class IdentityDetailViewModel {
         self.deps = deps
     }
 
-    func authenticateAndExport() async {
+    func authenticateAndExport(passphrase: String) async {
         isAuthenticating = true
         defer { isAuthenticating = false }
         do {
-            shareURL = try await deps.authenticateAndExportIdentityUseCase.execute(identity: identity)
+            shareURL = try await deps.authenticateAndExportIdentityUseCase.execute(identity: identity, passphrase: passphrase)
             exportError = nil
         } catch {
             exportError = "Failed to export identity: \(error.localizedDescription)"

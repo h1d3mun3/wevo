@@ -7,10 +7,19 @@
 
 import Testing
 import Foundation
+import CryptoKit
 @testable import Wevo
 
 @MainActor
 struct ImportContactFromExportUseCaseTests {
+
+    private func writeTemp(_ export: ContactExportData) throws -> URL {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("contact-\(UUID()).wevo-contact")
+        try encoder.encode(export).write(to: url)
+        return url
+    }
 
     @Test func testUsesSpecifiedNickname() throws {
         // Arrange
@@ -85,5 +94,38 @@ struct ImportContactFromExportUseCaseTests {
         #expect(throws: NSError.self) {
             try useCase.execute(exportData: exportData, nickname: "Alice")
         }
+    }
+
+    // MARK: - readFromFile validation
+
+    @Test func testReadFromFileRejectsInvalidPublicKey() throws {
+        let url = try writeTemp(ContactExportData(version: 1, publicKey: "not-a-jwk", exportedAt: .now))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let useCase = ImportContactFromExportUseCaseImpl(contactRepository: MockContactRepository())
+
+        #expect(throws: ImportContactFromExportUseCaseError.invalidPublicKey) {
+            _ = try useCase.readFromFile(url: url)
+        }
+    }
+
+    @Test func testReadFromFileRejectsUnsupportedVersion() throws {
+        let jwk = P256.Signing.PrivateKey().publicKey.jwkString
+        let url = try writeTemp(ContactExportData(version: 999, publicKey: jwk, exportedAt: .now))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let useCase = ImportContactFromExportUseCaseImpl(contactRepository: MockContactRepository())
+
+        #expect(throws: ImportContactFromExportUseCaseError.unsupportedVersion) {
+            _ = try useCase.readFromFile(url: url)
+        }
+    }
+
+    @Test func testReadFromFileAcceptsValidContact() throws {
+        let jwk = P256.Signing.PrivateKey().publicKey.jwkString
+        let url = try writeTemp(ContactExportData(version: 1, publicKey: jwk, exportedAt: .now))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let useCase = ImportContactFromExportUseCaseImpl(contactRepository: MockContactRepository())
+
+        let read = try useCase.readFromFile(url: url)
+        #expect(read.publicKey == jwk)
     }
 }

@@ -9,6 +9,10 @@ import os
 enum ImportProposeUseCaseError: Error {
     case failedToSave
     case invalidSignature
+    /// The incoming file shares an existing Propose's ID but disagrees on its immutable
+    /// identity (creator key, counterparty key, or content hash) — i.e. it is not the same
+    /// agreement. Merging it would graft the file's signatures onto the local participants.
+    case conflictingProposeIdentity
 }
 
 protocol ImportProposeUseCase {
@@ -39,6 +43,21 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         try verifyAllSignatures(in: propose)
 
         if let existing = try? proposeRepository.fetch(by: propose.id) {
+            // The participants of a Propose are fixed at creation. `verifyAllSignatures` above
+            // only proves the incoming signatures are valid *for the keys in the file*; it does
+            // NOT prove they belong to the same agreement. Without this guard, an attacker who
+            // knows the Propose ID could craft a file with their OWN keys plus valid
+            // "honored/signed/…" signatures, and the merge below — which keeps the local
+            // participant keys but adopts the incoming signature fields — would display a forged
+            // state transition attributed to the real counterparty. Requiring the participant
+            // keys to match means every adopted signature must validate against the REAL
+            // participants' keys (the content hash is already bound by the verified creator
+            // signature), so only genuine signatures can ever be merged.
+            guard propose.creatorPublicKey == existing.creatorPublicKey,
+                  propose.counterpartyPublicKey == existing.counterpartyPublicKey else {
+                throw ImportProposeUseCaseError.conflictingProposeIdentity
+            }
+
             let merged = Propose(
                 id: existing.id,
                 spaceID: existing.spaceID,
@@ -188,7 +207,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
     }
 
     func readFromFile(url: URL) throws -> ProposeExportData {
-        let jsonData = try Data(contentsOf: url)
+        let jsonData = try readImportData(from: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
