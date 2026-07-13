@@ -28,7 +28,7 @@ struct AuthenticateAndExportIdentityUseCaseTests {
         // In a simulator/test environment, biometric auth is not available,
         // so this should throw AuthenticateAndExportIdentityUseCaseError.biometricNotAvailable
         await #expect(throws: AuthenticateAndExportIdentityUseCaseError.self) {
-            _ = try await useCase.execute(identity: identity)
+            _ = try await useCase.execute(identity: identity, passphrase: "test-passphrase")
         }
     }
 
@@ -39,7 +39,7 @@ struct AuthenticateAndExportIdentityUseCaseTests {
         let useCase = AuthenticateAndExportIdentityUseCaseImpl(keychainRepository: mockRepository)
 
         do {
-            _ = try await useCase.execute(identity: identity)
+            _ = try await useCase.execute(identity: identity, passphrase: "test-passphrase")
             Issue.record("Expected an error to be thrown")
         } catch let error as AuthenticateAndExportIdentityUseCaseError {
             switch error {

@@ -48,7 +48,7 @@ struct IdentityDetailViewModelTests {
         mock.executeResult = expectedURL
 
         let vm = makeViewModel(deps: deps)
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
 
         #expect(vm.shareURL == expectedURL)
         #expect(vm.exportError == nil)
@@ -60,7 +60,7 @@ struct IdentityDetailViewModelTests {
         mock.executeError = AuthenticateAndExportIdentityUseCaseError.authenticationFailed
 
         let vm = makeViewModel(deps: deps)
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
 
         #expect(vm.shareURL == nil)
         #expect(vm.exportError != nil)
@@ -68,7 +68,7 @@ struct IdentityDetailViewModelTests {
 
     @Test func testAuthenticateAndExportResetsIsAuthenticatingAfterSuccess() async {
         let vm = makeViewModel()
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
 
         #expect(vm.isAuthenticating == false)
     }
@@ -79,7 +79,7 @@ struct IdentityDetailViewModelTests {
         mock.executeError = AuthenticateAndExportIdentityUseCaseError.authenticationFailed
 
         let vm = makeViewModel(deps: deps)
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
 
         #expect(vm.isAuthenticating == false)
     }
@@ -90,7 +90,7 @@ struct IdentityDetailViewModelTests {
         let mock = deps.authenticateAndExportIdentityUseCase as! MockAuthenticateAndExportIdentityUseCase
 
         let vm = makeViewModel(identity: identity, deps: deps)
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
 
         #expect(mock.executeCalledWithIdentity?.publicKey == "specificKey")
     }
@@ -146,7 +146,7 @@ struct IdentityDetailViewModelTests {
         let deps = MockDependencyContainer()
         let vm = makeViewModel(deps: deps)
 
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
         vm.cleanupExportFile()
 
         #expect(vm.shareURL == nil)
@@ -184,7 +184,7 @@ struct IdentityDetailViewModelTests {
         let cleanupMock = deps.cleanupExportFileUseCase as! MockCleanupExportFileUseCase
 
         let vm = makeViewModel(deps: deps)
-        await vm.authenticateAndExport()
+        await vm.authenticateAndExport(passphrase: "test-passphrase")
         vm.prepareContactExport()
         vm.cleanupExportFile()
 
