@@ -27,13 +27,11 @@ struct AddSpaceUseCaseImpl {
 
 extension AddSpaceUseCaseImpl: AddSpaceUseCase {
     func execute(name: String, primaryURL: String, defaultIdentityID: UUID?) async throws {
-        let trimmedURL = primaryURL.trimmingCharacters(in: .whitespacesAndNewlines)
-
         var allURLs: [String] = []
-        if !trimmedURL.isEmpty {
-            allURLs.append(trimmedURL)
-            if let info = try? await fetchServerInfoUseCase.execute(urlString: trimmedURL) {
-                let peers = info.peers.filter { $0 != trimmedURL }
+        if let normalizedURL = primaryURL.normalizedServerURL {
+            allURLs.append(normalizedURL)
+            if let info = try? await fetchServerInfoUseCase.execute(urlString: normalizedURL) {
+                let peers = info.peers.filter { $0 != normalizedURL }
                 allURLs.append(contentsOf: peers)
             }
         }

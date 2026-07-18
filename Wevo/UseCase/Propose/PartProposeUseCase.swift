@@ -29,7 +29,12 @@ struct PartProposeUseCaseImpl {
 }
 
 extension PartProposeUseCaseImpl: PartProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
+    func execute(propose input: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        // Re-fetch the latest persisted copy so a stale in-memory snapshot can never silently
+        // overwrite newer signatures recorded after this row was seeded (e.g. a Part must not
+        // wipe an honor signature the DB already holds).
+        let propose = (try? proposeRepository.fetch(by: input.id)) ?? input
+
         guard propose.localStatus == .signed else {
             throw PartProposeUseCaseError.statusIsNotSigned
         }
@@ -72,8 +77,7 @@ extension PartProposeUseCaseImpl: PartProposeUseCase {
         Logger.propose.info("Saved Part signature locally: \(propose.id, privacy: .private)")
 
         // Send to server if server URLs are configured
-        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
-        guard hasValidServerURLs else {
+        guard serverURLs.hasUsableServerURL else {
             Logger.propose.info("Local-only mode: parted locally without server sync: \(propose.id, privacy: .private)")
             return
         }

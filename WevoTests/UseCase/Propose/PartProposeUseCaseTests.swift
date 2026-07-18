@@ -197,6 +197,44 @@ struct PartProposeUseCaseTests {
         #expect(mockAPI.partProposeCalled == false)
     }
 
+    @Test func testPartPreservesHonorSignatureFromFresherRepositoryCopy() async throws {
+        // Regression: a Part must not wipe an honor signature the DB already holds when the
+        // in-memory copy the UI passes in is stale (the originally-reported data-loss bug).
+        let mockKeychain = MockKeychainRepository()
+        let mockAPI = MockProposeAPIClient()
+        let mockRepo = MockProposeRepository()
+        let proposeID = UUID()
+        let identityID = UUID()
+
+        // Stale in-memory copy (no honor signature).
+        let stalePropose = makePropose(id: proposeID, creatorPublicKey: "creatorKey")
+        // Fresher persisted copy carrying an honor signature recorded after the row was seeded.
+        let freshPropose = Propose(
+            id: proposeID,
+            spaceID: stalePropose.spaceID,
+            message: "test",
+            creatorPublicKey: "creatorKey",
+            creatorSignature: "creatorSig",
+            counterpartyPublicKey: "counterpartyKey",
+            counterpartySignSignature: "signedSig",
+            creatorHonorSignature: "creatorHonorSig",
+            creatorHonorTimestamp: "2026-01-01T00:00:00Z",
+            createdAt: stalePropose.createdAt,
+            updatedAt: .now
+        )
+        mockRepo.fetchByIDResult = freshPropose
+
+        mockKeychain.getIdentityResult = Identity(id: identityID, nickname: "Alice", publicKey: "creatorKey")
+        mockKeychain.signMessageResult = "creatorPartSig"
+
+        let useCase = PartProposeUseCaseImpl(keychainRepository: mockKeychain, proposeRepository: mockRepo, apiClient: mockAPI)
+        try await useCase.execute(propose: stalePropose, identityID: identityID, serverURLs: [])
+
+        #expect(mockRepo.fetchByIDCalledWithID == proposeID)
+        #expect(mockRepo.updatedPropose?.creatorHonorSignature == "creatorHonorSig")  // preserved, not wiped
+        #expect(mockRepo.updatedPropose?.creatorPartSignature == "creatorPartSig")
+    }
+
     @Test func testThrowsWhenUpdateFails() async throws {
         let mockKeychain = MockKeychainRepository()
         let mockAPI = MockProposeAPIClient()

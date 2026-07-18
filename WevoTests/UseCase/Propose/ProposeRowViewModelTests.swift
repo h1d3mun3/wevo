@@ -83,6 +83,7 @@ struct ProposeRowViewModelTests {
         let vm = makeViewModel()
 
         #expect(vm.shareURL == nil)
+        #expect(vm.shareError == nil)
         #expect(vm.resendState == .idle)
         #expect(vm.serverStatus == .unknown)
         #expect(vm.isCheckingServer == false)
@@ -365,5 +366,105 @@ struct ProposeRowViewModelTests {
         #expect(vm.pendingServerUpdate != nil)
         #expect(vm.isApplyingServerUpdate == false)
         #expect(vm.propose.counterpartySignSignature == nil)
+    }
+
+    // MARK: - Local-only self-heal (BUG1)
+
+    @Test func testCheckServerStatusLocalOnlyRestoresHonorStateFromRepository() async {
+        let proposeID = UUID()
+        // Stale row seed: I (creator) have not honored yet.
+        let stalePropose = makePropose(id: proposeID, creatorPublicKey: "myKey", counterpartySignSignature: "signSig")
+        // The store already holds my honor signature.
+        let freshPropose = makePropose(id: proposeID, creatorPublicKey: "myKey", counterpartySignSignature: "signSig", creatorHonorSignature: "creatorHonorSig")
+
+        let deps = MockDependencyContainer()
+        let mockRepo = deps.proposeRepository as! MockProposeRepository
+        mockRepo.fetchByIDResult = freshPropose
+
+        let localSpace = Space(id: UUID(), name: "Local", url: "", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+        let vm = makeViewModel(propose: stalePropose, space: localSpace, deps: deps)
+        vm.defaultIdentity = Identity(id: UUID(), nickname: "Me", publicKey: "myKey")
+
+        await vm.checkServerStatus()
+
+        #expect(vm.serverStatus == .localOnly)
+        #expect(vm.propose.creatorHonorSignature == "creatorHonorSig")  // re-synced from store
+        #expect(vm.hasLocallyHonored == true)
+        #expect(vm.myHonorSigned == true)  // restored so Honor/Part stay correctly disabled
+    }
+
+    @Test func testCheckServerStatusReportsLocalOnlyForSchemelessURL() async {
+        // A non-empty but schemeless URL is local-only, not a server error (BUG4, UI side).
+        let space = Space(id: UUID(), name: "S", url: "example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+        let vm = makeViewModel(space: space)
+
+        await vm.checkServerStatus()
+
+        #expect(vm.serverStatus == .localOnly)
+    }
+
+    // MARK: - Space URL config change (BUG3)
+
+    @Test func testUpdatingSpaceToRemoveServerURLMakesServerStatusLocalOnly() async {
+        let spaceID = UUID()
+        let serverSpace = Space(id: spaceID, name: "S", url: "https://example.com", defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+        let vm = makeViewModel(space: serverSpace)
+
+        // Simulate EditSpace removing the URL: the row VM must observe the live space.
+        vm.space = Space(id: spaceID, name: "S", urls: [], defaultIdentityID: nil, orderIndex: 0, createdAt: .now, updatedAt: .now)
+        await vm.checkServerStatus()
+
+        #expect(vm.serverStatus == .localOnly)
+        #expect(vm.isCheckingServer == false)
+    }
+
+    // MARK: - Stale share invalidation (BUG2)
+
+    @Test func testAcceptServerProposeClearsStaleShareURL() async {
+        let proposeID = UUID()
+        let original = makePropose(id: proposeID)
+        let reloaded = makePropose(id: proposeID, counterpartySignSignature: "signSig")
+        let serverPropose = makeHashedPropose(for: original)
+
+        let deps = MockDependencyContainer()
+        let mockRepo = deps.proposeRepository as! MockProposeRepository
+        mockRepo.fetchByIDResult = reloaded
+
+        let vm = makeViewModel(propose: original, deps: deps)
+        vm.shareURL = URL(fileURLWithPath: "/tmp/stale.wevo-propose")
+
+        await vm.acceptServerPropose(serverPropose)
+
+        #expect(vm.shareURL == nil)  // prepared export invalidated when propose content changed
+    }
+
+    // MARK: - prepareShare error surfacing (BUG5)
+
+    @Test func testPrepareShareSuccessSetsShareURLAndClearsError() {
+        let vm = makeViewModel()
+        vm.shareError = "stale"
+        let url = URL(fileURLWithPath: "/tmp/propose.wevo-propose")
+
+        vm.prepareShare(exportUseCase: StubExportProposeUseCase(result: .success(url)))
+
+        #expect(vm.shareURL == url)
+        #expect(vm.shareError == nil)
+    }
+
+    @Test func testPrepareShareFailureSetsShareErrorAndLeavesShareURLNil() {
+        let vm = makeViewModel()
+        let error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "disk full"])
+
+        vm.prepareShare(exportUseCase: StubExportProposeUseCase(result: .failure(error)))
+
+        #expect(vm.shareURL == nil)
+        #expect(vm.shareError?.contains("disk full") == true)
+    }
+}
+
+private struct StubExportProposeUseCase: ExportProposeUseCase {
+    let result: Result<URL, Error>
+    func execute(propose: Propose, space: Space) throws -> URL {
+        try result.get()
     }
 }

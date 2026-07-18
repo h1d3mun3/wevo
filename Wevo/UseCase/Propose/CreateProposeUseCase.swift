@@ -70,7 +70,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         Logger.propose.debug("Message: \(trimmedMessage, privacy: .private), contentHash: \(contentHash, privacy: .private)")
 
         // Send to API (only warn if it fails since it's already saved locally)
-        guard !space.urls.isEmpty else {
+        guard space.urls.hasUsableServerURL else {
             Logger.propose.warning("No server URLs configured for space")
             return
         }
