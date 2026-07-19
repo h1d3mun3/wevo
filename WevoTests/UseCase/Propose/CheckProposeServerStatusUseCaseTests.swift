@@ -277,6 +277,7 @@ struct CheckProposeServerStatusUseCaseTests {
             creatorSignature: "creatorSig",
             counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", signTimestamp: "2026-01-02T00:00:00Z", honorSignature: nil, honorTimestamp: nil, partSignature: nil, partTimestamp: nil)],
             honorCreatorSignature: "honorSig",
+            honorCreatorTimestamp: "2026-01-03T00:00:00Z",
             status: .signed,
             createdAt: .now,
             updatedAt: .now
@@ -287,6 +288,35 @@ struct CheckProposeServerStatusUseCaseTests {
         let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: creatorPublicKey)
 
         #expect(result.myHonorSigned == true)
+        #expect(result.myPartSigned == false)
+    }
+
+    @Test func testMyHonorSignedFalseWhenServerSignatureUnverified() async throws {
+        // A hostile server returns a non-nil honor signature for me that does NOT verify. It must
+        // not surface as "I already honored" — otherwise the server could hide my Honor button and
+        // lock me out of acting.
+        let rejectingKeychain = MockKeychainRepository()
+        rejectingKeychain.verifySignatureResult = false
+        let mockAPI = MockProposeAPIClient()
+        let propose = makePropose(counterpartySignSignature: "signSig")
+        mockAPI.getProposeResult = HashedPropose(
+            id: propose.id,
+            contentHash: "hash",
+            creatorPublicKey: creatorPublicKey,
+            creatorSignature: "creatorSig",
+            counterparties: [ProposeCounterparty(publicKey: counterpartyPublicKey, signSignature: "signSig", signTimestamp: "2026-01-02T00:00:00Z", honorSignature: nil, honorTimestamp: nil, partSignature: nil, partTimestamp: nil)],
+            honorCreatorSignature: "forgedHonorSig",
+            honorCreatorTimestamp: "2026-01-03T00:00:00Z",
+            status: .signed,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        let useCase = CheckProposeServerStatusUseCaseImpl(keychainRepository: rejectingKeychain, apiClient: mockAPI)
+
+        let result = try await useCase.execute(propose: propose, serverURLs: ["https://example.com"], myPublicKey: creatorPublicKey)
+
+        #expect(result.myHonorSigned == false)
         #expect(result.myPartSigned == false)
     }
 
