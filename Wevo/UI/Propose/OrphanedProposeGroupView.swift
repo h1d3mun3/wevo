@@ -11,19 +11,26 @@ struct OrphanedProposeGroupView: View {
     let spaceID: UUID
     let proposes: [Propose]
 
+    /// Synthetic stand-in for the deleted parent Space. Uses a fixed timestamp (not `.now`)
+    /// so its `updatedAt` is stable across renders — otherwise every re-render would look
+    /// like a Space edit to ProposeRowView's `onChange(of: space.updatedAt)`.
+    private var placeholderSpace: Space {
+        Space(
+            id: spaceID,
+            name: "Unknown Space",
+            url: "",
+            defaultIdentityID: nil,
+            orderIndex: 0,
+            createdAt: Date(timeIntervalSince1970: 0),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
             SpaceHeaderView(
-                space: Space(
-                    id: spaceID,
-                    name: "Unknown Space",
-                    url: "",
-                    defaultIdentityID: nil,
-                    orderIndex: 0,
-                    createdAt: .now,
-                    updatedAt: .now
-                ),
+                space: placeholderSpace,
                 defaultIdentity: nil,
                 onEditTapped: {}
             )
@@ -38,15 +45,7 @@ struct OrphanedProposeGroupView: View {
             } else {
                 List {
                     ForEach(proposes) { propose in
-                        ProposeRowView(propose: propose, space: Space(
-                            id: spaceID,
-                            name: "Unknown Space",
-                            url: "",
-                            defaultIdentityID: nil,
-                            orderIndex: 0,
-                            createdAt: .now,
-                            updatedAt: .now
-                        )) {
+                        ProposeRowView(propose: propose, space: placeholderSpace) {
                             // Refresh on signing
                         }
                     }

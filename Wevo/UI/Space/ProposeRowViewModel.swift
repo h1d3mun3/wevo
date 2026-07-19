@@ -17,10 +17,11 @@ enum AsyncOperationState: Equatable {
 @MainActor
 final class ProposeRowViewModel {
     var propose: Propose
-    let space: Space
+    var space: Space
     private let deps: any DependencyContainer
 
     var shareURL: URL?
+    var shareError: String?
 
     var resendState: AsyncOperationState = .idle
     var serverStatus: ProposeServerStatus = .unknown
@@ -83,9 +84,14 @@ final class ProposeRowViewModel {
 
     // MARK: - Actions
 
-    func prepareShare() {
-        guard let url = try? ExportProposeUseCaseImpl().execute(propose: propose, space: space) else { return }
-        shareURL = url
+    func prepareShare(exportUseCase: ExportProposeUseCase = ExportProposeUseCaseImpl()) {
+        do {
+            shareURL = try exportUseCase.execute(propose: propose, space: space)
+            shareError = nil
+        } catch {
+            Logger.propose.error("Share export error: \(error.localizedDescription, privacy: .public)")
+            shareError = "Failed to prepare share: \(error.localizedDescription)"
+        }
     }
 
     func resendToServer() async {
@@ -98,8 +104,17 @@ final class ProposeRowViewModel {
 
     func checkServerStatus() async {
         guard !isCheckingServer else { return }
-        guard !space.urls.isEmpty else {
+        guard space.urls.hasUsableServerURL else {
             serverStatus = .localOnly
+            // Local-only mode has no server backstop: re-sync from the local store so a row
+            // seeded from a stale parent snapshot can't re-enable or mislabel Honor/Part.
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                propose = latest
+                // Propose content may have changed, so any prepared share export is now stale.
+                shareURL = nil
+            }
+            myHonorSigned = hasLocallyHonored
+            myPartSigned = hasLocallyParted
             return
         }
         isCheckingServer = true
@@ -210,6 +225,8 @@ final class ProposeRowViewModel {
         if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
             self.propose = latest
         }
+        // The propose content changed, so any prepared share export is now stale.
+        shareURL = nil
     }
 
     private func performAction(
@@ -259,6 +276,8 @@ final class ProposeRowViewModel {
             if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
                 self.propose = latest
             }
+            // The propose content changed, so any prepared share export is now stale.
+            shareURL = nil
             isApplyingServerUpdate = false
             pendingServerUpdate = nil
             Logger.propose.info("Accepted server signatures and reflected them locally")

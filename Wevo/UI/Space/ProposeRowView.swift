@@ -21,6 +21,7 @@ struct ProposeRowView: View {
         ProposeRowContent(
             viewModel: ProposeRowViewModel(propose: propose, space: space, deps: deps),
             propose: propose,
+            space: space,
             onSigned: onSigned,
             serverCheckTrigger: serverCheckTrigger
         )
@@ -32,6 +33,7 @@ struct ProposeRowView: View {
 private struct ProposeRowContent: View {
     @State var viewModel: ProposeRowViewModel
     let propose: Propose
+    let space: Space
     let onSigned: () -> Void
     let serverCheckTrigger: UUID
 
@@ -65,6 +67,13 @@ private struct ProposeRowContent: View {
 
             actionBar
             statusMessages
+
+            if let shareError = viewModel.shareError {
+                HStack {
+                    Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                    Text(shareError).font(.caption2).foregroundStyle(.red)
+                }
+            }
 
             // Pending local resend banner
             if viewModel.pendingLocalResend {
@@ -141,6 +150,12 @@ private struct ProposeRowContent: View {
         }
         .onChange(of: propose.updatedAt) { _, _ in
             viewModel.propose = propose
+            viewModel.shareURL = nil
+        }
+        .onChange(of: space.updatedAt) { _, _ in
+            viewModel.space = space
+            viewModel.shareURL = nil
+            Task { await viewModel.checkServerStatus() }
         }
         .sheet(isPresented: $viewModel.showProposeDetail) {
             ProposeDetailView(propose: viewModel.propose, space: viewModel.space)
@@ -272,7 +287,10 @@ private struct ProposeRowContent: View {
 
             Button {
                 guard let identity = viewModel.defaultIdentity else { return }
-                Task { await viewModel.honorPropose(with: identity) }
+                Task {
+                    await viewModel.honorPropose(with: identity)
+                    onSigned()
+                }
             } label: {
                 if viewModel.honorState == .running {
                     ProgressView().scaleEffect(0.7)
@@ -296,7 +314,10 @@ private struct ProposeRowContent: View {
 
             Button {
                 guard let identity = viewModel.defaultIdentity else { return }
-                Task { await viewModel.partPropose(with: identity) }
+                Task {
+                    await viewModel.partPropose(with: identity)
+                    onSigned()
+                }
             } label: {
                 if viewModel.partState == .running {
                     ProgressView().scaleEffect(0.7)

@@ -32,7 +32,11 @@ struct SignProposeUseCaseImpl {
 }
 
 extension SignProposeUseCaseImpl: SignProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
+    func execute(propose input: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        // Re-fetch the latest persisted copy so a stale in-memory snapshot can never silently
+        // overwrite newer signatures recorded after this row was seeded.
+        let propose = (try? proposeRepository.fetch(by: input.id)) ?? input
+
         guard propose.localStatus == .proposed else {
             throw SignProposeUseCaseError.statusIsNotProposed
         }
@@ -91,8 +95,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         }
 
         // Send to server if server URLs are configured
-        let hasValidServerURLs = serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" })
-        guard hasValidServerURLs else {
+        guard serverURLs.hasUsableServerURL else {
             Logger.propose.info("Local-only mode: signed locally without server sync: \(propose.id, privacy: .private)")
             return
         }

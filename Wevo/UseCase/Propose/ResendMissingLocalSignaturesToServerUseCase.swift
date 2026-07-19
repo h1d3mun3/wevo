@@ -33,7 +33,7 @@ struct ResendMissingLocalSignaturesToServerUseCaseImpl {
 
 extension ResendMissingLocalSignaturesToServerUseCaseImpl: ResendMissingLocalSignaturesToServerUseCase {
     func execute(propose: Propose, identityPublicKey: String, serverURLs: [String]) async throws {
-        guard !serverURLs.isEmpty else {
+        guard serverURLs.hasUsableServerURL else {
             throw ResendMissingLocalSignaturesToServerUseCaseError.invalidServerURL
         }
 

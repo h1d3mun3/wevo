@@ -44,7 +44,7 @@ struct CheckProposeServerStatusUseCaseImpl {
 
 extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
     func execute(propose: Propose, serverURLs: [String], myPublicKey: String? = nil) async throws -> ProposeServerCheckResult {
-        guard !serverURLs.isEmpty else {
+        guard serverURLs.hasUsableServerURL else {
             throw CheckProposeServerStatusUseCaseError.invalidServerURL
         }
 
