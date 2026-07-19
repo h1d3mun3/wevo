@@ -42,10 +42,10 @@ struct ImportIdentityFromExportUseCaseTests {
     @Test("Imports successfully with the correct passphrase")
     func executeSuccess() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
-        let (export, priv) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        let (export, priv) = try Self.makeEncryptedExport(passphrase: "pass1234abcd")
 
         try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-            .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
+            .execute(exportData: export, passphrase: "pass1234abcd", overwriteConfirmed: false)
 
         #expect(mockKeychainRepository.createIdentityCalled)
         #expect(mockKeychainRepository.createdIdentityID == export.id)
@@ -68,7 +68,7 @@ struct ImportIdentityFromExportUseCaseTests {
     @Test("Tampered ciphertext fails AES-GCM authentication")
     func executeFailsWhenTampered() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
-        let (original, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        let (original, _) = try Self.makeEncryptedExport(passphrase: "pass1234abcd")
         var sealed = Data(base64Encoded: original.sealed)!
         sealed[sealed.count - 1] ^= 0xFF  // flip a byte of the tag/ciphertext
         let tampered = IdentityEncryptedExport(
@@ -79,7 +79,7 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.decryptionFailed) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: tampered, passphrase: "pass1234", overwriteConfirmed: false)
+                .execute(exportData: tampered, passphrase: "pass1234abcd", overwriteConfirmed: false)
         }
     }
 
@@ -87,11 +87,11 @@ struct ImportIdentityFromExportUseCaseTests {
     func executeFailsWithInvalidP256Key() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
         // 16 bytes decrypt fine but are not a valid 32-byte P256 raw key.
-        let (export, _) = try Self.makeEncryptedExport(passphrase: "pass1234", privateKey: Data(repeating: 0x01, count: 16))
+        let (export, _) = try Self.makeEncryptedExport(passphrase: "pass1234abcd", privateKey: Data(repeating: 0x01, count: 16))
 
         #expect(throws: ImportIdentityFromExportUseCaseError.invalidPrivateKeyFormat) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
+                .execute(exportData: export, passphrase: "pass1234abcd", overwriteConfirmed: false)
         }
     }
 
@@ -99,10 +99,10 @@ struct ImportIdentityFromExportUseCaseTests {
     func executeOverwritesExistingWhenConfirmed() throws {
         let id = UUID()
         mockKeychainRepository.getIdentityResult = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
-        let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234")
+        let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234abcd")
 
         try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-            .execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: true)
+            .execute(exportData: export, passphrase: "pass1234abcd", overwriteConfirmed: true)
 
         #expect(mockKeychainRepository.deleteIdentityKeyCalled)
         #expect(mockKeychainRepository.deletedIdentityID == id)
@@ -113,11 +113,11 @@ struct ImportIdentityFromExportUseCaseTests {
     func executeThrowsWhenExistsWithoutConfirmation() throws {
         let id = UUID()
         mockKeychainRepository.getIdentityResult = Identity(id: id, nickname: "Old Key", publicKey: "OldPublicKey")
-        let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234")
+        let (export, _) = try Self.makeEncryptedExport(id: id, nickname: "New Key", passphrase: "pass1234abcd")
 
         let useCase = ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
         #expect(throws: ImportIdentityFromExportUseCaseError.identityAlreadyExists) {
-            try useCase.execute(exportData: export, passphrase: "pass1234", overwriteConfirmed: false)
+            try useCase.execute(exportData: export, passphrase: "pass1234abcd", overwriteConfirmed: false)
         }
         // The existing identity must remain untouched when overwrite is not confirmed.
         #expect(!mockKeychainRepository.deleteIdentityKeyCalled)
@@ -139,7 +139,7 @@ struct ImportIdentityFromExportUseCaseTests {
 
     @Test("readFromFile accepts a valid encrypted envelope")
     func readFromFileAcceptsEncrypted() throws {
-        let (export, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        let (export, _) = try Self.makeEncryptedExport(passphrase: "pass1234abcd")
         let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("enc-\(UUID()).wevo-identity")
         try encoder.encode(export).write(to: url)
@@ -153,7 +153,7 @@ struct ImportIdentityFromExportUseCaseTests {
     @Test("Rejects when the decrypted key does not match the stated publicKey")
     func executeRejectsPublicKeyMismatch() throws {
         mockKeychainRepository.getIdentityError = KeychainError.itemNotFound
-        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234abcd")
         // Same ciphertext/salt/passphrase, but a wrong cleartext publicKey.
         let tampered = IdentityEncryptedExport(
             version: valid.version, id: valid.id, nickname: valid.nickname,
@@ -163,14 +163,14 @@ struct ImportIdentityFromExportUseCaseTests {
 
         #expect(throws: ImportIdentityFromExportUseCaseError.publicKeyMismatch) {
             try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
-                .execute(exportData: tampered, passphrase: "pass1234", overwriteConfirmed: false)
+                .execute(exportData: tampered, passphrase: "pass1234abcd", overwriteConfirmed: false)
         }
         #expect(!mockKeychainRepository.createIdentityCalled)
     }
 
     @Test("readFromFile rejects an out-of-range iteration count (crash / PBKDF2 DoS guard)")
     func readFromFileRejectsBadIterations() throws {
-        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234")
+        let (valid, _) = try Self.makeEncryptedExport(passphrase: "pass1234abcd")
         // 5e9 exceeds UInt32.max (would trap in deriveKey) and the accepted range.
         let bad = IdentityEncryptedExport(
             version: valid.version, id: valid.id, nickname: valid.nickname,
