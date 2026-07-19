@@ -38,7 +38,7 @@ Use it to understand the approach, experiment with the ideas, or contribute to t
 
 ## Design Notes
 
-- Biometric authentication (Face ID / Touch ID) gates Keychain access where available, via `LAContext`
+- The P-256 private key is stored in the Keychain (`kSecAttrAccessibleAfterFirstUnlock`) and is synchronized to iCloud Keychain across the user's devices — it is not device-only, and is included in encrypted device backups. Face ID / Touch ID (`LAContext`) is required only to **export** an identity to a file; signing and ordinary key access are not gated by biometrics. See [Known Limitations](#private-key-is-icloud-synced-and-not-biometric-gated).
 - Signatures use P-256 ECDSA (CryptoKit); public keys are represented as JWK (JSON Web Key) for interoperability with other implementations
 - Public keys are displayed as a short fingerprint (SHA-256 of the raw key bytes, first 8 bytes as colon-separated hex, e.g. `AB:CD:EF:12:34:56:78:90`) rather than the raw key string
 - Export formats (`.wevo-propose`, `.wevo-identity`, `.wevo-contact`) include a `version` field to support future format migrations
@@ -58,6 +58,12 @@ Wevo's cryptographic guarantees cover:
 **When** is not guaranteed. Timestamps on Proposes are asserted by the client device or the WevoSpace server and are not cryptographically bound to the signatures. A party with a manipulated system clock can create or sign a Propose with an arbitrary timestamp. This also means any future expiry or time-based enforcement mechanism would be gameable by clock manipulation.
 
 The standard remedy is a trusted timestamp authority (RFC 3161), but that would introduce an external party into every signing operation — which conflicts with Wevo's design principle of not depending on platform-owned or third-party infrastructure. This is therefore a known design trade-off, not a bug to fix.
+
+### Private key is iCloud-synced and not biometric-gated
+
+The P-256 signing private key is stored with `kSecAttrAccessibleAfterFirstUnlock` and `kSecAttrSynchronizable = true`, so it is replicated to iCloud Keychain across the user's devices and included in encrypted device backups — it is not confined to a single device. The Keychain items carry no `SecAccessControl`, so retrieving the key to sign does not prompt for Face ID / Touch ID; biometric authentication (`LAContext`) is enforced only on the identity **export** path.
+
+The practical effect: possession of the account (its iCloud Keychain) is enough to sign as that identity, and device-level biometrics are not a barrier to signing. This favors cross-device continuity and recovery over device-binding, and matches Wevo's "no external infrastructure" stance by relying on the user's own iCloud rather than a dedicated key-management service. Hardening the storage (device-only, biometric-gated signing) is a possible future change; it is documented here so the trade-off is explicit rather than implied.
 
 ## Getting Started
 
@@ -130,7 +136,7 @@ Wevo は、そこへの別のアプローチを探るプロジェクトです。
 
 ## 設計メモ
 
-- Face ID / Touch ID（`LAContext` 経由）で Keychain アクセスを保護
+- P-256 秘密鍵は Keychain（`kSecAttrAccessibleAfterFirstUnlock`）に保存され、ユーザーの各デバイス間で iCloud Keychain に同期される。デバイス限定ではなく、暗号化されたデバイスバックアップにも含まれる。Face ID / Touch ID（`LAContext`）は Identity を**ファイルにエクスポートする時のみ**要求され、署名や通常の鍵アクセスは生体認証で保護されない。[既知の制限事項](#秘密鍵は-icloud-同期され生体認証で保護されない)を参照
 - P-256 ECDSA 署名（CryptoKit）を使用。公開鍵は JWK（JSON Web Key）形式で表現され、他の実装との相互運用性を確保
 - 公開鍵はUIに生の文字列ではなく、短いフィンガープリント（鍵バイト列の SHA-256 先頭8バイトをコロン区切り16進表示、例: `AB:CD:EF:12:34:56:78:90`）として表示
 - エクスポートフォーマット（`.wevo-propose`、`.wevo-identity`、`.wevo-contact`）は将来のフォーマット移行に備えた `version` フィールドを含む
@@ -150,6 +156,12 @@ Wevo の暗号学的保証が対象とするのは以下の2点です：
 **When（いつ）** は保証されません。Propose のタイムスタンプはクライアントデバイスまたは WevoSpace サーバーが主張するものであり、署名と暗号学的に紐付いていません。そのため、システムクロックを操作した当事者は任意のタイムスタンプで Propose を作成・署名することができます。将来的に有効期限や時刻ベースの制御を導入した場合も、クロック操作によって回避される可能性があります。
 
 標準的な解決策は信頼できるタイムスタンプ局（RFC 3161）の利用ですが、これはすべての署名操作に外部の第三者を介在させることになり、Wevo の「プラットフォームや外部インフラに依存しない」という設計原則と相容れません。これはバグではなく、設計上の既知のトレードオフです。
+
+### 秘密鍵は iCloud 同期され、生体認証で保護されない
+
+P-256 署名用の秘密鍵は `kSecAttrAccessibleAfterFirstUnlock` かつ `kSecAttrSynchronizable = true` で保存されるため、ユーザーの各デバイス間で iCloud Keychain に複製され、暗号化されたデバイスバックアップにも含まれます。単一デバイスに限定されません。Keychain の項目には `SecAccessControl` が設定されておらず、署名のために鍵を取得する際に Face ID / Touch ID を要求しません。生体認証（`LAContext`）は Identity の**エクスポート**経路でのみ強制されます。
+
+実際上の意味：そのアカウント（の iCloud Keychain）を保有していれば当該 Identity として署名でき、デバイスの生体認証は署名の障壁になりません。これはデバイス束縛よりもデバイス間の継続性・復旧性を優先した設計であり、専用の鍵管理サービスではなくユーザー自身の iCloud に依存することで Wevo の「外部インフラに依存しない」方針とも整合します。保存方法の強化（デバイス限定・署名時の生体認証）は将来的な変更候補であり、トレードオフを暗黙にせず明示するためにここに記載しています。
 
 ## Getting Started
 
