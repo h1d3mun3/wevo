@@ -47,7 +47,7 @@ struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
     /// Upper bound on auto-discovered peers persisted from a single /info response.
     static let maxPeers = 16
 
-    init(httpClient: any HTTPDataFetching = URLSession.shared) {
+    init(httpClient: any HTTPDataFetching = URLSession.wevoHardened) {
         self.httpClient = httpClient
     }
 

@@ -40,8 +40,8 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
     /// Initializer
     /// - Parameters:
     ///   - baseURL: The server's base URL (e.g. "https://api.example.com")
-    ///   - session: Custom URLSession (defaults to .shared)
-    init(baseURL: URL, session: URLSession = .shared) {
+    ///   - session: Custom URLSession (defaults to the redirect-hardened shared session)
+    init(baseURL: URL, session: URLSession = .wevoHardened) {
         self.baseURL = baseURL.appendingPathComponent("v1")
         self.session = session
     }

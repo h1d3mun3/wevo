@@ -16,7 +16,7 @@ struct RefreshSpacePeersUseCaseImpl {
     let spaceRepository: SpaceRepository
     let httpClient: any HTTPDataFetching
 
-    init(spaceRepository: SpaceRepository, httpClient: any HTTPDataFetching = URLSession.shared) {
+    init(spaceRepository: SpaceRepository, httpClient: any HTTPDataFetching = URLSession.wevoHardened) {
         self.spaceRepository = spaceRepository
         self.httpClient = httpClient
     }
