@@ -86,24 +86,41 @@ struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
         if h == "localhost" || h.hasSuffix(".local") || h.hasSuffix(".localhost") { return true }
 
         if let v4 = IPv4Address(h) {
-            let b = [UInt8](v4.rawValue)
-            guard b.count == 4 else { return true }
-            if b[0] == 0 { return true }                                // 0.0.0.0/8   "this network"
-            if b[0] == 10 { return true }                               // 10.0.0.0/8  private
-            if b[0] == 127 { return true }                              // 127.0.0.0/8 loopback
-            if b[0] == 169 && b[1] == 254 { return true }               // 169.254.0.0/16 link-local
-            if b[0] == 172 && (16...31).contains(b[1]) { return true }  // 172.16.0.0/12 private
-            if b[0] == 192 && b[1] == 168 { return true }               // 192.168.0.0/16 private
-            return false
+            return isNonRoutableIPv4([UInt8](v4.rawValue))
         }
         if let v6 = IPv6Address(h) {
             let b = [UInt8](v6.rawValue)
             guard b.count == 16 else { return true }
+
+            // Forms that embed an IPv4 address route to that IPv4 target, so range-check the
+            // embedded bytes — otherwise e.g. ::ffff:169.254.169.254 or ::ffff:127.0.0.1 would slip
+            // past the IPv6 checks below and pivot onto internal targets.
+            let v4Mapped = b.prefix(10).allSatisfy { $0 == 0 } && b[10] == 0xff && b[11] == 0xff // ::ffff:a.b.c.d
+            let v4Compatible = b.prefix(12).allSatisfy { $0 == 0 } && !b.prefix(15).allSatisfy { $0 == 0 } // ::a.b.c.d (excl. ::, ::1)
+            let nat64 = b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b // 64:ff9b::/96
+            if v4Mapped || v4Compatible || nat64 {
+                return isNonRoutableIPv4(Array(b[12..<16]))
+            }
+
+            if b.allSatisfy({ $0 == 0 }) { return true }                          // :: unspecified
             if b.prefix(15).allSatisfy({ $0 == 0 }) && b[15] == 1 { return true } // ::1 loopback
-            if b[0] == 0xfe && (b[1] & 0xc0) == 0x80 { return true }    // fe80::/10 link-local
-            if (b[0] & 0xfe) == 0xfc { return true }                    // fc00::/7  unique-local
+            if b[0] == 0xfe && (b[1] & 0xc0) == 0x80 { return true }              // fe80::/10 link-local
+            if (b[0] & 0xfe) == 0xfc { return true }                             // fc00::/7  unique-local
             return false
         }
+        return false
+    }
+
+    /// True for IPv4 octets that a peer must never target: "this network", private, loopback, or
+    /// link-local. Shared by the plain-IPv4 and embedded-IPv4-in-IPv6 paths.
+    private static func isNonRoutableIPv4(_ b: [UInt8]) -> Bool {
+        guard b.count == 4 else { return true }
+        if b[0] == 0 { return true }                                // 0.0.0.0/8   "this network"
+        if b[0] == 10 { return true }                               // 10.0.0.0/8  private
+        if b[0] == 127 { return true }                              // 127.0.0.0/8 loopback
+        if b[0] == 169 && b[1] == 254 { return true }               // 169.254.0.0/16 link-local
+        if b[0] == 172 && (16...31).contains(b[1]) { return true }  // 172.16.0.0/12 private
+        if b[0] == 192 && b[1] == 168 { return true }               // 192.168.0.0/16 private
         return false
     }
 
