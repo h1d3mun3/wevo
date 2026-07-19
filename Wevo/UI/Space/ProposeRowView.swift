@@ -167,12 +167,12 @@ private struct ProposeRowContent: View {
     @ViewBuilder
     private var statusBadge: some View {
         HStack(spacing: 4) {
-            Image(systemName: viewModel.propose.localStatus.statusIcon)
+            Image(systemName: viewModel.displayStatus.statusIcon)
                 .font(.caption2)
-                .foregroundStyle(viewModel.propose.localStatus.statusColor)
-            Text(viewModel.propose.localStatus.statusLabel)
+                .foregroundStyle(viewModel.displayStatus.statusColor)
+            Text(viewModel.displayStatus.statusLabel)
                 .font(.caption2)
-                .foregroundStyle(viewModel.propose.localStatus.statusColor)
+                .foregroundStyle(viewModel.displayStatus.statusColor)
 
             Image(systemName: viewModel.serverStatus.icon)
                 .font(.caption2)

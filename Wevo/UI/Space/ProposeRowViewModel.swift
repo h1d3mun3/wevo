@@ -76,6 +76,16 @@ final class ProposeRowViewModel {
             : propose.counterpartyPartSignature != nil
     }
 
+    /// Status for the row's badge: like `localStatus` but every signature is re-verified against the
+    /// participant key, so a present-but-invalid signature never shows as a trusted seal. Transition
+    /// gating (Sign/Honor/Part buttons) still keys off `localStatus`, which reflects this device's
+    /// own local writes.
+    var displayStatus: ProposeStatus {
+        propose.verifiedLocalStatus { signature, message, publicKey in
+            (try? deps.keychainRepository.verifySignature(signature, for: message, withPublicKeyString: publicKey)) == true
+        }
+    }
+
     init(propose: Propose, space: Space, deps: any DependencyContainer) {
         self.propose = propose
         self.space = space
