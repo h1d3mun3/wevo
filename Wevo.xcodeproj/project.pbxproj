@@ -81,6 +81,7 @@
 				"decisions/README.md",
 				"decisions/0001-forward-and-backward-compatibility-requirement.md",
 				"decisions/0002-versioning-and-backward-compatibility.md",
+				"decisions/0003-all-prs-use-merge-commits.md",
 			);
 			target = 83A5458D2F5893F600342AE7 /* Wevo */;
 		};

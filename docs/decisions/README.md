@@ -15,6 +15,7 @@ title.
 |---|-------|--------|
 | [0001](0001-forward-and-backward-compatibility-requirement.md) | Forward and Backward Compatibility Are a Hard Requirement | Accepted |
 | [0002](0002-versioning-and-backward-compatibility.md) | Versioning and Backward Compatibility Policy | Accepted |
+| [0003](0003-all-prs-use-merge-commits.md) | All Pull Requests Merge via Merge Commit | Accepted |
 
 ## Adding a new decision
 
