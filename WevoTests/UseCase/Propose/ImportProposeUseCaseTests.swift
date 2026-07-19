@@ -126,15 +126,33 @@ struct ImportProposeUseCaseTests {
         #expect(mock.updatedPropose?.spaceID == localSpaceID)
     }
 
-    @Test func testExistingProposePreservesLocalMessage() throws {
+    @Test func testMergeRejectsMismatchedContentHash() throws {
+        // A file reusing a known Propose ID but carrying DIFFERENT content (hence a different
+        // payloadHash) is not the same agreement. It must be rejected, not merged — otherwise its
+        // signatures would be grafted onto the local record while a different message is displayed.
         let mock = MockProposeRepository()
         let proposeID = UUID()
         mock.fetchByIDResult = makePropose(id: proposeID, message: "Original message")
         let useCase = makeUseCase(proposeRepository: mock)
 
-        try useCase.execute(propose: makePropose(id: proposeID, message: "Tampered message"), spaceID: UUID())
+        #expect(throws: ImportProposeUseCaseError.conflictingProposeIdentity) {
+            try useCase.execute(propose: makePropose(id: proposeID, message: "Different message"), spaceID: UUID())
+        }
+        #expect(mock.updateCalled == false)
+    }
 
-        #expect(mock.updatedPropose?.message == "Original message")
+    @Test func testMergeSucceedsWhenContentHashMatches() throws {
+        // Same ID and same content (the legitimate "creator receives back a signed copy" case)
+        // still merges normally.
+        let mock = MockProposeRepository()
+        let proposeID = UUID()
+        mock.fetchByIDResult = makePropose(id: proposeID, message: "Same message")
+        let useCase = makeUseCase(proposeRepository: mock)
+
+        try useCase.execute(propose: makePropose(id: proposeID, message: "Same message"), spaceID: UUID())
+
+        #expect(mock.updateCalled == true)
+        #expect(mock.updatedPropose?.message == "Same message")
     }
 
     @Test func testIncomingCounterpartySignatureIsMerged() throws {
@@ -201,6 +219,37 @@ struct ImportProposeUseCaseTests {
         #expect(throws: ImportProposeUseCaseError.failedToSave) {
             try useCase.execute(propose: makePropose(id: proposeID), spaceID: UUID())
         }
+    }
+
+    // MARK: - Content-hash binding (message must hash to payloadHash)
+
+    @Test func testTamperedMessageRejectedWithContentHashMismatch() throws {
+        // Model the attack precisely: take a self-consistent exported Propose and edit ONLY the
+        // JSON `message` field, leaving payloadHash (and, in the real world, all signatures) intact.
+        // Because Propose decodes `message` and `payloadHash` as independent fields, this yields a
+        // record whose displayed content no longer matches the signed hash — which import must
+        // reject before storing or displaying it.
+        let original = makePropose(message: "I will pay 100 yen")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        var json = try JSONSerialization.jsonObject(with: encoder.encode(original)) as! [String: Any]
+        json["message"] = "I will pay 10,000,000 yen"   // rewrite content, keep payloadHash
+        let tamperedData = try JSONSerialization.data(withJSONObject: json)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let tampered = try decoder.decode(Propose.self, from: tamperedData)
+
+        // Sanity: decoding really did decouple message from payloadHash (the bug being defended).
+        #expect(tampered.message == "I will pay 10,000,000 yen")
+        #expect(tampered.payloadHash == "I will pay 100 yen".sha256HashedString)
+
+        let mock = MockProposeRepository()
+        let useCase = makeUseCase(proposeRepository: mock)
+        #expect(throws: ImportProposeUseCaseError.contentHashMismatch) {
+            try useCase.execute(propose: tampered, spaceID: UUID())
+        }
+        #expect(mock.createCalled == false)
+        #expect(mock.updateCalled == false)
     }
 
     // MARK: - Signature verification
