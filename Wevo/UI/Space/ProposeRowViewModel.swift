@@ -110,6 +110,8 @@ final class ProposeRowViewModel {
             // seeded from a stale parent snapshot can't re-enable or mislabel Honor/Part.
             if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
                 propose = latest
+                // Propose content may have changed, so any prepared share export is now stale.
+                shareURL = nil
             }
             myHonorSigned = hasLocallyHonored
             myPartSigned = hasLocallyParted
