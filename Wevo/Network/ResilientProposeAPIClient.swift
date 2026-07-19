@@ -12,7 +12,7 @@ actor ResilientProposeAPIClient: ProposeAPIClientProtocol {
     private let baseURLs: [URL]
     private let session: URLSession
 
-    init(urls: [String], session: URLSession = .shared) {
+    init(urls: [String], session: URLSession = .wevoHardened) {
         self.baseURLs = urls.compactMap { URL(string: $0) }
             .filter { $0.scheme == "https" || $0.scheme == "http" }
         self.session = session

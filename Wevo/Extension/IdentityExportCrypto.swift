@@ -9,10 +9,18 @@ import CommonCrypto
 
 /// Passphrase-based encryption for identity exports: PBKDF2-HMAC-SHA256 key derivation + AES-GCM.
 enum IdentityExportCrypto {
-    /// PBKDF2 iteration count (OWASP-recommended floor for PBKDF2-HMAC-SHA256).
-    static let iterations = 210_000
+    /// PBKDF2 iteration count for NEW exports (OWASP-recommended floor for PBKDF2-HMAC-SHA256).
+    /// Note: 210,000 is OWASP's HMAC-*SHA512* figure; the HMAC-SHA256 floor is 600,000. Since the
+    /// export envelope records the iteration count used (`IdentityEncryptedExport.iterations`) and
+    /// `decrypt` derives the key with that stored value, raising this only affects newly-written
+    /// files — older 210,000-iteration exports still decrypt (their count is read from the file and
+    /// is within `minIterations...maxIterations`).
+    static let iterations = 600_000
     static let saltLength = 16
-    static let minPassphraseLength = 8
+    /// Minimum passphrase length for NEW exports. The private signing key is the crown jewel and a
+    /// leaked `.wevo-identity` can be brute-forced offline, so short passphrases are rejected;
+    /// iteration count alone cannot compensate for a low-entropy passphrase.
+    static let minPassphraseLength = 12
     /// Accepted iteration range on import. Bounds untrusted envelope values so they can never
     /// overflow the UInt32 conversion (crash) or make PBKDF2 run for an abusive amount of time.
     static let minIterations = 100_000

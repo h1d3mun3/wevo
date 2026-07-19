@@ -103,8 +103,12 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
         var pendingLocalResend = false
         if let myPublicKey = myPublicKey {
             if myPublicKey == propose.creatorPublicKey {
-                myHonorSigned = hashedPropose.honorCreatorSignature != nil
-                myPartSigned = hashedPropose.partCreatorSignature != nil
+                // Whether *I* have already signed is used to gate the Honor/Part buttons, so trust
+                // it only when the server's stored signature actually verifies as mine — otherwise a
+                // hostile server could set a bogus non-nil value to hide the button and lock me out
+                // of acting (or fake that I acted). (`verify` binds to the local payloadHash/key.)
+                myHonorSigned = verify(hashedPropose.honorCreatorSignature, hashedPropose.honorCreatorTimestamp, propose.creatorPublicKey, "honored")
+                myPartSigned = verify(hashedPropose.partCreatorSignature, hashedPropose.partCreatorTimestamp, propose.creatorPublicKey, "parted")
                 if propose.creatorHonorSignature != nil && hashedPropose.honorCreatorSignature == nil {
                     pendingLocalResend = true
                 }
@@ -115,8 +119,9 @@ extension CheckProposeServerStatusUseCaseImpl: CheckProposeServerStatusUseCase {
                     pendingLocalResend = true
                 }
             } else if let counterparty = hashedPropose.counterparties.first(where: { $0.publicKey == myPublicKey }) {
-                myHonorSigned = counterparty.honorSignature != nil
-                myPartSigned = counterparty.partSignature != nil
+                // Same reasoning as the creator branch: gate on a verified signature, not presence.
+                myHonorSigned = verify(counterparty.honorSignature, counterparty.honorTimestamp, myPublicKey, "honored")
+                myPartSigned = verify(counterparty.partSignature, counterparty.partTimestamp, myPublicKey, "parted")
                 if propose.counterpartySignSignature != nil && counterparty.signSignature == nil {
                     pendingLocalResend = true
                 }

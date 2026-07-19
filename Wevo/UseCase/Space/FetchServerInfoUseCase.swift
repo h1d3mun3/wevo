@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Network
 import os
 
 enum FetchServerInfoUseCaseError: Error, Equatable {
@@ -46,27 +47,81 @@ struct FetchServerInfoUseCaseImpl: FetchServerInfoUseCase {
     /// Upper bound on auto-discovered peers persisted from a single /info response.
     static let maxPeers = 16
 
-    init(httpClient: any HTTPDataFetching = URLSession.shared) {
+    init(httpClient: any HTTPDataFetching = URLSession.wevoHardened) {
         self.httpClient = httpClient
     }
 
-    /// Constrains peer URLs advertised by a server before they are stored and later used for API
-    /// calls: keep only well-formed absolute http/https URLs with a host, de-duplicate, and cap the
-    /// count. Prevents a malicious/compromised primary from injecting malformed or odd-scheme
-    /// endpoints. (http is intentionally still allowed; ATS is disabled by product decision.)
+    /// Constrains peer URLs advertised by a server before they are stored and later used as API
+    /// failover endpoints: keep only well-formed absolute **https** URLs whose host is publicly
+    /// routable, de-duplicate, and cap the count.
+    ///
+    /// These peers are chosen by the server, not the user, so they are held to a higher bar than a
+    /// user-entered primary URL (which may still be http per the ATS product decision, and is
+    /// normalized separately by `String.normalizedServerURL`):
+    /// - **https only** — a compromised/hostile primary cannot inject a plaintext peer to silently
+    ///   downgrade failover traffic.
+    /// - **no loopback/private/link-local hosts** — cannot point failover at the user's local
+    ///   network or device (SSRF / internal-endpoint pivot).
     static func sanitizePeers(_ peers: [String]) -> [String] {
         var seen = Set<String>()
         var result: [String] = []
         for raw in peers {
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: trimmed),
-                  let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-                  let host = url.host, !host.isEmpty else { continue }
+                  url.scheme?.lowercased() == "https",
+                  let host = url.host, !host.isEmpty,
+                  !isNonRoutablePeerHost(host) else { continue }
             guard seen.insert(trimmed).inserted else { continue }
             result.append(trimmed)
             if result.count >= maxPeers { break }
         }
         return result
+    }
+
+    /// True for hosts a server-advertised peer must never resolve to: localhost, `.local`/mDNS
+    /// names, and loopback / private / link-local IP literals. Hostnames that are not IP literals
+    /// (ordinary public DNS names) pass — only literals are range-checked here.
+    static func isNonRoutablePeerHost(_ host: String) -> Bool {
+        let h = host.lowercased()
+        if h == "localhost" || h.hasSuffix(".local") || h.hasSuffix(".localhost") { return true }
+
+        if let v4 = IPv4Address(h) {
+            return isNonRoutableIPv4([UInt8](v4.rawValue))
+        }
+        if let v6 = IPv6Address(h) {
+            let b = [UInt8](v6.rawValue)
+            guard b.count == 16 else { return true }
+
+            // Forms that embed an IPv4 address route to that IPv4 target, so range-check the
+            // embedded bytes — otherwise e.g. ::ffff:169.254.169.254 or ::ffff:127.0.0.1 would slip
+            // past the IPv6 checks below and pivot onto internal targets.
+            let v4Mapped = b.prefix(10).allSatisfy { $0 == 0 } && b[10] == 0xff && b[11] == 0xff // ::ffff:a.b.c.d
+            let v4Compatible = b.prefix(12).allSatisfy { $0 == 0 } && !b.prefix(15).allSatisfy { $0 == 0 } // ::a.b.c.d (excl. ::, ::1)
+            let nat64 = b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b // 64:ff9b::/96
+            if v4Mapped || v4Compatible || nat64 {
+                return isNonRoutableIPv4(Array(b[12..<16]))
+            }
+
+            if b.allSatisfy({ $0 == 0 }) { return true }                          // :: unspecified
+            if b.prefix(15).allSatisfy({ $0 == 0 }) && b[15] == 1 { return true } // ::1 loopback
+            if b[0] == 0xfe && (b[1] & 0xc0) == 0x80 { return true }              // fe80::/10 link-local
+            if (b[0] & 0xfe) == 0xfc { return true }                             // fc00::/7  unique-local
+            return false
+        }
+        return false
+    }
+
+    /// True for IPv4 octets that a peer must never target: "this network", private, loopback, or
+    /// link-local. Shared by the plain-IPv4 and embedded-IPv4-in-IPv6 paths.
+    private static func isNonRoutableIPv4(_ b: [UInt8]) -> Bool {
+        guard b.count == 4 else { return true }
+        if b[0] == 0 { return true }                                // 0.0.0.0/8   "this network"
+        if b[0] == 10 { return true }                               // 10.0.0.0/8  private
+        if b[0] == 127 { return true }                              // 127.0.0.0/8 loopback
+        if b[0] == 169 && b[1] == 254 { return true }               // 169.254.0.0/16 link-local
+        if b[0] == 172 && (16...31).contains(b[1]) { return true }  // 172.16.0.0/12 private
+        if b[0] == 192 && b[1] == 168 { return true }               // 192.168.0.0/16 private
+        return false
     }
 
     func execute(urlString: String) async throws -> WevoServerInfo {

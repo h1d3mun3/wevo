@@ -30,7 +30,9 @@ private struct IdentityDetailContent: View {
     @State private var passphrase = ""
     @State private var confirmPassphrase = ""
 
-    private static let minPassphraseLength = 8
+    /// Single source of truth: the floor enforced by `IdentityExportCrypto.encrypt`. Keeping the
+    /// UI in sync means the Export button and footer never promise a passphrase the crypto rejects.
+    private static let minPassphraseLength = IdentityExportCrypto.minPassphraseLength
     private var passphraseValid: Bool {
         passphrase.count >= Self.minPassphraseLength && passphrase == confirmPassphrase
     }
