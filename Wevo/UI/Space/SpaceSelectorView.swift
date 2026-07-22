@@ -59,9 +59,11 @@ struct SpaceSelectorView: View {
                                         .font(.body)
                                         .foregroundStyle(.primary)
 
-                                    Text(space.url)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    if let url = space.url {
+                                        Text(url)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
 
                                 Spacer()

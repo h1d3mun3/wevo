@@ -42,13 +42,30 @@ struct FetchServerInfoUseCaseTests {
     }
 
     @Test func testSanitizesInvalidAndDuplicatePeers() async throws {
-        // Valid https/http kept (http allowed); duplicate, empty, hostless, non-URL, odd-scheme dropped.
-        let json = #"{"version":"0.2.0","peers":["https://node-b.example.com","http://192.168.0.2:8080","https://node-b.example.com","","not a url","ftp://x","https://ok.example.com"]}"#
+        // Only public https peers are kept. Dropped: http (plaintext downgrade), https to private/
+        // loopback hosts (SSRF), duplicate, empty, hostless, non-URL, odd-scheme.
+        let json = #"{"version":"0.2.0","peers":["https://node-b.example.com","http://node-d.example.com","https://192.168.0.2:8080","https://localhost:9000","https://node-b.example.com","","not a url","ftp://x","https://ok.example.com"]}"#
         let useCase = FetchServerInfoUseCaseImpl(httpClient: MockHTTPClient.responding(statusCode: 200, body: json))
 
         let info = try await useCase.execute(urlString: "https://node-a.example.com")
 
-        #expect(info.peers == ["https://node-b.example.com", "http://192.168.0.2:8080", "https://ok.example.com"])
+        #expect(info.peers == ["https://node-b.example.com", "https://ok.example.com"])
+    }
+
+    @Test func testRejectsNonRoutablePeerHosts() {
+        // https to internal/loopback/link-local literals and mDNS names must be rejected — including
+        // IPv4-mapped / IPv4-compatible / NAT64 IPv6 literals that embed an internal IPv4 target,
+        // and the unspecified address.
+        for host in ["localhost", "mymac.local", "127.0.0.1", "10.1.2.3", "192.168.1.1",
+                     "172.16.0.9", "169.254.10.10", "::1", "fe80::1", "fc00::1", "0.0.0.0",
+                     "::", "::ffff:169.254.169.254", "::ffff:127.0.0.1", "::ffff:10.0.0.1",
+                     "::ffff:192.168.1.1", "64:ff9b::192.168.1.1", "::192.168.1.1"] {
+            #expect(FetchServerInfoUseCaseImpl.isNonRoutablePeerHost(host), "expected \(host) rejected")
+        }
+        // Public hosts (DNS names, public IP literals, and a mapped public IPv4) are allowed.
+        for host in ["node.example.com", "8.8.8.8", "203.0.113.5", "2606:4700:4700::1111", "::ffff:8.8.8.8"] {
+            #expect(!FetchServerInfoUseCaseImpl.isNonRoutablePeerHost(host), "expected \(host) allowed")
+        }
     }
 
     @Test func testReturnsEmptyPeersWhenNoneConfigured() async throws {

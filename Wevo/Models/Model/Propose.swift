@@ -96,6 +96,41 @@ struct Propose: Codable, Identifiable {
         return .proposed
     }
 
+    /// Same precedence as `localStatus`, but a signature only counts once `verify` confirms it is
+    /// cryptographically valid for the participant key that should have produced it. This is the
+    /// value to render in trust-bearing UI: `localStatus` trusts the mere *presence* of a signature
+    /// field, which is safe only as long as every write path verified before persisting — this
+    /// re-checks at the display boundary so a present-but-invalid signature (e.g. one that reached
+    /// the shared app-group / CloudKit-synced store out of band) never shows as a trusted state.
+    ///
+    /// `verify` receives `(signature, signedMessage, signerPublicKey)` and returns validity; the
+    /// messages are the v1 signed strings (`"<verb>." + id + payloadHash + signerKey + timestamp`),
+    /// identical to what the import/merge/server-status verifiers build.
+    func verifiedLocalStatus(verify: (_ signature: String, _ message: String, _ publicKey: String) -> Bool) -> ProposeStatus {
+        let idString = id.uuidString
+        func valid(_ sig: String?, _ ts: String?, _ verb: String, _ key: String) -> Bool {
+            guard let sig, let ts else { return false }
+            return verify(sig, verb + "." + idString + payloadHash + key + ts, key)
+        }
+
+        if valid(creatorDissolveSignature, creatorDissolveTimestamp, "dissolved", creatorPublicKey)
+            || valid(counterpartyDissolveSignature, counterpartyDissolveTimestamp, "dissolved", counterpartyPublicKey) {
+            return .dissolved
+        }
+        if valid(creatorHonorSignature, creatorHonorTimestamp, "honored", creatorPublicKey)
+            && valid(counterpartyHonorSignature, counterpartyHonorTimestamp, "honored", counterpartyPublicKey) {
+            return .honored
+        }
+        if valid(creatorPartSignature, creatorPartTimestamp, "parted", creatorPublicKey)
+            || valid(counterpartyPartSignature, counterpartyPartTimestamp, "parted", counterpartyPublicKey) {
+            return .parted
+        }
+        if valid(counterpartySignSignature, counterpartySignTimestamp, "signed", counterpartyPublicKey) {
+            return .signed
+        }
+        return .proposed
+    }
+
     init(
         id: UUID,
         spaceID: UUID,

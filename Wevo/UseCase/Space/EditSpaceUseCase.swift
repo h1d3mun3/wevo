@@ -32,13 +32,15 @@ extension EditSpaceUseCaseImpl: EditSpaceUseCase {
     func execute(id: UUID, name: String, primaryURL: String, defaultIdentityID: UUID?) async throws {
         let space = try getSpaceUseCase.execute(id: id)
 
-        let trimmedURL = primaryURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        var allURLs = [trimmedURL]
-        if let info = try? await fetchServerInfoUseCase.execute(urlString: trimmedURL) {
-            let peers = info.peers.filter { $0 != trimmedURL }
-            allURLs.append(contentsOf: peers)
-        } else if space.urls.count > 1 {
-            allURLs = space.urls.map { $0 == space.url ? trimmedURL : $0 }
+        var allURLs: [String] = []
+        if let normalizedURL = primaryURL.normalizedServerURL {
+            allURLs.append(normalizedURL)
+            if let info = try? await fetchServerInfoUseCase.execute(urlString: normalizedURL) {
+                let peers = info.peers.filter { $0 != normalizedURL }
+                allURLs.append(contentsOf: peers)
+            } else if space.urls.count > 1 {
+                allURLs = space.urls.map { $0 == space.url ? normalizedURL : $0 }
+            }
         }
 
         let updatedSpace = Space(

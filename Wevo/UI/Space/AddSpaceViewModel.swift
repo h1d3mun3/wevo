@@ -19,7 +19,6 @@ final class AddSpaceViewModel {
 
     var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         selectedIdentityID != nil &&
         !isSaving
     }

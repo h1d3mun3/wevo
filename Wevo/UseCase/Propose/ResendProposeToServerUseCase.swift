@@ -27,7 +27,7 @@ struct ResendProposeToServerUseCaseImpl {
 
 extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
     func execute(propose: Propose, serverURLs: [String]) async throws {
-        guard !serverURLs.isEmpty else {
+        guard serverURLs.hasUsableServerURL else {
             throw ResendProposeToServerUseCaseError.invalidServerURL
         }
 

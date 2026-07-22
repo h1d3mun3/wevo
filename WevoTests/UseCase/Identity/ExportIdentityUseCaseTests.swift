@@ -50,7 +50,7 @@ struct ExportIdentityUseCaseTests {
         mockKeychainRepository.getPrivateKeyResult = privateKeyData
 
         let url = try ExportIdentityUseCaseImpl(keychainRepository: mockKeychainRepository)
-            .execute(identity: identity, passphrase: "s3cr3t-pass")
+            .execute(identity: identity, passphrase: "s3cr3t-passphrase")
         defer { try? FileManager.default.removeItem(at: url) }
 
         let export = try ImportIdentityFromExportUseCaseImpl(keychainRepository: mockKeychainRepository)
@@ -58,9 +58,20 @@ struct ExportIdentityUseCaseTests {
         let salt = Data(base64Encoded: export.salt)!
         let sealed = Data(base64Encoded: export.sealed)!
         let recovered = try IdentityExportCrypto.decrypt(
-            sealed: sealed, salt: salt, iterations: export.iterations, passphrase: "s3cr3t-pass"
+            sealed: sealed, salt: salt, iterations: export.iterations, passphrase: "s3cr3t-passphrase"
         )
         #expect(recovered == privateKeyData)
+    }
+
+    @Test("Rejects a passphrase shorter than the minimum length")
+    func executeRejectsShortPassphrase() {
+        mockKeychainRepository.getPrivateKeyResult = P256.Signing.PrivateKey().rawRepresentation
+        let useCase = ExportIdentityUseCaseImpl(keychainRepository: mockKeychainRepository)
+
+        // 11 chars — one below the 12-char minimum.
+        #expect(throws: IdentityExportCrypto.CryptoError.passphraseTooShort) {
+            _ = try useCase.execute(identity: identity, passphrase: "elevenchars")
+        }
     }
 
     @Test("Returns error when private key retrieval fails")

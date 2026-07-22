@@ -6,27 +6,28 @@
 import SwiftUI
 import os
 
+enum AsyncOperationState: Equatable {
+    case idle
+    case running
+    case succeeded
+    case failed(String)
+}
+
 @Observable
 @MainActor
 final class ProposeRowViewModel {
     var propose: Propose
-    let space: Space
+    var space: Space
     private let deps: any DependencyContainer
 
     var shareURL: URL?
-    var showShareSheet = false
     var shareError: String?
 
-    var isResending = false
-    var resendSuccess: Bool?
-    var resendErrorMessage: String?
-
+    var resendState: AsyncOperationState = .idle
     var serverStatus: ProposeServerStatus = .unknown
     var isCheckingServer = false
 
-    var isSigning = false
-    var signSuccess: Bool?
-    var signErrorMessage: String?
+    var signState: AsyncOperationState = .idle
 
     var defaultIdentity: Identity?
     var showProposeDetail = false
@@ -35,19 +36,13 @@ final class ProposeRowViewModel {
     var pendingServerUpdate: HashedPropose?
     var isApplyingServerUpdate = false
 
-    var isHonoring = false
-    var honorSuccess: Bool?
-    var honorErrorMessage: String?
+    var honorState: AsyncOperationState = .idle
     var myHonorSigned = false
 
-    var isParting = false
-    var partSuccess: Bool?
-    var partErrorMessage: String?
+    var partState: AsyncOperationState = .idle
     var myPartSigned = false
 
-    var isDissolving = false
-    var dissolveSuccess: Bool?
-    var dissolveErrorMessage: String?
+    var dissolveState: AsyncOperationState = .idle
 
     var pendingLocalResend = false
     var isResendingLocalSignature = false
@@ -64,7 +59,31 @@ final class ProposeRowViewModel {
     var shouldShowSignButton: Bool {
         guard let identity = defaultIdentity else { return false }
         let canSign = CanSignProposeUseCaseImpl().execute(identity: identity, propose: propose)
-        return canSign && pendingServerUpdate == nil && signSuccess != true
+        return canSign && pendingServerUpdate == nil && signState != .succeeded
+    }
+
+    var hasLocallyHonored: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorHonorSignature != nil
+            : propose.counterpartyHonorSignature != nil
+    }
+
+    var hasLocallyParted: Bool {
+        guard let identity = defaultIdentity else { return false }
+        return identity.publicKey == propose.creatorPublicKey
+            ? propose.creatorPartSignature != nil
+            : propose.counterpartyPartSignature != nil
+    }
+
+    /// Status for the row's badge: like `localStatus` but every signature is re-verified against the
+    /// participant key, so a present-but-invalid signature never shows as a trusted seal. Transition
+    /// gating (Sign/Honor/Part buttons) still keys off `localStatus`, which reflects this device's
+    /// own local writes.
+    var displayStatus: ProposeStatus {
+        propose.verifiedLocalStatus { signature, message, publicKey in
+            (try? deps.keychainRepository.verifySignature(signature, for: message, withPublicKeyString: publicKey)) == true
+        }
     }
 
     init(propose: Propose, space: Space, deps: any DependencyContainer) {
@@ -75,50 +94,39 @@ final class ProposeRowViewModel {
 
     // MARK: - Actions
 
-    func prepareShare() {
-        let useCase = ExportProposeUseCaseImpl()
+    func prepareShare(exportUseCase: ExportProposeUseCase = ExportProposeUseCaseImpl()) {
         do {
-            shareURL = try useCase.execute(propose: propose, space: space)
+            shareURL = try exportUseCase.execute(propose: propose, space: space)
             shareError = nil
         } catch {
-            Logger.propose.error("Propose export error: \(error, privacy: .public)")
-            shareError = "Export failed"
+            Logger.propose.error("Share export error: \(error.localizedDescription, privacy: .public)")
+            shareError = "Failed to prepare share: \(error.localizedDescription)"
         }
     }
 
-    func sharePropose() {
-        if shareURL == nil { prepareShare() }
-        showShareSheet = true
-    }
-
     func resendToServer() async {
-        isResending = true
-        resendSuccess = nil
-        resendErrorMessage = nil
-
-        let useCase = ResendProposeToServerUseCaseImpl()
-        do {
+        await performAction(state: \.resendState, label: "Resend") {
+            let useCase = ResendProposeToServerUseCaseImpl()
             try await useCase.execute(propose: propose, serverURLs: space.urls)
-            isResending = false
-            resendSuccess = true
             serverStatus = .exists
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            resendSuccess = nil
-        } catch {
-            Logger.propose.error("Propose resend error: \(error, privacy: .public)")
-            isResending = false
-            resendSuccess = false
-            resendErrorMessage = error.localizedDescription
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            resendSuccess = nil
-            resendErrorMessage = nil
         }
     }
 
     func checkServerStatus() async {
         guard !isCheckingServer else { return }
+        guard space.urls.hasUsableServerURL else {
+            serverStatus = .localOnly
+            // Local-only mode has no server backstop: re-sync from the local store so a row
+            // seeded from a stale parent snapshot can't re-enable or mislabel Honor/Part.
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                propose = latest
+                // Propose content may have changed, so any prepared share export is now stale.
+                shareURL = nil
+            }
+            myHonorSigned = hasLocallyHonored
+            myPartSigned = hasLocallyParted
+            return
+        }
         isCheckingServer = true
         serverStatus = .checking
 
@@ -163,120 +171,90 @@ final class ProposeRowViewModel {
     }
 
     func signPropose(with identity: Identity) async {
-        isSigning = true
-        signSuccess = nil
-        signErrorMessage = nil
-
-        let useCase = SignProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
-            try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            isSigning = false
-            signSuccess = true
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            signSuccess = nil
-        } catch SignProposeUseCaseError.notCounterparty {
-            Logger.propose.warning("This identity is not the Counterparty and cannot sign")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = "This identity is not the Counterparty"
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
-        } catch {
-            Logger.propose.error("Signing error: \(error, privacy: .public)")
-            isSigning = false
-            signSuccess = false
-            signErrorMessage = error.localizedDescription
-
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            signSuccess = nil
-            signErrorMessage = nil
+        await performAction(state: \.signState, label: "Sign") {
+            let useCase = SignProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
+            do {
+                try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
+            } catch SignProposeUseCaseError.notCounterparty {
+                throw ActionError("This identity is not the Counterparty")
+            }
+            reloadPropose()
+            pendingServerUpdate = nil
         }
     }
 
     func dissolvePropose(with identity: Identity) async {
-        isDissolving = true
-        dissolveSuccess = nil
-        dissolveErrorMessage = nil
-
-        let useCase = DissolveProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.dissolveState, label: "Dissolve") {
+            let useCase = DissolveProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            isDissolving = false
-            dissolveSuccess = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            dissolveSuccess = nil
-        } catch {
-            Logger.propose.error("Dissolve error: \(error, privacy: .public)")
-            isDissolving = false
-            dissolveSuccess = false
-            dissolveErrorMessage = error.localizedDescription
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            dissolveSuccess = nil
-            dissolveErrorMessage = nil
+            reloadPropose()
+            pendingServerUpdate = nil
         }
     }
 
     func honorPropose(with identity: Identity) async {
-        isHonoring = true
-        honorSuccess = nil
-        honorErrorMessage = nil
-
-        let useCase = HonorProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.honorState, label: "Honor") {
+            let useCase = HonorProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            isHonoring = false
-            honorSuccess = true
+            reloadPropose()
+            pendingServerUpdate = nil
             myHonorSigned = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            honorSuccess = nil
-        } catch {
-            Logger.propose.error("Honor error: \(error, privacy: .public)")
-            isHonoring = false
-            honorSuccess = false
-            honorErrorMessage = error.localizedDescription
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            honorSuccess = nil
-            honorErrorMessage = nil
         }
     }
 
     func partPropose(with identity: Identity) async {
-        isParting = true
-        partSuccess = nil
-        partErrorMessage = nil
-
-        let useCase = PartProposeUseCaseImpl(
-            keychainRepository: deps.keychainRepository,
-            proposeRepository: deps.proposeRepository
-        )
-        do {
+        await performAction(state: \.partState, label: "Part") {
+            let useCase = PartProposeUseCaseImpl(
+                keychainRepository: deps.keychainRepository,
+                proposeRepository: deps.proposeRepository
+            )
             try await useCase.execute(propose: propose, identityID: identity.id, serverURLs: space.urls)
-            isParting = false
-            partSuccess = true
+            reloadPropose()
+            pendingServerUpdate = nil
             myPartSigned = true
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            partSuccess = nil
-        } catch {
-            Logger.propose.error("Part error: \(error, privacy: .public)")
-            isParting = false
-            partSuccess = false
-            partErrorMessage = error.localizedDescription
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            partSuccess = nil
-            partErrorMessage = nil
         }
+    }
+
+    // MARK: - Private Helpers
+
+    private struct ActionError: LocalizedError {
+        let errorDescription: String?
+        init(_ message: String) { errorDescription = message }
+    }
+
+    private func reloadPropose() {
+        if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+            self.propose = latest
+        }
+        // The propose content changed, so any prepared share export is now stale.
+        shareURL = nil
+    }
+
+    private func performAction(
+        state keyPath: ReferenceWritableKeyPath<ProposeRowViewModel, AsyncOperationState>,
+        label: String,
+        action: () async throws -> Void
+    ) async {
+        self[keyPath: keyPath] = .running
+        do {
+            try await action()
+            self[keyPath: keyPath] = .succeeded
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+        } catch {
+            Logger.propose.error("\(label) error: \(error.localizedDescription, privacy: .public)")
+            self[keyPath: keyPath] = .failed(error.localizedDescription)
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+        self[keyPath: keyPath] = .idle
     }
 
     func resendLocalSignature() async {
@@ -305,6 +283,11 @@ final class ProposeRowViewModel {
         let useCase = MergeServerSignaturesIntoLocalProposeUseCaseImpl(proposeRepository: deps.proposeRepository, keychainRepository: deps.keychainRepository)
         do {
             try useCase.execute(proposeID: propose.id, serverPropose: serverPropose)
+            if let latest = try? deps.proposeRepository.fetch(by: propose.id) {
+                self.propose = latest
+            }
+            // The propose content changed, so any prepared share export is now stale.
+            shareURL = nil
             isApplyingServerUpdate = false
             pendingServerUpdate = nil
             Logger.propose.info("Accepted server signatures and reflected them locally")

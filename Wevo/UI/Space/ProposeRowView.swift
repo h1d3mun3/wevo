@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import os
 
 // MARK: - Container
 
@@ -22,6 +21,7 @@ struct ProposeRowView: View {
         ProposeRowContent(
             viewModel: ProposeRowViewModel(propose: propose, space: space, deps: deps),
             propose: propose,
+            space: space,
             onSigned: onSigned,
             serverCheckTrigger: serverCheckTrigger
         )
@@ -33,6 +33,7 @@ struct ProposeRowView: View {
 private struct ProposeRowContent: View {
     @State var viewModel: ProposeRowViewModel
     let propose: Propose
+    let space: Space
     let onSigned: () -> Void
     let serverCheckTrigger: UUID
 
@@ -66,6 +67,13 @@ private struct ProposeRowContent: View {
 
             actionBar
             statusMessages
+
+            if let shareError = viewModel.shareError {
+                HStack {
+                    Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                    Text(shareError).font(.caption2).foregroundStyle(.red)
+                }
+            }
 
             // Pending local resend banner
             if viewModel.pendingLocalResend {
@@ -120,7 +128,7 @@ private struct ProposeRowContent: View {
 
             // Honor / Part buttons (when in signed state)
             if viewModel.propose.localStatus == .signed {
-                honorPartStubButtons
+                honorPartButtons
             }
         }
         .padding(.vertical, 8)
@@ -135,9 +143,6 @@ private struct ProposeRowContent: View {
             await viewModel.checkServerStatus()
         }
         .task {
-            viewModel.prepareShare()
-        }
-        .task {
             await viewModel.loadDefaultIdentity()
         }
         .task {
@@ -145,17 +150,16 @@ private struct ProposeRowContent: View {
         }
         .onChange(of: propose.updatedAt) { _, _ in
             viewModel.propose = propose
+            viewModel.shareURL = nil
+        }
+        .onChange(of: space.updatedAt) { _, _ in
+            viewModel.space = space
+            viewModel.shareURL = nil
+            Task { await viewModel.checkServerStatus() }
         }
         .sheet(isPresented: $viewModel.showProposeDetail) {
             ProposeDetailView(propose: viewModel.propose, space: viewModel.space)
         }
-#if os(iOS)
-        .sheet(isPresented: $viewModel.showShareSheet) {
-            if let shareURL = viewModel.shareURL {
-                ShareSheetView(items: [shareURL])
-            }
-        }
-#endif
     }
 
     // MARK: - Sub Views
@@ -163,12 +167,12 @@ private struct ProposeRowContent: View {
     @ViewBuilder
     private var statusBadge: some View {
         HStack(spacing: 4) {
-            Image(systemName: viewModel.propose.localStatus.statusIcon)
+            Image(systemName: viewModel.displayStatus.statusIcon)
                 .font(.caption2)
-                .foregroundStyle(viewModel.propose.localStatus.statusColor)
-            Text(viewModel.propose.localStatus.statusLabel)
+                .foregroundStyle(viewModel.displayStatus.statusColor)
+            Text(viewModel.displayStatus.statusLabel)
                 .font(.caption2)
-                .foregroundStyle(viewModel.propose.localStatus.statusColor)
+                .foregroundStyle(viewModel.displayStatus.statusColor)
 
             Image(systemName: viewModel.serverStatus.icon)
                 .font(.caption2)
@@ -185,7 +189,7 @@ private struct ProposeRowContent: View {
             Button {
                 Task { await viewModel.resendToServer() }
             } label: {
-                if viewModel.isResending {
+                if viewModel.resendState == .running {
                     ProgressView()
                         .scaleEffect(0.7)
                 } else {
@@ -195,116 +199,36 @@ private struct ProposeRowContent: View {
                 }
             }
             .buttonStyle(.borderless)
-            .disabled(viewModel.isResending || viewModel.serverStatus == .exists)
-            .opacity((viewModel.isResending || viewModel.serverStatus == .exists) ? 0.5 : 1.0)
+            .disabled(viewModel.resendState == .running || viewModel.serverStatus == .exists || viewModel.serverStatus == .localOnly)
+            .opacity((viewModel.resendState == .running || viewModel.serverStatus == .exists || viewModel.serverStatus == .localOnly) ? 0.5 : 1.0)
 
-#if os(iOS)
-            if #available(iOS 16.0, *) {
-                if let shareURL = viewModel.shareURL {
-                    ShareLink(item: shareURL) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                } else {
-                    Button { viewModel.prepareShare() } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                }
-            } else {
-                Button { viewModel.sharePropose() } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .labelStyle(.iconOnly)
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-            }
-#else
-            if let shareURL = viewModel.shareURL {
-                ShareLink(item: shareURL) {
+            if let url = viewModel.shareURL {
+                ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
             } else {
-                Button { viewModel.prepareShare() } label: {
+                Button {
+                    viewModel.prepareShare()
+                } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
             }
-#endif
         }
     }
 
     @ViewBuilder
     private var statusMessages: some View {
-        if let resendSuccess = viewModel.resendSuccess {
-            HStack {
-                Image(systemName: resendSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(resendSuccess ? .green : .red)
-                Text(resendSuccess ? "Sent to server" : (viewModel.resendErrorMessage ?? "Failed to send"))
-                    .font(.caption2)
-                    .foregroundStyle(resendSuccess ? .green : .red)
-            }
-        }
-
-        if let shareError = viewModel.shareError {
-            Text(shareError)
-                .font(.caption2)
-                .foregroundStyle(.red)
-        }
-
-        if let signSuccess = viewModel.signSuccess {
-            HStack {
-                Image(systemName: signSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(signSuccess ? .green : .red)
-                Text(signSuccess ? "Signed" : (viewModel.signErrorMessage ?? "Failed to sign"))
-                    .font(.caption2)
-                    .foregroundStyle(signSuccess ? .green : .red)
-            }
-        }
-
-        if let honorSuccess = viewModel.honorSuccess {
-            HStack {
-                Image(systemName: honorSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(honorSuccess ? .green : .red)
-                Text(honorSuccess ? "Honor sent" : (viewModel.honorErrorMessage ?? "Failed to honor"))
-                    .font(.caption2)
-                    .foregroundStyle(honorSuccess ? .green : .red)
-            }
-        }
-
-        if let partSuccess = viewModel.partSuccess {
-            HStack {
-                Image(systemName: partSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(partSuccess ? .green : .red)
-                Text(partSuccess ? "Part sent" : (viewModel.partErrorMessage ?? "Failed to part"))
-                    .font(.caption2)
-                    .foregroundStyle(partSuccess ? .green : .red)
-            }
-        }
-
-        if let dissolveSuccess = viewModel.dissolveSuccess {
-            HStack {
-                Image(systemName: dissolveSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(dissolveSuccess ? .green : .red)
-                Text(dissolveSuccess ? "Dissolved" : (viewModel.dissolveErrorMessage ?? "Failed to dissolve"))
-                    .font(.caption2)
-                    .foregroundStyle(dissolveSuccess ? .green : .red)
-            }
-        }
+        OperationStatusRow(state: viewModel.resendState, successLabel: "Sent to server")
+        OperationStatusRow(state: viewModel.signState, successLabel: "Signed")
+        OperationStatusRow(state: viewModel.honorState, successLabel: "Honored")
+        OperationStatusRow(state: viewModel.partState, successLabel: "Parted")
+        OperationStatusRow(state: viewModel.dissolveState, successLabel: "Dissolved")
     }
 
     @ViewBuilder
@@ -315,7 +239,7 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.signPropose(with: identity) }
             } label: {
-                if viewModel.isSigning {
+                if viewModel.signState == .running {
                     HStack(spacing: 4) {
                         ProgressView()
                             .scaleEffect(0.6)
@@ -329,7 +253,7 @@ private struct ProposeRowContent: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(viewModel.isSigning)
+            .disabled(viewModel.signState == .running)
         }
     }
 
@@ -341,9 +265,9 @@ private struct ProposeRowContent: View {
                 guard let identity = viewModel.defaultIdentity else { return }
                 Task { await viewModel.dissolvePropose(with: identity) }
             } label: {
-                if viewModel.isDissolving {
+                if viewModel.dissolveState == .running {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.dissolveSuccess == true {
+                } else if viewModel.dissolveState == .succeeded {
                     Label("Dissolved", systemImage: "trash.circle.fill").font(.caption)
                 } else {
                     Label("Dissolve", systemImage: "trash.circle").font(.caption)
@@ -352,53 +276,91 @@ private struct ProposeRowContent: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(.red)
-            .disabled(viewModel.isDissolving || viewModel.defaultIdentity == nil)
+            .disabled(viewModel.dissolveState == .running || viewModel.defaultIdentity == nil)
         }
     }
 
     @ViewBuilder
-    private var honorPartStubButtons: some View {
+    private var honorPartButtons: some View {
         HStack(spacing: 8) {
             Spacer()
 
             Button {
                 guard let identity = viewModel.defaultIdentity else { return }
-                Task { await viewModel.honorPropose(with: identity) }
+                Task {
+                    await viewModel.honorPropose(with: identity)
+                    onSigned()
+                }
             } label: {
-                if viewModel.isHonoring {
+                if viewModel.honorState == .running {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.myHonorSigned {
-                    Label("Honor Sent", systemImage: "checkmark.seal.fill").font(.caption)
+                } else if viewModel.myHonorSigned || viewModel.hasLocallyHonored {
+                    Label("Honored", systemImage: "checkmark.seal.fill").font(.caption)
                 } else {
                     Label("Honor", systemImage: "checkmark.seal").font(.caption)
                 }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(viewModel.myHonorSigned ? .green : .primary)
+            .tint(viewModel.myHonorSigned || viewModel.hasLocallyHonored ? .green : .primary)
             .disabled(
-                viewModel.isHonoring
+                viewModel.honorState == .running
                 || viewModel.defaultIdentity == nil
                 || viewModel.myHonorSigned
                 || viewModel.myPartSigned
+                || viewModel.hasLocallyHonored
+                || viewModel.hasLocallyParted
             )
 
             Button {
                 guard let identity = viewModel.defaultIdentity else { return }
-                Task { await viewModel.partPropose(with: identity) }
+                Task {
+                    await viewModel.partPropose(with: identity)
+                    onSigned()
+                }
             } label: {
-                if viewModel.isParting {
+                if viewModel.partState == .running {
                     ProgressView().scaleEffect(0.7)
-                } else if viewModel.myPartSigned {
-                    Label("Part Sent", systemImage: "xmark.seal.fill").font(.caption)
+                } else if viewModel.myPartSigned || viewModel.hasLocallyParted {
+                    Label("Parted", systemImage: "xmark.seal.fill").font(.caption)
                 } else {
                     Label("Part", systemImage: "xmark.seal").font(.caption)
                 }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(viewModel.myPartSigned ? .orange : .primary)
-            .disabled(viewModel.isParting || viewModel.defaultIdentity == nil || viewModel.myPartSigned)
+            .tint(viewModel.myPartSigned || viewModel.hasLocallyParted ? .orange : .primary)
+            .disabled(
+                viewModel.partState == .running
+                || viewModel.defaultIdentity == nil
+                || viewModel.myPartSigned
+                || viewModel.hasLocallyParted
+                || viewModel.hasLocallyHonored
+            )
+        }
+    }
+}
+
+// MARK: - OperationStatusRow
+
+private struct OperationStatusRow: View {
+    let state: AsyncOperationState
+    let successLabel: String
+
+    var body: some View {
+        switch state {
+        case .succeeded:
+            HStack {
+                Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+                Text(successLabel).font(.caption2).foregroundStyle(.green)
+            }
+        case .failed(let message):
+            HStack {
+                Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.red)
+                Text(message).font(.caption2).foregroundStyle(.red)
+            }
+        default:
+            EmptyView()
         }
     }
 }

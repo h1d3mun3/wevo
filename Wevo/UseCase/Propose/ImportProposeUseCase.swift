@@ -9,6 +9,13 @@ import os
 enum ImportProposeUseCaseError: Error {
     case failedToSave
     case invalidSignature
+    /// The imported file's plaintext `message` does not hash to its `payloadHash`. Every signature
+    /// binds `payloadHash`, but `message` and `payloadHash` are decoded from the file as
+    /// independent fields, so without this check a file whose `message` was rewritten (leaving
+    /// `payloadHash` and all signatures intact) would display attacker-chosen content under valid,
+    /// honored signatures — and a victim asked to sign it would commit their key to a hash for
+    /// content they never saw.
+    case contentHashMismatch
     /// The incoming file shares an existing Propose's ID but disagrees on its immutable
     /// identity (creator key, counterparty key, or content hash) — i.e. it is not the same
     /// agreement. Merging it would graft the file's signatures onto the local participants.
@@ -39,6 +46,15 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
     ///   Local `spaceID` and `message` are always preserved; incoming non-nil fields win for
     ///   all signature fields so that signatures are never lost in either direction.
     func execute(propose: Propose, spaceID: UUID) throws {
+        // Bind the displayed content to what the signatures actually commit to. `payloadHash` is the
+        // value every signature is computed over, but it is decoded from the file independently of
+        // `message`; reject unless the message truly hashes to it, so a tampered `message` can never
+        // ride in under otherwise-valid signatures. (See ImportProposeUseCaseError.contentHashMismatch.)
+        guard propose.payloadHash == propose.message.sha256HashedString else {
+            Logger.propose.warning("Import rejected: message does not match payloadHash \(propose.id, privacy: .private)")
+            throw ImportProposeUseCaseError.contentHashMismatch
+        }
+
         // Verify all signatures in the incoming Propose before touching local storage
         try verifyAllSignatures(in: propose)
 
@@ -53,8 +69,13 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
             // keys to match means every adopted signature must validate against the REAL
             // participants' keys (the content hash is already bound by the verified creator
             // signature), so only genuine signatures can ever be merged.
+            // The content hash is part of a Propose's immutable identity and is bound by the
+            // (verified) creator signature. Requiring it to match — not just the participant keys —
+            // means the adopted signatures, which each bind `payloadHash`, can only ever belong to
+            // this exact agreement, never a same-ID/same-parties file over different content.
             guard propose.creatorPublicKey == existing.creatorPublicKey,
-                  propose.counterpartyPublicKey == existing.counterpartyPublicKey else {
+                  propose.counterpartyPublicKey == existing.counterpartyPublicKey,
+                  propose.payloadHash == existing.payloadHash else {
                 throw ImportProposeUseCaseError.conflictingProposeIdentity
             }
 

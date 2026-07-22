@@ -13,7 +13,6 @@ protocol DissolveProposeUseCase {
 }
 
 enum DissolveProposeUseCaseError: Error {
-    case invalidServerURL
     /// The identity is not a participant (neither creator nor counterparty)
     case notParticipant
     case statusIsNotProposed
@@ -32,10 +31,10 @@ struct DissolveProposeUseCaseImpl {
 }
 
 extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
-    func execute(propose: Propose, identityID: UUID, serverURLs: [String]) async throws {
-        guard serverURLs.contains(where: { URL(string: $0)?.scheme == "https" || URL(string: $0)?.scheme == "http" }) else {
-            throw DissolveProposeUseCaseError.invalidServerURL
-        }
+    func execute(propose input: Propose, identityID: UUID, serverURLs: [String]) async throws {
+        // Re-fetch the latest persisted copy so a stale in-memory snapshot can never silently
+        // overwrite newer signatures recorded after this row was seeded.
+        let propose = (try? proposeRepository.fetch(by: input.id)) ?? input
 
         guard propose.localStatus == .proposed else {
             throw DissolveProposeUseCaseError.statusIsNotProposed
@@ -85,7 +84,12 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
         try proposeRepository.update(updatedPropose)
         Logger.propose.info("Saved Dissolve signature locally: \(propose.id, privacy: .private)")
 
-        // Send to server
+        // Send to server if server URLs are configured
+        guard serverURLs.hasUsableServerURL else {
+            Logger.propose.info("Local-only mode: dissolved locally without server sync: \(propose.id, privacy: .private)")
+            return
+        }
+
         let input = ProposeAPIClient.TransitionInput(
             publicKey: identity.publicKey,
             signature: signature,

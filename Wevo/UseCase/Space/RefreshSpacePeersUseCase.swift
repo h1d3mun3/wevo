@@ -16,7 +16,7 @@ struct RefreshSpacePeersUseCaseImpl {
     let spaceRepository: SpaceRepository
     let httpClient: any HTTPDataFetching
 
-    init(spaceRepository: SpaceRepository, httpClient: any HTTPDataFetching = URLSession.shared) {
+    init(spaceRepository: SpaceRepository, httpClient: any HTTPDataFetching = URLSession.wevoHardened) {
         self.spaceRepository = spaceRepository
         self.httpClient = httpClient
     }
@@ -43,17 +43,17 @@ extension RefreshSpacePeersUseCaseImpl: RefreshSpacePeersUseCase {
     // MARK: - Private
 
     private func refresh(_ space: Space) async {
-        guard !space.url.isEmpty else { return }
+        guard let primaryURL = space.url else { return }
 
         let info: WevoServerInfo
         do {
-            info = try await FetchServerInfoUseCaseImpl(httpClient: httpClient).execute(urlString: space.url)
+            info = try await FetchServerInfoUseCaseImpl(httpClient: httpClient).execute(urlString: primaryURL)
         } catch {
             Logger.space.warning("RefreshSpacePeers: /info unreachable for '\(space.name, privacy: .private)': \(error, privacy: .public)")
             return
         }
 
-        let updatedURLs = [space.url] + info.peers.filter { $0 != space.url }
+        let updatedURLs = [primaryURL] + info.peers.filter { $0 != primaryURL }
         guard updatedURLs != space.urls else { return }
 
         let updatedSpace = Space(

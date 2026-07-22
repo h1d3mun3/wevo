@@ -161,4 +161,50 @@ struct AddSpaceUseCaseTests {
 
         #expect(mockRepository.createdSpace?.urls == ["https://example.com"])
     }
+
+    @Test func testSchemelessURLIsNormalizedToHTTPS() async throws {
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(
+            spaceRepository: mockRepository,
+            fetchServerInfoUseCase: MockFetchServerInfoUseCase()
+        )
+
+        try await useCase.execute(name: "S", primaryURL: "example.com", defaultIdentityID: nil)
+
+        #expect(mockRepository.createdSpace?.urls == ["https://example.com"])
+        #expect(mockRepository.createdSpace?.urls.hasUsableServerURL == true)
+    }
+
+    @Test func testNonHTTPSchemeURLIsStoredAsLocalOnly() async throws {
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(
+            spaceRepository: mockRepository,
+            fetchServerInfoUseCase: MockFetchServerInfoUseCase()
+        )
+
+        // A non-empty-but-unusable URL is never persisted (leaving it blank is the way to go local-only).
+        try await useCase.execute(name: "S", primaryURL: "ftp://example.com", defaultIdentityID: nil)
+
+        #expect(mockRepository.createdSpace?.urls == [])
+    }
+
+    @Test func testCreatesLocalOnlySpaceWhenURLIsEmpty() async throws {
+        let mockRepository = MockSpaceRepository()
+        mockRepository.fetchAllResult = []
+
+        let useCase = AddSpaceUseCaseImpl(
+            spaceRepository: mockRepository,
+            fetchServerInfoUseCase: MockFetchServerInfoUseCase()
+        )
+
+        try await useCase.execute(name: "Local Space", primaryURL: "", defaultIdentityID: nil)
+
+        #expect(mockRepository.createCalled == true)
+        #expect(mockRepository.createdSpace?.name == "Local Space")
+        #expect(mockRepository.createdSpace?.urls == [])
+    }
 }
