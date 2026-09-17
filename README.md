@@ -67,9 +67,9 @@ The practical effect: possession of the account (its iCloud Keychain) is enough 
 
 ## Getting Started
 
-1. Open `Wevo.xcodeproj` in Xcode 15 or later.
+1. Open `Wevo.xcodeproj` in Xcode 27 or later.
 2. Select the `Wevo` target (iOS or macOS).
-3. Build and run on a simulator or device.
+3. Build and run on a simulator or device running iOS 27 or macOS 27 or later.
 
 To use the app, add a Space with a WevoSpace server URL from within the app.
 
@@ -165,9 +165,9 @@ P-256 署名用の秘密鍵は `kSecAttrAccessibleAfterFirstUnlock` かつ `kSec
 
 ## Getting Started
 
-1. Xcode 15 以降で `Wevo.xcodeproj` を開く
+1. Xcode 27 以降で `Wevo.xcodeproj` を開く
 2. `Wevo` ターゲット（iOS または macOS）を選択
-3. シミュレータまたは実機でビルド・実行
+3. iOS 27 / macOS 27 以降のシミュレータまたは実機でビルド・実行
 
 アプリ内で WevoSpace サーバー URL を指定した Space を追加してください。
 
