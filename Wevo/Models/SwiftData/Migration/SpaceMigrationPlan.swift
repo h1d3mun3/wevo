@@ -13,7 +13,7 @@ import SwiftData
 // Matches stores created from the main branch.
 
 enum SchemaV1: VersionedSchema {
-    static var versionIdentifier = Schema.Version(1, 0, 0)
+    static let versionIdentifier = Schema.Version(1, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SchemaV1.SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }
@@ -53,7 +53,7 @@ enum SchemaV1: VersionedSchema {
 // Matches stores on devices that ran the multi-node feature branch before this migration was introduced.
 
 enum SchemaV2: VersionedSchema {
-    static var versionIdentifier = Schema.Version(2, 0, 0)
+    static let versionIdentifier = Schema.Version(2, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SchemaV2.SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }
@@ -95,7 +95,7 @@ enum SchemaV2: VersionedSchema {
 // Target schema: nodeURLs only, urlString removed.
 
 enum SchemaV3: VersionedSchema {
-    static var versionIdentifier = Schema.Version(3, 0, 0)
+    static let versionIdentifier = Schema.Version(3, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }

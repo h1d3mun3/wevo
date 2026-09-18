@@ -20,7 +20,7 @@ enum IdentityExportCrypto {
     /// Minimum passphrase length for NEW exports. The private signing key is the crown jewel and a
     /// leaked `.wevo-identity` can be brute-forced offline, so short passphrases are rejected;
     /// iteration count alone cannot compensate for a low-entropy passphrase.
-    static let minPassphraseLength = 12
+    nonisolated static let minPassphraseLength = 12
     /// Accepted iteration range on import. Bounds untrusted envelope values so they can never
     /// overflow the UInt32 conversion (crash) or make PBKDF2 run for an abusive amount of time.
     static let minIterations = 100_000

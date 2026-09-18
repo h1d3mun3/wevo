@@ -9,7 +9,7 @@ import Foundation
 import CryptoKit
 
 /// Protocol for ProposeAPIClient (conforms to the new backend API specification)
-protocol ProposeAPIClientProtocol {
+nonisolated protocol ProposeAPIClientProtocol {
     func createPropose(input: ProposeAPIClient.CreateProposeInput) async throws
     func signPropose(proposeID: UUID, input: ProposeAPIClient.SignInput) async throws
     func dissolvePropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
