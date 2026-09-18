@@ -34,9 +34,13 @@ private func wevoUncaughtExceptionHandler(_ exception: NSException) {
 
 enum CoreDataCrashDiagnostics {
 
-    /// Survives the abort, unlike stderr.
-    static let reportURL = URL(fileURLWithPath: NSTemporaryDirectory())
-        .appendingPathComponent("wevo-uncaught-exception.txt")
+    /// Survives the abort, unlike stderr. In Documents rather than tmp, which can be purged.
+    static let reportURL: URL = {
+        let dir = (try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
+                                                appropriateFor: nil, create: true))
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        return dir.appendingPathComponent("wevo-raised-exception.txt")
+    }()
 
 
     private static let installed: Bool = {
@@ -45,6 +49,10 @@ enum CoreDataCrashDiagnostics {
         UserDefaults.standard.set(1, forKey: "com.apple.CoreData.Logging.stderr")
         UserDefaults.standard.set(1, forKey: "com.apple.CoreData.SQLDebug")
 
+        // objc_setExceptionPreprocessor, not NSSetUncaughtExceptionHandler: the exception is
+        // raised inside a libdispatch callout that terminates before any uncaught-exception
+        // handler runs. The preprocessor runs inside objc_exception_throw itself.
+        WevoInstallExceptionPreprocessor(reportURL.path, nil)
         previousUncaughtExceptionHandler = NSGetUncaughtExceptionHandler()
         NSSetUncaughtExceptionHandler(wevoUncaughtExceptionHandler)
         return true
@@ -77,6 +85,6 @@ enum CoreDataCrashDiagnostics {
         _ = installed
         guard let text = try? String(contentsOf: reportURL, encoding: .utf8) else { return }
         try? FileManager.default.removeItem(at: reportURL)
-        Issue.record("A previous test in this process aborted on an uncaught exception:\n\(text)")
+        Issue.record("A previous test in this process raised an ObjC exception:\n\(text)")
     }
 }

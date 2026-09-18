@@ -1,32 +1,28 @@
 import Testing
 import Foundation
+import SwiftData
 @testable import Wevo
 
-/// DIAGNOSTIC SELF-TEST — verifies the capture plumbing without aborting the process.
+/// DIAGNOSTIC SELF-TEST — proves the ObjC shim converts a raised NSException into a value
+/// instead of letting it abort the process.
 @Suite(.serialized)
 @MainActor
 struct DiagSelfTest {
 
-    @Test func handlerIsInstalled() {
-        CoreDataCrashDiagnostics.install()
-        #expect(NSGetUncaughtExceptionHandler() != nil)
-    }
-
-    @Test func writeAndDrainRoundTrip() throws {
+    /// The preprocessor must record the reason even for an exception that is caught and
+    /// therefore never terminates anything -- that is what proves the hook is live.
+    @Test func preprocessorRecordsTheReason() throws {
         CoreDataCrashDiagnostics.install()
         try? FileManager.default.removeItem(at: CoreDataCrashDiagnostics.reportURL)
 
-        CoreDataCrashDiagnostics.writeReport(
-            for: NSException(name: .internalInconsistencyException,
-                             reason: "DIAG SELF TEST REASON",
-                             userInfo: ["key": "value"])
-        )
+        _ = WevoCatchNSException {
+            NSException(name: .internalInconsistencyException,
+                        reason: "PREPROCESSOR REACHED", userInfo: ["k": "v"]).raise()
+        }
 
         let text = try String(contentsOf: CoreDataCrashDiagnostics.reportURL, encoding: .utf8)
-        #expect(text.contains("DIAG SELF TEST REASON"))
+        #expect(text.contains("PREPROCESSOR REACHED"))
         #expect(text.contains("NSInternalInconsistencyException"))
-        #expect(text.contains("key"))
-
         try? FileManager.default.removeItem(at: CoreDataCrashDiagnostics.reportURL)
     }
 }
