@@ -12,13 +12,21 @@ import SwiftData
 @MainActor
 struct ProposeRepositoryTests {
 
-    private func makeRepository() throws -> (ProposeRepositoryImpl, ModelContainer) {
+    /// The container is held for the lifetime of the suite instance. `ModelContext` does not keep
+    /// its `ModelContainer` alive, so letting the container go out of scope tears down the store
+    /// coordinator and the next repository call raises an uncaught CoreData exception, aborting the
+    /// whole test process. swift-testing builds a fresh instance per test, so each test still gets
+    /// its own store.
+    let container: ModelContainer
+    let repo: ProposeRepositoryImpl
+
+    init() throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(
+        container = try ModelContainer(
             for: SpaceSwiftData.self, ProposeSwiftData.self,
             configurations: config
         )
-        return (ProposeRepositoryImpl(modelContext: container.mainContext), container)
+        repo = ProposeRepositoryImpl(modelContext: container.mainContext)
     }
 
     private func makePropose(
@@ -45,7 +53,6 @@ struct ProposeRepositoryTests {
     // MARK: - Create & Fetch
 
     @Test func testCreateAndFetchPropose() throws {
-        let (repo, _container) = try makeRepository()
         let spaceID = UUID()
         let propose = makePropose(spaceID: spaceID)
 
@@ -57,7 +64,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testCreateProposeWithCreatorAndCounterpartyKeys() throws {
-        let (repo, _container) = try makeRepository()
         let spaceID = UUID()
         let propose = makePropose(
             spaceID: spaceID,
@@ -74,7 +80,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testCreateProposeWithCounterpartySignature() throws {
-        let (repo, _container) = try makeRepository()
         let spaceID = UUID()
         let propose = makePropose(spaceID: spaceID, counterpartySignSignature: "counterpartySig")
 
@@ -88,7 +93,6 @@ struct ProposeRepositoryTests {
     // MARK: - FetchAll
 
     @Test func testFetchAllReturnsAllProposes() throws {
-        let (repo, _container) = try makeRepository()
         let spaceID = UUID()
 
         try repo.create(makePropose(spaceID: spaceID, message: "msg1"), spaceID: spaceID)
@@ -99,7 +103,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testFetchAllForSpaceIDFiltersCorrectly() throws {
-        let (repo, _container) = try makeRepository()
         let spaceA = UUID()
         let spaceB = UUID()
 
@@ -114,7 +117,6 @@ struct ProposeRepositoryTests {
     // MARK: - FetchAllOrphaned
 
     @Test func testFetchAllOrphanedReturnsProposesNotInValidSpaces() throws {
-        let (repo, _container) = try makeRepository()
         let validSpaceID = UUID()
         let orphanSpaceID = UUID()
 
@@ -129,7 +131,6 @@ struct ProposeRepositoryTests {
     // MARK: - Fetch by ID
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
 
         #expect(throws: ProposeRepositoryError.self) {
             try repo.fetch(by: UUID())
@@ -139,7 +140,6 @@ struct ProposeRepositoryTests {
     // MARK: - Update
 
     @Test func testUpdateModifiesExistingPropose() throws {
-        let (repo, _container) = try makeRepository()
         let id = UUID()
         let spaceID = UUID()
         let original = makePropose(id: id, spaceID: spaceID, message: "original")
@@ -163,7 +163,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testUpdateSetsCounterpartySignSignature() throws {
-        let (repo, _container) = try makeRepository()
         let id = UUID()
         let spaceID = UUID()
         let original = makePropose(id: id, spaceID: spaceID, counterpartySignSignature: nil)
@@ -189,7 +188,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testUpdateThrowsWhenProposeNotFound() throws {
-        let (repo, _container) = try makeRepository()
         let propose = makePropose()
 
         #expect(throws: ProposeRepositoryError.self) {
@@ -200,7 +198,6 @@ struct ProposeRepositoryTests {
     // MARK: - Delete
 
     @Test func testDeleteRemovesPropose() throws {
-        let (repo, _container) = try makeRepository()
         let spaceID = UUID()
         let propose = makePropose(spaceID: spaceID)
         try repo.create(propose, spaceID: spaceID)
@@ -213,7 +210,6 @@ struct ProposeRepositoryTests {
     }
 
     @Test func testDeleteThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
 
         #expect(throws: ProposeRepositoryError.self) {
             try repo.delete(by: UUID())
@@ -223,7 +219,6 @@ struct ProposeRepositoryTests {
     // MARK: - DeleteAll for SpaceID
 
     @Test func testDeleteAllForSpaceIDRemovesOnlyTargetSpaceProposes() throws {
-        let (repo, _container) = try makeRepository()
         let spaceA = UUID()
         let spaceB = UUID()
 

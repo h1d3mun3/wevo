@@ -12,13 +12,21 @@ import SwiftData
 @MainActor
 struct SpaceRepositoryTests {
 
-    private func makeRepository() throws -> (SpaceRepositoryImpl, ModelContainer) {
+    /// The container is held for the lifetime of the suite instance. `ModelContext` does not keep
+    /// its `ModelContainer` alive, so letting the container go out of scope tears down the store
+    /// coordinator and the next repository call raises an uncaught CoreData exception, aborting the
+    /// whole test process. swift-testing builds a fresh instance per test, so each test still gets
+    /// its own store.
+    let container: ModelContainer
+    let repo: SpaceRepositoryImpl
+
+    init() throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(
+        container = try ModelContainer(
             for: SpaceSwiftData.self, ProposeSwiftData.self,
             configurations: config
         )
-        return (SpaceRepositoryImpl(modelContext: container.mainContext), container)
+        repo = SpaceRepositoryImpl(modelContext: container.mainContext)
     }
 
     private func makeSpace(
@@ -41,7 +49,6 @@ struct SpaceRepositoryTests {
     // MARK: - Create
 
     @Test func testCreateAndFetchSpace() throws {
-        let (repo, _container) = try makeRepository()
         let space = makeSpace()
 
         try repo.create(space)
@@ -55,7 +62,6 @@ struct SpaceRepositoryTests {
     // MARK: - FetchAll
 
     @Test func testFetchAllReturnsAllSpacesSortedByOrderIndex() throws {
-        let (repo, _container) = try makeRepository()
         let space1 = makeSpace(name: "B", orderIndex: 1)
         let space2 = makeSpace(name: "A", orderIndex: 0)
 
@@ -69,7 +75,6 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testFetchAllReturnsEmptyWhenNoSpaces() throws {
-        let (repo, _container) = try makeRepository()
         let all = try repo.fetchAll()
         #expect(all.isEmpty)
     }
@@ -77,7 +82,6 @@ struct SpaceRepositoryTests {
     // MARK: - Fetch by ID
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
 
         #expect(throws: SpaceRepositoryError.self) {
             try repo.fetch(by: UUID())
@@ -87,7 +91,6 @@ struct SpaceRepositoryTests {
     // MARK: - Update
 
     @Test func testUpdateModifiesExistingSpace() throws {
-        let (repo, _container) = try makeRepository()
         let id = UUID()
         let original = makeSpace(id: id, name: "Original")
         try repo.create(original)
@@ -109,7 +112,6 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testUpdateThrowsWhenSpaceNotFound() throws {
-        let (repo, _container) = try makeRepository()
         let space = makeSpace()
 
         #expect(throws: SpaceRepositoryError.self) {
@@ -120,7 +122,6 @@ struct SpaceRepositoryTests {
     // MARK: - Delete
 
     @Test func testDeleteRemovesSpace() throws {
-        let (repo, _container) = try makeRepository()
         let space = makeSpace()
         try repo.create(space)
 
@@ -132,7 +133,6 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testDeleteThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
 
         #expect(throws: SpaceRepositoryError.self) {
             try repo.delete(by: UUID())
@@ -142,7 +142,6 @@ struct SpaceRepositoryTests {
     // MARK: - DeleteAll
 
     @Test func testDeleteAllRemovesAllSpaces() throws {
-        let (repo, _container) = try makeRepository()
         try repo.create(makeSpace(orderIndex: 0))
         try repo.create(makeSpace(orderIndex: 1))
 
