@@ -13,6 +13,7 @@ import SwiftData
 struct ProposeRepositoryTests {
 
     private func makeRepository() throws -> (ProposeRepositoryImpl, ModelContainer) {
+        CoreDataCrashDiagnostics.install()   // DIAGNOSTIC ONLY
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: SpaceSwiftData.self, ProposeSwiftData.self,

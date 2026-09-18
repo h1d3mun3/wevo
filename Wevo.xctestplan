@@ -9,6 +9,20 @@
     }
   ],
   "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.Logging.stderr"
+      },
+      {
+        "argument" : "1"
+      },
+      {
+        "argument" : "-com.apple.CoreData.SQLDebug"
+      },
+      {
+        "argument" : "1"
+      }
+    ],
     "performanceAntipatternCheckerEnabled" : true,
     "targetForVariableExpansion" : {
       "containerPath" : "container:Wevo.xcodeproj",
