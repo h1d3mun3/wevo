@@ -14,11 +14,18 @@ struct ProposeRepositoryTests {
 
     private func makeRepository() throws -> (ProposeRepositoryImpl, ModelContainer) {
         CoreDataCrashDiagnostics.install()   // DIAGNOSTIC ONLY
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(
-            for: SpaceSwiftData.self, ProposeSwiftData.self,
-            configurations: config
+        // Every container gets its own store identity. ModelConfiguration(isStoredInMemoryOnly:)
+        // leaves the store unnamed, so each of these per-test containers was asking the
+        // coordinator for the same in-memory store -- a plausible source of the
+        // -[NSSQLDefaultConnectionManager handleStoreRequest:] exception that aborts the process
+        // once several have been created and torn down in one run.
+        let schema = Schema([SpaceSwiftData.self, ProposeSwiftData.self])
+        let config = ModelConfiguration(
+            "wevo-tests-\(UUID().uuidString)",
+            schema: schema,
+            isStoredInMemoryOnly: true
         )
+        let container = try ModelContainer(for: schema, configurations: config)
         return (ProposeRepositoryImpl(modelContext: container.mainContext), container)
     }
 
