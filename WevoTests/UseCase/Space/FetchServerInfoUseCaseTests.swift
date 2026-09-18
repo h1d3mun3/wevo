@@ -31,6 +31,7 @@ struct MockHTTPClient: HTTPDataFetching {
 
 // MARK: - Tests
 
+@MainActor
 struct FetchServerInfoUseCaseTests {
 
     @Test func testReturnsInfoWithPeers() async throws {

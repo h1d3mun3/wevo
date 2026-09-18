@@ -9,6 +9,7 @@ import CryptoKit
 @testable import Wevo
 
 @Suite(.serialized)
+@MainActor
 struct KeychainRepositoryTests {
 
     private func makeRepository() -> KeychainRepositoryImpl {
