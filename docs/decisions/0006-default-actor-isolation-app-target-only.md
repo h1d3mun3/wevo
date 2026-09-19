@@ -78,11 +78,19 @@ would still not be applicable to `WevoTests` without restructuring the mocks.
 4. **A new suite needs `@MainActor` only if it exercises main-actor-isolated app code.** Not
    unconditionally. A suite that only touches `nonisolated` API — a `Codable` model, a pure
    static helper, a `nonisolated` protocol, `Foundation` or `ProcessInfo` — compiles without
-   it, and adding it anyway costs cross-suite parallelism for nothing (`Wevo.xctestplan`
-   runs `WevoTests` with `parallelizable = true`). The rule is: write the suite without the
+   it, and annotating it anyway buys nothing. The rule is: write the suite without the
    annotation, and add it when the compiler asks for it. That every suite in `WevoTests`
    happens to carry `@MainActor` today is a fact about the current suites, not a convention
    to copy.
+
+   In principle the annotation costs in-process parallelism, since `Wevo.xctestplan` runs
+   `WevoTests` with `parallelizable = true` and main-actor suites cannot run concurrently
+   with each other. **In practice no such cost has been measured on this suite set**, and
+   the suspicion that it had been was the reason PR #123 was split out of #120 at all. The
+   Xcode Cloud iOS unit-test runs across the stack were 4m9s before the annotations
+   (baseline), 4m8s with all 22 of them in Swift 5 mode, and 4m1s with them in Swift 6 mode.
+   Treat the parallelism argument as a reason not to annotate gratuitously, not as evidence
+   that the current 22 annotations are costing anything.
 5. **Reversing this requires more than a settings change.** Anyone who wants the module
    default on the test side must first make the mock hierarchy consistent under it (reason
    2), and must accept that no `XCTestCase`-based target can be included (reason 1). That is
