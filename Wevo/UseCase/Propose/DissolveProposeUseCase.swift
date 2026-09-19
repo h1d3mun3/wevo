@@ -49,7 +49,7 @@ extension DissolveProposeUseCaseImpl: DissolveProposeUseCase {
             throw DissolveProposeUseCaseError.notParticipant
         }
 
-        let timestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
+        let timestamp = ProposeAPIClient.iso8601String(from: Date())
 
         // Signature message (v1): "dissolved." + proposeId + contentHash + signerPublicKey + timestamp
         let message = "dissolved." + propose.id.uuidString + propose.payloadHash + identity.publicKey + timestamp

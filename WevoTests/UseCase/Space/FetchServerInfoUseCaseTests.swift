@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+import Synchronization
 @testable import Wevo
 
 // MARK: - Mock HTTP Client
@@ -78,9 +79,9 @@ struct FetchServerInfoUseCaseTests {
     }
 
     @Test func testAppendsInfoPathToBaseURL() async throws {
-        var capturedURL: URL?
+        let capturedURL = Mutex<URL?>(nil)
         let useCase = FetchServerInfoUseCaseImpl(httpClient: MockHTTPClient { url in
-            capturedURL = url
+            capturedURL.withLock { $0 = url }
             let json = #"{"version":"0.2.0","peers":[]}"#
             let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (json.data(using: .utf8)!, response)
@@ -88,13 +89,13 @@ struct FetchServerInfoUseCaseTests {
 
         _ = try await useCase.execute(urlString: "https://example.com")
 
-        #expect(capturedURL?.absoluteString == "https://example.com/info")
+        #expect(capturedURL.withLock { $0 }?.absoluteString == "https://example.com/info")
     }
 
     @Test func testTrimsWhitespaceFromURL() async throws {
-        var capturedURL: URL?
+        let capturedURL = Mutex<URL?>(nil)
         let useCase = FetchServerInfoUseCaseImpl(httpClient: MockHTTPClient { url in
-            capturedURL = url
+            capturedURL.withLock { $0 = url }
             let json = #"{"version":"0.2.0","peers":[]}"#
             let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (json.data(using: .utf8)!, response)
@@ -102,7 +103,7 @@ struct FetchServerInfoUseCaseTests {
 
         _ = try await useCase.execute(urlString: "  https://example.com  ")
 
-        #expect(capturedURL?.host == "example.com")
+        #expect(capturedURL.withLock { $0 }?.host == "example.com")
     }
 
     @Test func testThrowsInvalidURLForEmptyString() async throws {
