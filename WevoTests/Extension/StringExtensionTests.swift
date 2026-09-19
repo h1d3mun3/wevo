@@ -7,6 +7,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct StringExtensionTests {
 
     @Test func testKnownSHA256Hash() {

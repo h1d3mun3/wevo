@@ -7,6 +7,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct ProposeConverterTests {
 
     private func makePropose(spaceID: UUID = UUID()) -> Propose {

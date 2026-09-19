@@ -9,6 +9,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct GetDefaultIdentityForSpaceUseCaseTests {
 
     private func makeSpace(defaultIdentityID: UUID?) -> Space {

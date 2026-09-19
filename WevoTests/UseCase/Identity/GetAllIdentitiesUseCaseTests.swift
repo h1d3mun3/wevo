@@ -9,6 +9,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct GetAllIdentitiesUseCaseTests {
 
     @Test func testReturnsAllIdentitiesFromRepository() throws {

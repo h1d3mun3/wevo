@@ -7,6 +7,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct HardenedURLSessionTests {
 
     private func url(_ s: String) -> URL { URL(string: s)! }
