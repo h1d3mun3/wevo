@@ -59,6 +59,9 @@ class MockKeychainRepository: KeychainRepository {
     // MARK: - verifySignature
     var verifySignatureResult: Bool = true
     var verifySignatureError: Error?
+    /// Every message `verifySignature` was asked to check, in call order. Lets a test assert on the
+    /// exact signed string a use case rebuilt, not merely on whether verification was attempted.
+    var verifySignatureCalledWithMessages: [String] = []
 
     // MARK: - Protocol Implementation
 
@@ -149,6 +152,7 @@ class MockKeychainRepository: KeychainRepository {
     }
 
     func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
+        verifySignatureCalledWithMessages.append(message)
         if let error = verifySignatureError {
             throw error
         }
