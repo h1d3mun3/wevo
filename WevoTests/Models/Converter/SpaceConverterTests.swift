@@ -7,6 +7,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct SpaceConverterTests {
 
     private func makeSpace() -> Space {

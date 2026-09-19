@@ -77,10 +77,9 @@ private struct SpaceDetailContent: View {
                             ProposeRowView(
                                 propose: propose,
                                 space: viewModel.currentSpace,
+                                onSigned: { viewModel.loadProposesFromLocal() },
                                 serverCheckTrigger: viewModel.serverCheckTrigger
-                            ) {
-                                viewModel.loadProposesFromLocal()
-                            }
+                            )
                         }
                     }
                     .listStyle(.plain)

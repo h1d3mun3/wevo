@@ -50,7 +50,7 @@ extension SignProposeUseCaseImpl: SignProposeUseCase {
         }
 
         // Build signature message (sign: "signed." + proposeId + contentHash + signerPublicKey + timestamp)
-        let signTimestamp = ProposeAPIClient.iso8601Formatter.string(from: Date())
+        let signTimestamp = ProposeAPIClient.iso8601String(from: Date())
         let signatureMessage = "signed." + propose.id.uuidString + propose.payloadHash + identity.publicKey + signTimestamp
 
         // Sign

@@ -37,7 +37,7 @@ extension ResendProposeToServerUseCaseImpl: ResendProposeToServerUseCase {
         }
 
         // ISO8601 string of creation timestamp
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
+        let iso8601String = ProposeAPIClient.iso8601String(from: propose.createdAt)
 
         // Resend to POST /proposes using CreateProposeInput
         let input = ProposeAPIClient.CreateProposeInput(

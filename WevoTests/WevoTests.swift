@@ -7,6 +7,7 @@
 
 import Testing
 
+@MainActor
 struct WevoTests {
 
     @Test func example() async throws {

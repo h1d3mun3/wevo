@@ -7,6 +7,7 @@ import Testing
 import Foundation
 @testable import Wevo
 
+@MainActor
 struct ServerURLExtensionsTests {
 
     @Test func testHasUsableServerURL() {
