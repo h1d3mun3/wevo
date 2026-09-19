@@ -13,7 +13,9 @@ import SwiftData
 struct ProposeRepositoryTests {
 
     private func makeRepository() throws -> (ProposeRepositoryImpl, ModelContainer) {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        // Mirroring must stay off: .automatic picks up the test host's iCloud entitlement and
+        // attaches a CloudKit delegate that aborts the process from a background thread.
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: SpaceSwiftData.self, ProposeSwiftData.self,
             configurations: config
