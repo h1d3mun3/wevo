@@ -9,7 +9,6 @@ import SwiftData
 @testable import Wevo
 
 @Suite(.serialized)
-@MainActor
 struct ProposeRepositoryTests {
 
     private func makeRepository() throws -> (ProposeRepositoryImpl, ModelContainer) {
@@ -144,7 +143,7 @@ struct ProposeRepositoryTests {
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = try withExtendedLifetime(container) {
+        _ = withExtendedLifetime(container) {
             #expect(throws: ProposeRepositoryError.self) {
                 try repo.fetch(by: UUID())
             }
@@ -209,7 +208,7 @@ struct ProposeRepositoryTests {
 
     @Test func testUpdateThrowsWhenProposeNotFound() throws {
         let (repo, container) = try makeRepository()
-        try withExtendedLifetime(container) {
+        withExtendedLifetime(container) {
             let propose = makePropose()
 
             #expect(throws: ProposeRepositoryError.self) {
@@ -237,7 +236,7 @@ struct ProposeRepositoryTests {
 
     @Test func testDeleteThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = try withExtendedLifetime(container) {
+        _ = withExtendedLifetime(container) {
             #expect(throws: ProposeRepositoryError.self) {
                 try repo.delete(by: UUID())
             }

@@ -52,7 +52,6 @@ class MockCleanupExportFileUseCase: CleanupExportFileUseCase {
 
 // MARK: - Mock Container
 
-@MainActor
 class MockDependencyContainer: DependencyContainer {
     var keychainRepository: KeychainRepository = MockKeychainRepository()
     var spaceRepository: SpaceRepository = MockSpaceRepository()

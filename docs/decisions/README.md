@@ -18,7 +18,8 @@ title.
 | [0003](0003-all-prs-use-merge-commits.md) | All Pull Requests Merge via Merge Commit | Accepted |
 | [0004](0004-trunk-and-release-candidate-branches.md) | Trunk (`main`) + Release-Candidate (`rc-*`) Branch Strategy | Accepted |
 | [0005](0005-signature-scheme-version-must-be-signed.md) | The Signature Scheme Version Must Be Covered by the Signature (v2+) | Accepted |
-| [0006](0006-default-actor-isolation-app-target-only.md) | `MainActor` Default Isolation Is Set on the App Target Only, Not on Test Targets | Accepted |
+| [0006](0006-default-actor-isolation-app-target-only.md) | `MainActor` Default Isolation Is Set on the App Target Only, Not on Test Targets | Superseded by 0007 |
+| [0007](0007-mainactor-default-isolation-now-covers-wevotests.md) | `MainActor` Default Isolation Now Covers `WevoTests` Too | Accepted |
 
 ## Adding a new decision
 

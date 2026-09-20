@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-09-19
+Superseded by [Decision 0007](0007-mainactor-default-isolation-now-covers-wevotests.md) — 2026-09-20.
+Originally accepted 2026-09-19; kept below as the accurate historical record of why the
+asymmetry existed and what was tried before it was resolved.
 
 ## Context
 

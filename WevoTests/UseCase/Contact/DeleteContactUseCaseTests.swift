@@ -9,7 +9,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct DeleteContactUseCaseTests {
 
     @Test func testCallsDeleteWithCorrectID() throws {

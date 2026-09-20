@@ -9,7 +9,6 @@ import SwiftData
 @testable import Wevo
 
 @Suite(.serialized)
-@MainActor
 struct SpaceRepositoryTests {
 
     private func makeRepository() throws -> (SpaceRepositoryImpl, ModelContainer) {
@@ -86,7 +85,7 @@ struct SpaceRepositoryTests {
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = try withExtendedLifetime(container) {
+        _ = withExtendedLifetime(container) {
             #expect(throws: SpaceRepositoryError.self) {
                 try repo.fetch(by: UUID())
             }
@@ -121,7 +120,7 @@ struct SpaceRepositoryTests {
 
     @Test func testUpdateThrowsWhenSpaceNotFound() throws {
         let (repo, container) = try makeRepository()
-        try withExtendedLifetime(container) {
+        withExtendedLifetime(container) {
             let space = makeSpace()
 
             #expect(throws: SpaceRepositoryError.self) {
@@ -148,7 +147,7 @@ struct SpaceRepositoryTests {
 
     @Test func testDeleteThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = try withExtendedLifetime(container) {
+        _ = withExtendedLifetime(container) {
             #expect(throws: SpaceRepositoryError.self) {
                 try repo.delete(by: UUID())
             }

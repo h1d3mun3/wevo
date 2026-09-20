@@ -8,7 +8,6 @@ import Foundation
 import CryptoKit
 @testable import Wevo
 
-@MainActor
 struct GetFingerprintUseCaseTests {
 
     private let useCase = GetFingerprintUseCaseImpl()

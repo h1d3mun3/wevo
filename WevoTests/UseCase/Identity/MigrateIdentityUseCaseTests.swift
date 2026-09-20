@@ -7,7 +7,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct MigrateIdentityUseCaseTests {
 
     @Test func testCallsMigrateKeyWithCorrectID() throws {
