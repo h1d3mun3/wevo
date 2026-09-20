@@ -19,7 +19,7 @@ struct DeleteSpaceUseCaseTests {
         let testID = UUID()
 
         // Act
-        try await useCase.execute(id: testID)
+        try useCase.execute(id: testID)
 
         // Assert
         #expect(mockRepository.deleteCalled == true)
