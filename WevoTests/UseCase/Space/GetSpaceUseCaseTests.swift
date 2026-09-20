@@ -45,8 +45,8 @@ struct GetSpaceUseCaseTests {
         let useCase = GetSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }

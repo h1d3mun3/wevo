@@ -32,8 +32,8 @@ struct DeleteSpaceUseCaseTests {
         let useCase = DeleteSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }
