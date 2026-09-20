@@ -44,49 +44,52 @@ struct SpaceRepositoryTests {
 
     @Test func testCreateAndFetchSpace() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let space = makeSpace()
+        try withExtendedLifetime(container) {
+            let space = makeSpace()
 
-        try repo.create(space)
-        let fetched = try repo.fetch(by: space.id)
+            try repo.create(space)
+            let fetched = try repo.fetch(by: space.id)
 
-        #expect(fetched.id == space.id)
-        #expect(fetched.name == space.name)
-        #expect(fetched.url == space.url)
+            #expect(fetched.id == space.id)
+            #expect(fetched.name == space.name)
+            #expect(fetched.url == space.url)
+        }
     }
 
     // MARK: - FetchAll
 
     @Test func testFetchAllReturnsAllSpacesSortedByOrderIndex() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let space1 = makeSpace(name: "B", orderIndex: 1)
-        let space2 = makeSpace(name: "A", orderIndex: 0)
+        try withExtendedLifetime(container) {
+            let space1 = makeSpace(name: "B", orderIndex: 1)
+            let space2 = makeSpace(name: "A", orderIndex: 0)
 
-        try repo.create(space1)
-        try repo.create(space2)
+            try repo.create(space1)
+            try repo.create(space2)
 
-        let all = try repo.fetchAll()
-        #expect(all.count == 2)
-        #expect(all[0].name == "A")
-        #expect(all[1].name == "B")
+            let all = try repo.fetchAll()
+            #expect(all.count == 2)
+            #expect(all[0].name == "A")
+            #expect(all[1].name == "B")
+        }
     }
 
     @Test func testFetchAllReturnsEmptyWhenNoSpaces() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let all = try repo.fetchAll()
-        #expect(all.isEmpty)
+        try withExtendedLifetime(container) {
+            let all = try repo.fetchAll()
+            #expect(all.isEmpty)
+        }
     }
 
     // MARK: - Fetch by ID
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-
-        #expect(throws: SpaceRepositoryError.self) {
-            try repo.fetch(by: UUID())
+        _ = try withExtendedLifetime(container) {
+            #expect(throws: SpaceRepositoryError.self) {
+                try repo.fetch(by: UUID())
+            }
         }
     }
 
@@ -94,34 +97,36 @@ struct SpaceRepositoryTests {
 
     @Test func testUpdateModifiesExistingSpace() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let id = UUID()
-        let original = makeSpace(id: id, name: "Original")
-        try repo.create(original)
+        try withExtendedLifetime(container) {
+            let id = UUID()
+            let original = makeSpace(id: id, name: "Original")
+            try repo.create(original)
 
-        let updated = Space(
-            id: id,
-            name: "Updated",
-            url: "https://updated.com",
-            defaultIdentityID: nil,
-            orderIndex: 0,
-            createdAt: original.createdAt,
-            updatedAt: .now
-        )
-        try repo.update(updated)
+            let updated = Space(
+                id: id,
+                name: "Updated",
+                url: "https://updated.com",
+                defaultIdentityID: nil,
+                orderIndex: 0,
+                createdAt: original.createdAt,
+                updatedAt: .now
+            )
+            try repo.update(updated)
 
-        let fetched = try repo.fetch(by: id)
-        #expect(fetched.name == "Updated")
-        #expect(fetched.url == "https://updated.com")
+            let fetched = try repo.fetch(by: id)
+            #expect(fetched.name == "Updated")
+            #expect(fetched.url == "https://updated.com")
+        }
     }
 
     @Test func testUpdateThrowsWhenSpaceNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let space = makeSpace()
+        try withExtendedLifetime(container) {
+            let space = makeSpace()
 
-        #expect(throws: SpaceRepositoryError.self) {
-            try repo.update(space)
+            #expect(throws: SpaceRepositoryError.self) {
+                try repo.update(space)
+            }
         }
     }
 
@@ -129,23 +134,24 @@ struct SpaceRepositoryTests {
 
     @Test func testDeleteRemovesSpace() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        let space = makeSpace()
-        try repo.create(space)
+        try withExtendedLifetime(container) {
+            let space = makeSpace()
+            try repo.create(space)
 
-        try repo.delete(by: space.id)
+            try repo.delete(by: space.id)
 
-        #expect(throws: SpaceRepositoryError.self) {
-            try repo.fetch(by: space.id)
+            #expect(throws: SpaceRepositoryError.self) {
+                try repo.fetch(by: space.id)
+            }
         }
     }
 
     @Test func testDeleteThrowsWhenNotFound() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-
-        #expect(throws: SpaceRepositoryError.self) {
-            try repo.delete(by: UUID())
+        _ = try withExtendedLifetime(container) {
+            #expect(throws: SpaceRepositoryError.self) {
+                try repo.delete(by: UUID())
+            }
         }
     }
 
@@ -153,13 +159,14 @@ struct SpaceRepositoryTests {
 
     @Test func testDeleteAllRemovesAllSpaces() throws {
         let (repo, container) = try makeRepository()
-        _ = container  // keep the in-memory ModelContainer alive for the test's duration
-        try repo.create(makeSpace(orderIndex: 0))
-        try repo.create(makeSpace(orderIndex: 1))
+        try withExtendedLifetime(container) {
+            try repo.create(makeSpace(orderIndex: 0))
+            try repo.create(makeSpace(orderIndex: 1))
 
-        try repo.deleteAll()
+            try repo.deleteAll()
 
-        let all = try repo.fetchAll()
-        #expect(all.isEmpty)
+            let all = try repo.fetchAll()
+            #expect(all.isEmpty)
+        }
     }
 }
