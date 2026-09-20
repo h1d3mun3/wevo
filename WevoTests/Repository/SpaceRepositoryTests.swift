@@ -43,7 +43,7 @@ struct SpaceRepositoryTests {
     // MARK: - Create
 
     @Test func testCreateAndFetchSpace() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let space = makeSpace()
 
         try repo.create(space)
@@ -57,7 +57,7 @@ struct SpaceRepositoryTests {
     // MARK: - FetchAll
 
     @Test func testFetchAllReturnsAllSpacesSortedByOrderIndex() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let space1 = makeSpace(name: "B", orderIndex: 1)
         let space2 = makeSpace(name: "A", orderIndex: 0)
 
@@ -71,7 +71,7 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testFetchAllReturnsEmptyWhenNoSpaces() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let all = try repo.fetchAll()
         #expect(all.isEmpty)
     }
@@ -79,7 +79,7 @@ struct SpaceRepositoryTests {
     // MARK: - Fetch by ID
 
     @Test func testFetchByIDThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
 
         #expect(throws: SpaceRepositoryError.self) {
             try repo.fetch(by: UUID())
@@ -89,7 +89,7 @@ struct SpaceRepositoryTests {
     // MARK: - Update
 
     @Test func testUpdateModifiesExistingSpace() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let id = UUID()
         let original = makeSpace(id: id, name: "Original")
         try repo.create(original)
@@ -111,7 +111,7 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testUpdateThrowsWhenSpaceNotFound() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let space = makeSpace()
 
         #expect(throws: SpaceRepositoryError.self) {
@@ -122,7 +122,7 @@ struct SpaceRepositoryTests {
     // MARK: - Delete
 
     @Test func testDeleteRemovesSpace() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         let space = makeSpace()
         try repo.create(space)
 
@@ -134,7 +134,7 @@ struct SpaceRepositoryTests {
     }
 
     @Test func testDeleteThrowsWhenNotFound() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
 
         #expect(throws: SpaceRepositoryError.self) {
             try repo.delete(by: UUID())
@@ -144,7 +144,7 @@ struct SpaceRepositoryTests {
     // MARK: - DeleteAll
 
     @Test func testDeleteAllRemovesAllSpaces() throws {
-        let (repo, _container) = try makeRepository()
+        let (repo, _) = try makeRepository()
         try repo.create(makeSpace(orderIndex: 0))
         try repo.create(makeSpace(orderIndex: 1))
 
