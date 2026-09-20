@@ -23,6 +23,7 @@ import Foundation
 /// `ModelConfiguration.CloudKitDatabase` conforms only to `Sendable`, not `Equatable`, so the
 /// resulting value cannot be compared in either direction. The `Bool` is the only testable
 /// surface, which is why the decision is exposed as one.
+@MainActor
 struct CloudKitMirroringFlagTests {
 
     /// Fails if the test plan loses the environment variable entry, or renames it.
