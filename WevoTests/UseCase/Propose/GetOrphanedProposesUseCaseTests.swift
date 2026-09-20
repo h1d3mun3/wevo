@@ -9,7 +9,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct GetOrphanedProposesUseCaseTests {
 
     /// Helper to generate a test Propose

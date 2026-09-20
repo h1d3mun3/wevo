@@ -14,7 +14,6 @@ import SwiftData
 /// runs when SwiftData opens a store file whose recorded version identifier is older than the
 /// schema it is asked for, and an in-memory store is always created fresh at the target version.
 @Suite(.serialized)
-@MainActor
 struct SpaceMigrationPlanTests {
 
     // MARK: - Store helpers

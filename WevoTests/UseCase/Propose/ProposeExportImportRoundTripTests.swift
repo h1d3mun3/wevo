@@ -21,7 +21,6 @@ import Foundation
 ///
 /// holds. Nothing in the production code states this dependency, and the two formatters behind
 /// `iso8601Date` disagree about fractional seconds, so these tests state it instead.
-@MainActor
 struct ProposeExportImportRoundTripTests {
 
     // MARK: - Helpers

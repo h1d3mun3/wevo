@@ -7,7 +7,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct AddSpaceViewModelTests {
 
     private func makeViewModel(deps: MockDependencyContainer? = nil) -> AddSpaceViewModel {

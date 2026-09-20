@@ -10,7 +10,6 @@ import Foundation
 import CryptoKit
 @testable import Wevo
 
-@MainActor
 struct MergeServerSignaturesIntoLocalProposeUseCaseTests {
 
     /// Verifies every signature (default returns true); a rejection test overrides it.

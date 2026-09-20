@@ -9,7 +9,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct DeleteIdentityUseCaseTests {
 
     @Test func testCallsDeleteIdentityKeyWithCorrectID() throws {

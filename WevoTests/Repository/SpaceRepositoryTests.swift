@@ -9,7 +9,6 @@ import SwiftData
 @testable import Wevo
 
 @Suite(.serialized)
-@MainActor
 struct SpaceRepositoryTests {
 
     private func makeRepository() throws -> (SpaceRepositoryImpl, ModelContainer) {

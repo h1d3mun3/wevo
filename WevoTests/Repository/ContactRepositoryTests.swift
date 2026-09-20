@@ -10,7 +10,6 @@ import Foundation
 import SwiftData
 @testable import Wevo
 
-@MainActor
 struct ContactRepositoryTests {
 
     let container: ModelContainer
