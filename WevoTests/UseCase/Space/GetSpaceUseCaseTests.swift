@@ -29,7 +29,7 @@ struct GetSpaceUseCaseTests {
         let useCase = GetSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
-        let result = try await useCase.execute(id: testID)
+        let result = try useCase.execute(id: testID)
 
         // Assert
         #expect(result.id == testID)
