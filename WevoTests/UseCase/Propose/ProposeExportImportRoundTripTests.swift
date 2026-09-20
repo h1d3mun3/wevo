@@ -136,8 +136,10 @@ struct ProposeExportImportRoundTripTests {
         // Write the export by hand: the shipped exporter cannot produce this shape.
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .custom { date, encoder in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
             var container = encoder.singleValueContainer()
-            try container.encode(basic.string(from: date))
+            try container.encode(formatter.string(from: date))
         }
         let data = try encoder.encode(
             ProposeExportData(
