@@ -1,34 +1,51 @@
 {
-  "fill" : {
-    "solid" : "extended-gray:1.00000,1.00000"
-  },
-  "groups" : [
+  "fill-specializations": [
     {
-      "layers" : [
-        {
-          "glass" : false,
-          "image-name" : "icon.png",
-          "name" : "icon.png",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              30.3671875
-            ]
-          }
-        }
-      ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "value": {
+        "solid": "srgb:0.96471,0.96863,0.98039,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "solid": "srgb:0.07451,0.08235,0.10588,1.00000"
       }
     }
   ],
-  "supported-platforms" : {
-    "squares" : "shared"
+  "groups": [
+    {
+      "name": "Foreground",
+      "layers": [
+        {
+          "image-name": "left.svg",
+          "name": "left",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.49804,0.63529,1.00000,1.00000"
+              }
+            }
+          ]
+        },
+        {
+          "image-name": "right.svg",
+          "name": "right",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:1.00000,0.59608,0.46667,1.00000"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
   }
 }
