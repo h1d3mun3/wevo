@@ -45,14 +45,14 @@ private struct CreateProposeContent: View {
                     if let identity = viewModel.selectedIdentity {
                         HStack {
                             Image(systemName: "key.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.tint)
                             Text(identity.nickname)
                                 .font(.body)
                             Spacer()
                             if viewModel.identities.count > 1 {
                                 Button("Change") { viewModel.showIdentityPicker = true }
                                     .buttonStyle(.borderless)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                             }
                         }
                     } else {
@@ -61,9 +61,9 @@ private struct CreateProposeContent: View {
                         } label: {
                             HStack {
                                 Image(systemName: "key.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                                 Text("Select an Identity...")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                             }
                         }
                         .buttonStyle(.plain)
@@ -84,7 +84,7 @@ private struct CreateProposeContent: View {
                             Spacer()
                             Button("Change") { viewModel.showContactPicker = true }
                                 .buttonStyle(.borderless)
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.tint)
                         }
                     } else {
                         Button {
@@ -92,9 +92,9 @@ private struct CreateProposeContent: View {
                         } label: {
                             HStack {
                                 Image(systemName: "person.crop.circle.badge.plus")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                                 Text("Select a Contact...")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                             }
                         }
                         .buttonStyle(.plain)
@@ -271,7 +271,7 @@ struct IdentityPickerSheet: View {
                                 Spacer()
                                 if identity.id == selectedIdentity?.id {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(.tint)
                                 }
                             }
                         }

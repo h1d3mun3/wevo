@@ -66,8 +66,8 @@ struct ProposeSignaturesSectionView: View {
                     .font(.caption2)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.1))
-                    .foregroundStyle(.blue)
+                    .background(Color.accentColor.opacity(0.1))
+                    .foregroundStyle(.tint)
                     .cornerRadius(4)
             }
         }

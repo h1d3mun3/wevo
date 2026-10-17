@@ -57,7 +57,7 @@ private struct EditSpaceContent: View {
                         Spacer()
                         Button("Change") { viewModel.showIdentityPicker = true }
                             .buttonStyle(.borderless)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.tint)
                     }
                 }
 
