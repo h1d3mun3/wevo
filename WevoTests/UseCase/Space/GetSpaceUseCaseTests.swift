@@ -9,7 +9,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct GetSpaceUseCaseTests {
 
     @Test func testReturnsSpaceFromRepository() async throws {
@@ -30,7 +29,7 @@ struct GetSpaceUseCaseTests {
         let useCase = GetSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act
-        let result = try await useCase.execute(id: testID)
+        let result = try useCase.execute(id: testID)
 
         // Assert
         #expect(result.id == testID)
@@ -46,8 +45,8 @@ struct GetSpaceUseCaseTests {
         let useCase = GetSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }

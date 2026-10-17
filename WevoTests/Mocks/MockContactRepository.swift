@@ -8,7 +8,6 @@
 import Foundation
 @testable import Wevo
 
-@MainActor
 class MockContactRepository: ContactRepository {
     // MARK: - create
     var createCalled = false

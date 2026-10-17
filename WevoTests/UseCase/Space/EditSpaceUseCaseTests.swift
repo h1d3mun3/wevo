@@ -26,7 +26,6 @@ class MockGetSpaceUseCase: GetSpaceUseCase {
 
 // MARK: - Tests
 
-@MainActor
 struct EditSpaceUseCaseTests {
 
     @Test func testUpdatesSpaceWithTrimmedValues() async throws {

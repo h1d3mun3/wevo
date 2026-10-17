@@ -7,7 +7,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct ImportProposeUseCaseTests {
 
     // MARK: - Helpers
@@ -56,7 +55,7 @@ struct ImportProposeUseCaseTests {
 
     private func makeUseCase(
         proposeRepository: MockProposeRepository? = nil,
-        keychainRepository: MockKeychainRepository? = nil
+        keychainRepository: (any KeychainRepository)? = nil
     ) -> ImportProposeUseCaseImpl {
         ImportProposeUseCaseImpl(
             proposeRepository: proposeRepository ?? MockProposeRepository(),
@@ -469,20 +468,5 @@ struct ImportProposeUseCaseTests {
                 spaceID: UUID()
             )
         }
-    }
-}
-
-// MARK: - Helper mock for per-call results
-
-/// MockKeychainRepository variant that returns different results per verifySignature call
-final class MockKeychainRepositoryWithCallCount: MockKeychainRepository {
-    var resultsPerCall: [Bool] = []
-    private var callIndex = 0
-
-    override func verifySignature(_ signature: String, for message: String, withPublicKeyString publicKeyString: String) throws -> Bool {
-        if let error = verifySignatureError { throw error }
-        defer { callIndex += 1 }
-        guard callIndex < resultsPerCall.count else { return verifySignatureResult }
-        return resultsPerCall[callIndex]
     }
 }

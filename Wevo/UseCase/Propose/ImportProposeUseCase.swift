@@ -123,7 +123,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
     private func verifyAllSignatures(in propose: Propose) throws {
         // Creator signature (always present — establishes authenticity of the Propose itself)
         // v1: "proposed." + proposeId + contentHash + creatorPublicKey + sortedCounterpartyKeys + createdAt
-        let createdAtISO = ProposeAPIClient.iso8601Formatter.string(from: propose.createdAt)
+        let createdAtISO = ProposeAPIClient.iso8601String(from: propose.createdAt)
         let creatorMessage = "proposed."
             + propose.id.uuidString
             + propose.payloadHash
@@ -233,8 +233,7 @@ extension ImportProposeUseCaseImpl: ImportProposeUseCase {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
-            if let date = ProposeAPIClient.iso8601Formatter.date(from: string)
-                ?? ProposeAPIClient.iso8601FormatterBasic.date(from: string) {
+            if let date = ProposeAPIClient.iso8601Date(from: string) {
                 return date
             }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot parse date: \(string)")

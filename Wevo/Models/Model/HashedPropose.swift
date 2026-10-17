@@ -8,7 +8,7 @@
 import Foundation
 
 /// Struct representing counterparty information (corresponds to the counterparties field in API responses)
-struct ProposeCounterparty: Codable {
+nonisolated struct ProposeCounterparty: Codable {
     /// Counterparty's public key (JWK format)
     let publicKey: String
     /// Counterparty's sign signature (nil = unsigned)
@@ -54,7 +54,7 @@ struct ProposeCounterparty: Codable {
 /// Propose model for API communication
 /// Contains only the hashed message (does not include the original message)
 /// Corresponds to the server's ProposeResponse
-struct HashedPropose: Codable, Identifiable {
+nonisolated struct HashedPropose: Codable, Identifiable {
     let id: UUID
     /// SHA256 hash (received as contentHash from API, treated internally as payloadHash)
     let contentHash: String

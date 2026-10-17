@@ -8,7 +8,6 @@
 import Foundation
 @testable import Wevo
 
-@MainActor
 class MockSpaceRepository: SpaceRepository {
     // MARK: - create
     var createCalled = false

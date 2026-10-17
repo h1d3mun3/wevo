@@ -24,7 +24,7 @@ struct ExportProposeUseCaseImpl: ExportProposeUseCase {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()
-            try container.encode(ProposeAPIClient.iso8601Formatter.string(from: date))
+            try container.encode(ProposeAPIClient.iso8601String(from: date))
         }
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let jsonData = try encoder.encode(exportData)

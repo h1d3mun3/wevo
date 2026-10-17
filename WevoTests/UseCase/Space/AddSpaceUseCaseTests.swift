@@ -24,7 +24,6 @@ struct MockFetchServerInfoUseCase: FetchServerInfoUseCase {
 
 // MARK: - Tests
 
-@MainActor
 struct AddSpaceUseCaseTests {
 
     @Test func testCreatesSpaceWithCorrectOrderIndex() async throws {

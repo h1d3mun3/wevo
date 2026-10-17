@@ -40,7 +40,7 @@ extension CreateProposeUseCaseImpl: CreateProposeUseCase {
         let contentHash = trimmedMessage.sha256HashedString
 
         // Build signature message (v1: "proposed." + proposeId + contentHash + creatorPublicKey + counterpartyPublicKeys(sorted & joined) + createdAt)
-        let iso8601String = ProposeAPIClient.iso8601Formatter.string(from: createdAt)
+        let iso8601String = ProposeAPIClient.iso8601String(from: createdAt)
         let sortedCounterpartyKeys = [counterpartyPublicKey].sorted().joined()
         let signatureMessage = "proposed." + proposeID.uuidString + contentHash + identity.publicKey + sortedCounterpartyKeys + iso8601String
 

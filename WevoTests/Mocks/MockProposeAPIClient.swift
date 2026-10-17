@@ -8,7 +8,10 @@
 import Foundation
 @testable import Wevo
 
-class MockProposeAPIClient: ProposeAPIClientProtocol {
+/// `ProposeAPIClientProtocol` is `nonisolated` (its real implementation is an `actor`), so this
+/// mock stays `nonisolated` too rather than picking up the test target's `MainActor` default —
+/// matching how the app target opts genuinely non-main-actor types out (see ADR 0007).
+nonisolated class MockProposeAPIClient: ProposeAPIClientProtocol {
     // MARK: - createPropose
     var createProposeCalled = false
     var createProposeInput: ProposeAPIClient.CreateProposeInput?

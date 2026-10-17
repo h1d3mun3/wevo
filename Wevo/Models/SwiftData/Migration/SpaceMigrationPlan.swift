@@ -7,13 +7,14 @@
 
 import Foundation
 import SwiftData
+import Synchronization
 
 // MARK: - V1 Schema
 // Original schema: urlString only, no nodeURLs.
 // Matches stores created from the main branch.
 
 enum SchemaV1: VersionedSchema {
-    static var versionIdentifier = Schema.Version(1, 0, 0)
+    static let versionIdentifier = Schema.Version(1, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SchemaV1.SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }
@@ -53,7 +54,7 @@ enum SchemaV1: VersionedSchema {
 // Matches stores on devices that ran the multi-node feature branch before this migration was introduced.
 
 enum SchemaV2: VersionedSchema {
-    static var versionIdentifier = Schema.Version(2, 0, 0)
+    static let versionIdentifier = Schema.Version(2, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SchemaV2.SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }
@@ -95,7 +96,7 @@ enum SchemaV2: VersionedSchema {
 // Target schema: nodeURLs only, urlString removed.
 
 enum SchemaV3: VersionedSchema {
-    static var versionIdentifier = Schema.Version(3, 0, 0)
+    static let versionIdentifier = Schema.Version(3, 0, 0)
     static var models: [any PersistentModel.Type] {
         [SpaceSwiftData.self, ProposeSwiftData.self, ContactSwiftData.self]
     }
@@ -114,8 +115,10 @@ enum SpaceMigrationPlan: SchemaMigrationPlan {
     )
 
     /// Temporary in-memory store to pass urlString values from willMigrate to didMigrate.
-    /// Cleared immediately after didMigrate completes.
-    private static var migrationMapping: [String: String] = [:]
+    /// Cleared immediately after didMigrate completes. Mutex-guarded rather than plain static
+    /// storage because the migration closures are nonisolated and SwiftData makes no promise about
+    /// which thread runs them.
+    private static let migrationMapping = Mutex<[String: String]>([:])
 
     /// V2 → V3: custom — copies urlString → nodeURLs[0] for records where nodeURLs is still empty,
     /// then urlString is dropped as part of the schema change.
@@ -124,19 +127,22 @@ enum SpaceMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV3.self,
         willMigrate: { context in
             let spaces = try context.fetch(FetchDescriptor<SchemaV2.SpaceSwiftData>())
-            for space in spaces where !space.urlString.isEmpty && space.nodeURLs.isEmpty {
-                migrationMapping[space.id.uuidString] = space.urlString
+            migrationMapping.withLock { mapping in
+                for space in spaces where !space.urlString.isEmpty && space.nodeURLs.isEmpty {
+                    mapping[space.id.uuidString] = space.urlString
+                }
             }
         },
         didMigrate: { context in
             let spaces = try context.fetch(FetchDescriptor<SpaceSwiftData>())
+            let mapping = migrationMapping.withLock { $0 }
             for space in spaces {
-                if let urlString = migrationMapping[space.id.uuidString] {
+                if let urlString = mapping[space.id.uuidString] {
                     space.nodeURLs = [urlString]
                 }
             }
             try context.save()
-            migrationMapping = [:]
+            migrationMapping.withLock { $0 = [:] }
         }
     )
 }

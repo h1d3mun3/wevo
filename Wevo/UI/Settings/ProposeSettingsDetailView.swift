@@ -150,7 +150,7 @@ private struct ProposeSettingsDetailContent: View {
     @ViewBuilder
     private func timestampRow(_ label: String, iso8601: String) -> some View {
         LabeledContent(label) {
-            if let date = ISO8601DateFormatter().date(from: iso8601) {
+            if let date = ProposeAPIClient.iso8601Date(from: iso8601) {
                 Text(date, format: .dateTime)
             } else {
                 Text(iso8601)

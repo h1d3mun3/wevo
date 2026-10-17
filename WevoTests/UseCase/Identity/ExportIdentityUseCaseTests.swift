@@ -8,7 +8,6 @@ import Foundation
 import CryptoKit
 @testable import Wevo
 
-@MainActor
 struct ExportIdentityUseCaseTests {
 
     let mockKeychainRepository = MockKeychainRepository()

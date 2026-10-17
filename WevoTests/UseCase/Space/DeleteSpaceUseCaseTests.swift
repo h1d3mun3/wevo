@@ -9,7 +9,6 @@ import Testing
 import Foundation
 @testable import Wevo
 
-@MainActor
 struct DeleteSpaceUseCaseTests {
 
     @Test func testCallsDeleteWithCorrectID() async throws {
@@ -19,7 +18,7 @@ struct DeleteSpaceUseCaseTests {
         let testID = UUID()
 
         // Act
-        try await useCase.execute(id: testID)
+        try useCase.execute(id: testID)
 
         // Assert
         #expect(mockRepository.deleteCalled == true)
@@ -33,8 +32,8 @@ struct DeleteSpaceUseCaseTests {
         let useCase = DeleteSpaceUseCaseImpl(spaceRepository: mockRepository)
 
         // Act & Assert
-        await #expect(throws: NSError.self) {
-            try await useCase.execute(id: UUID())
+        #expect(throws: NSError.self) {
+            try useCase.execute(id: UUID())
         }
     }
 }

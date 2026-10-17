@@ -11,16 +11,45 @@ import os
 
 @main
 struct WevoApp: App {
+#if DEBUG
+    /// True when this launch was explicitly asked to run without CloudKit mirroring, via the
+    /// `WEVO_DISABLE_CLOUDKIT_MIRRORING` environment variable that `Wevo.xctestplan` sets.
+    ///
+    /// Unit tests run *inside* this process (the `WevoTests` target sets `TEST_HOST` to the app),
+    /// so `sharedModelContainer` below is built for real during a test run. No test environment
+    /// has a signed-in iCloud account, and the app does carry the CloudKit entitlement, so
+    /// `.automatic` does not quietly skip mirroring — it attempts setup, fails, and retries,
+    /// burying the diagnostics log in noise that has already caused one misdiagnosis.
+    ///
+    /// The signal is a flag this project owns, rather than Xcode's `XCTestBundlePath` /
+    /// `XCTestConfigurationFilePath`: those are undocumented and already inconsistent (under
+    /// Xcode 27 the latter is set but empty, so only its presence can be read), which makes them
+    /// a contract Apple can change out from under us. This one changes only when we change it.
+    static var cloudKitMirroringDisabled: Bool {
+        ProcessInfo.processInfo.environment["WEVO_DISABLE_CLOUDKIT_MIRRORING"] != nil
+    }
+#endif
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             SpaceSwiftData.self,
             ProposeSwiftData.self,
             ContactSwiftData.self
         ])
+
+        // Compiled for DEBUG only, on purpose: a release binary must contain no path that can
+        // turn mirroring off, so no stray environment variable can stop a shipped app syncing.
+        #if DEBUG
+        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase =
+            WevoApp.cloudKitMirroringDisabled ? .none : .automatic
+        #else
+        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = .automatic
+        #endif
+
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             groupContainer: .identifier("group.com.h1d3mun3.Wevo"),
-            cloudKitDatabase: .automatic
+            cloudKitDatabase: cloudKitDatabase
         )
 
         do {

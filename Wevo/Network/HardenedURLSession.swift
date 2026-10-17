@@ -36,7 +36,7 @@ final class RedirectHardeningDelegate: NSObject, URLSessionTaskDelegate, @unchec
     }
 }
 
-extension URLSession {
+nonisolated extension URLSession {
     /// Shared session that applies `RedirectHardeningDelegate`. Use this instead of `.shared` for
     /// all server/API traffic so a redirect cannot silently downgrade the scheme or cross origins.
     static let wevoHardened: URLSession = {

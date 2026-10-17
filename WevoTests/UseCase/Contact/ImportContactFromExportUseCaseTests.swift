@@ -10,7 +10,6 @@ import Foundation
 import CryptoKit
 @testable import Wevo
 
-@MainActor
 struct ImportContactFromExportUseCaseTests {
 
     private func writeTemp(_ export: ContactExportData) throws -> URL {

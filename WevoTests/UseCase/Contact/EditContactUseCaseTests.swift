@@ -26,7 +26,6 @@ class MockGetContactUseCase: GetContactUseCase {
 
 // MARK: - Tests
 
-@MainActor
 struct EditContactUseCaseTests {
 
     @Test func testUpdatesContactWithTrimmedValues() throws {

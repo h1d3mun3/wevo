@@ -7,9 +7,10 @@
 
 import Foundation
 import CryptoKit
+import Synchronization
 
 /// Protocol for ProposeAPIClient (conforms to the new backend API specification)
-protocol ProposeAPIClientProtocol {
+nonisolated protocol ProposeAPIClientProtocol {
     func createPropose(input: ProposeAPIClient.CreateProposeInput) async throws
     func signPropose(proposeID: UUID, input: ProposeAPIClient.SignInput) async throws
     func dissolvePropose(proposeID: UUID, input: ProposeAPIClient.TransitionInput) async throws
@@ -23,19 +24,37 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
     private let baseURL: URL
     private let session: URLSession
 
-    /// ISO8601 formatter (shared as a static let because instantiation is expensive)
-    static let iso8601Formatter: ISO8601DateFormatter = {
+    /// ISO8601 formatter, shared because instantiation is expensive and mutex-guarded because
+    /// `ISO8601DateFormatter` is not `Sendable`.
+    ///
+    /// Deliberately NOT replaced with `Date.ISO8601FormatStyle`: the formatter rounds fractional
+    /// seconds to the nearest millisecond while `ISO8601FormatStyle` truncates, so the two disagree
+    /// on roughly half of all instants. These strings go into signature messages and into the hash
+    /// `ImportProposeUseCase.verifyAllSignatures` rebuilds, so any change to the rendering would
+    /// invalidate already-issued signatures (Decision 0001).
+    private static let iso8601Formatter = Mutex<ISO8601DateFormatter>({
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
-    }()
+    }())
 
-    /// ISO8601 formatter without fractional seconds (fallback)
-    static let iso8601FormatterBasic: ISO8601DateFormatter = {
+    /// ISO8601 formatter without fractional seconds (parse-only fallback)
+    private static let iso8601FormatterBasic = Mutex<ISO8601DateFormatter>({
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
         return f
-    }()
+    }())
+
+    /// Renders `date` exactly as every signed message and export expects it.
+    nonisolated static func iso8601String(from date: Date) -> String {
+        iso8601Formatter.withLock { $0.string(from: date) }
+    }
+
+    /// Parses an ISO8601 timestamp, with or without fractional seconds.
+    nonisolated static func iso8601Date(from string: String) -> Date? {
+        iso8601Formatter.withLock { $0.date(from: string) }
+            ?? iso8601FormatterBasic.withLock { $0.date(from: string) }
+    }
 
     /// Initializer
     /// - Parameters:
@@ -251,10 +270,7 @@ actor ProposeAPIClient: ProposeAPIClientProtocol {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
-            if let date = ProposeAPIClient.iso8601Formatter.date(from: dateString) {
-                return date
-            }
-            if let date = ProposeAPIClient.iso8601FormatterBasic.date(from: dateString) {
+            if let date = ProposeAPIClient.iso8601Date(from: dateString) {
                 return date
             }
             throw DecodingError.dataCorruptedError(

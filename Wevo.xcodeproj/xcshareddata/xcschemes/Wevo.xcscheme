@@ -46,17 +46,6 @@
                ReferencedContainer = "container:Wevo.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "83A545A82F5893F800342AE7"
-               BuildableName = "WevoUITests.xctest"
-               BlueprintName = "WevoUITests"
-               ReferencedContainer = "container:Wevo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
