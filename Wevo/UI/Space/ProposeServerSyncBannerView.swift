@@ -83,10 +83,10 @@ struct PendingLocalResendBannerView: View {
             HStack {
                 Image(systemName: "exclamationmark.icloud")
                     .font(.caption)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.tint)
                 Text("Your signature has not reached the server yet")
                     .font(.caption)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.tint)
                     .fontWeight(.medium)
                 Spacer()
             }
@@ -117,13 +117,12 @@ struct PendingLocalResendBannerView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
-                .tint(.blue)
                 .disabled(isResending)
             }
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 8)
-        .background(Color.blue.opacity(0.1))
+        .background(Color.accentColor.opacity(0.1))
         .cornerRadius(8)
     }
 }

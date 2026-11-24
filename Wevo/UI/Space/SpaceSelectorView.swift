@@ -70,11 +70,11 @@ struct SpaceSelectorView: View {
 
                                 if space.id == originalSpaceID {
                                     Image(systemName: "arrow.down.circle.fill")
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(.tint)
                                         .font(.title3)
                                     Text("Original")
                                         .font(.caption)
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(.tint)
                                         .fontWeight(.medium)
                                 }
                             }
